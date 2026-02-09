@@ -1,0 +1,96 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 240 10% 3.9%;
+    --primary: 142 72% 45%;
+    --secondary: 142 85% 50%;
+    --accent: 142 72% 95%;
+  }
+
+  body {
+    @apply antialiased text-gray-900 bg-[#f9fafb];
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  }
+}
+
+.glass-morphism {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.gradient-bg {
+  background: linear-gradient(135deg, #f0fdf4 0%, #ffffff 100%);
+}
+
+.admin-gradient-bg {
+  background: radial-gradient(circle at top right, #13ec5b22, transparent),
+    radial-gradient(circle at bottom left, #11d45211, transparent);
+}
+
+.animate-in {
+  animation: fadeIn 0.5s ease-out forwards;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.card-shine {
+  position: relative;
+  overflow: hidden;
+}
+
+.card-shine::after {
+  content: "";
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: linear-gradient(to bottom right,
+      rgba(255, 255, 255, 0) 0%,
+      rgba(255, 255, 255, 0) 40%,
+      rgba(255, 255, 255, 0.4) 50%,
+      rgba(255, 255, 255, 0) 60%,
+      rgba(255, 255, 255, 0) 100%);
+  transform: rotate(45deg);
+  transition: all 0.3s;
+  pointer-events: none;
+  opacity: 0;
+}
+
+.card-shine:hover::after {
+  animation: shine 0.7s;
+  opacity: 1;
+}
+
+@keyframes shine {
+  0% {
+    transform: scale(0) rotate(45deg);
+    opacity: 0;
+  }
+
+  80% {
+    transform: scale(1) rotate(45deg);
+    opacity: 0.5;
+  }
+
+  100% {
+    transform: scale(1.2) rotate(45deg);
+    opacity: 0;
+  }
+}
