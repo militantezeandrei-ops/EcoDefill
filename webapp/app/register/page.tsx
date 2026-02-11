@@ -114,7 +114,7 @@ export default function RegisterPage() {
                                 name="fullName"
                                 type="text"
                                 required
-                                placeholder="John Doe"
+                                placeholder="Juan Dela Cruz"
                                 value={formData.fullName}
                                 onChange={handleChange}
                             />
@@ -123,7 +123,7 @@ export default function RegisterPage() {
                                 name="studentId"
                                 type="text"
                                 required
-                                placeholder="2024-00123"
+                                placeholder="PDM-20XX-XXXXXX"
                                 value={formData.studentId}
                                 onChange={handleChange}
                             />
@@ -134,7 +134,7 @@ export default function RegisterPage() {
                             name="email"
                             type="email"
                             required
-                            placeholder="john@school.edu"
+                            placeholder="EMAIL ADDRESS"
                             value={formData.email}
                             onChange={handleChange}
                         />
@@ -162,11 +162,13 @@ export default function RegisterPage() {
                                 onChange={handleChange}
                             >
                                 <option value="">Select a course...</option>
-                                <option value="BSCS">BS Computer Science</option>
                                 <option value="BSIT">BS Information Technology</option>
-                                <option value="BSIS">BS Information Systems</option>
-                                <option value="BSCE">BS Computer Engineering</option>
-                                <option value="OTHER">Other Degrees</option>
+                                <option value="BSHM">BS Hospitality Management</option>
+                                <option value="BSCS">BS Computer Science</option>
+                                <option value="BTLED">BTLEd</option>
+                                <option value="BECED">BECEd</option>
+                                <option value="BSTM">BS Tourism Management</option>
+                                <option value="BSOAD">BS Office Administration</option>
                             </select>
                         </div>
 

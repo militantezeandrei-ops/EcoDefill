@@ -29,8 +29,17 @@
 }
 
 .admin-gradient-bg {
-  background: radial-gradient(circle at top right, #13ec5b22, transparent),
-    radial-gradient(circle at bottom left, #11d45211, transparent);
+  background: radial-gradient(circle at top right, #34d39908, transparent 40%),
+    radial-gradient(circle at bottom left, #6366f108, transparent 50%),
+    #f8fafc;
+}
+
+.admin-glass {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.05);
 }
 
 .animate-in {

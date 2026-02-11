@@ -1,53 +1,123 @@
+"use client";
+
 import { ReactNode } from "react";
 import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
+import { useAdminAuth } from "@/lib/hooks/useAdminAuth";
 import { Button } from "@/components/ui/Button";
-import { Card } from "@/components/ui/Card";
+import { auth } from "@/lib/firebase";
+import { signOut } from "firebase/auth";
+import {
+    LayoutDashboard,
+    Users,
+    History,
+    Settings,
+    LogOut,
+    Menu
+} from "lucide-react";
 
 export default function AdminLayout({ children }: { children: ReactNode }) {
+    const pathname = usePathname();
+    const router = useRouter();
+    const { loading, isAdmin } = useAdminAuth();
+    const isLoginPage = pathname === "/admin/login";
+    const adminEmail = auth.currentUser?.email;
+
+    const handleSignOut = async () => {
+        try {
+            await signOut(auth);
+            router.push("/admin/login");
+        } catch (error) {
+            console.error("Error signing out:", error);
+        }
+    };
+
+    if (loading && !isLoginPage) {
+        return (
+            <div className="h-screen w-full flex items-center justify-center bg-[#f8fafc]">
+                <div className="w-12 h-12 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
+            </div>
+        );
+    }
+
+    if (isLoginPage) {
+        return <>{children}</>;
+    }
+
+    if (!isAdmin) {
+        return null; // Hook handles redirect
+    }
+
+    const navLinks = [
+        { label: "Dashboard", href: "/admin/dashboard", icon: LayoutDashboard },
+        { label: "Members", href: "/admin/students", icon: Users },
+        { label: "Activity", href: "/admin/logs", icon: History },
+        { label: "Settings", href: "/admin/settings", icon: Settings },
+    ];
+
     return (
-        <div className="flex h-screen bg-[#f9fafb] admin-gradient-bg">
+        <div className="flex h-screen bg-[#f8fafc] admin-gradient-bg text-slate-800 font-medium">
             {/* Sidebar */}
-            <aside className="w-80 bg-white border-r border-gray-100 hidden xl:flex flex-col shadow-2xl shadow-gray-200/50 relative z-20">
-                <div className="p-10 mb-4">
-                    <div className="flex items-center gap-3 mb-8">
-                        <div className="w-10 h-10 rounded-xl bg-gray-900 flex items-center justify-center">
-                            <div className="w-4 h-4 rounded-sm bg-[#13ec5b]"></div>
+            <aside className="w-80 bg-white border-r border-slate-200 hidden xl:flex flex-col shadow-sm relative z-20">
+                <div className="p-10">
+                    <div className="flex items-center gap-4 mb-12">
+                        <div className="w-12 h-12 bg-emerald-500 rounded-2xl flex items-center justify-center text-white text-2xl shadow-lg shadow-emerald-200">
+                            ♻️
                         </div>
-                        <h2 className="text-2xl font-black text-gray-900 font-display tracking-tighter">EcoDefill.</h2>
+                        <h1 className="text-2xl font-black tracking-tighter text-slate-900 italic uppercase">
+                            EcoDefill
+                        </h1>
                     </div>
 
-                    <div className="space-y-1">
-                        <p className="px-4 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-4">Navigation Hub</p>
-                        <nav className="space-y-2">
-                            {[
-                                { name: 'Dashboard', path: '/admin/dashboard', icon: 'M4 6h16M4 12h16M4 18h16' },
-                                { name: 'Students', path: '/admin/students', icon: 'M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z' },
-                                { name: 'System Logs', path: '/admin/logs', icon: 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z' },
-                                { name: 'Settings', path: '/admin/settings', icon: 'M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z' },
-                            ].map((item) => (
-                                <Link key={item.name} href={item.path} className="flex items-center gap-4 px-4 py-3 text-gray-500 hover:bg-gray-50 rounded-2xl group transition-all">
-                                    <svg className="w-5 h-5 text-gray-400 group-hover:text-[#13ec5b] transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d={item.icon} /></svg>
-                                    <span className="font-bold group-hover:text-gray-900 transition-colors">{item.name}</span>
+                    <nav className="space-y-3">
+                        {navLinks.map((link) => {
+                            const Icon = link.icon;
+                            const isActive = pathname === link.href;
+                            return (
+                                <Link
+                                    key={link.href}
+                                    href={link.href}
+                                    className={`flex items-center gap-4 p-4 rounded-2xl transition-all duration-300 ${isActive
+                                        ? "bg-slate-100 text-emerald-600 shadow-sm"
+                                        : "text-slate-500 hover:bg-slate-50 hover:text-slate-900"
+                                        }`}
+                                >
+                                    <Icon size={20} className={isActive ? "text-emerald-500" : ""} />
+                                    <span className="text-sm font-bold tracking-tight">{link.label}</span>
                                 </Link>
-                            ))}
-                        </nav>
-                    </div>
+                            );
+                        })}
+                    </nav>
                 </div>
 
                 <div className="mt-auto p-8">
-                    <Card className="p-6 bg-gray-50 border-none shadow-none rounded-3xl">
-                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-2">System Status</p>
-                        <div className="flex items-center gap-2">
-                            <div className="w-2 h-2 rounded-full bg-[#13ec5b] animate-pulse"></div>
-                            <p className="text-sm font-bold text-gray-900">Encrypted Session</p>
+                    <div className="p-6 bg-slate-50 rounded-[2rem] border border-slate-100 shadow-sm">
+                        <div className="flex items-center gap-4 mb-4">
+                            <div className="w-12 h-12 rounded-full bg-emerald-100 border-2 border-white flex items-center justify-center text-emerald-600 font-bold overflow-hidden shadow-inner uppercase">
+                                {adminEmail?.charAt(0) || 'A'}
+                            </div>
+                            <div className="overflow-hidden">
+                                <p className="text-sm font-black text-slate-900 truncate">Administrator</p>
+                                <p className="text-[10px] font-bold text-slate-400 truncate uppercase tracking-widest">{adminEmail || 'Admin Session'}</p>
+                            </div>
                         </div>
-                    </Card>
+                        <Button
+                            variant="primary"
+                            className="w-full h-11 rounded-xl bg-slate-900 text-white font-black text-[10px] uppercase tracking-widest hover:bg-slate-800 transition-all shadow-md flex items-center justify-center gap-2"
+                            onClick={handleSignOut}
+                        >
+                            <LogOut size={14} />
+                            Sign Out
+                        </Button>
+                    </div>
                 </div>
             </aside>
 
             {/* Main Content */}
-            <main className="flex-1 overflow-y-auto relative z-10">
-                {children}
+            <main className="flex-1 overflow-y-auto relative z-10 p-4 lg:p-0 bg-transparent">
+                <div className="max-w-7xl mx-auto xl:px-12 py-8">
+                    {children}
+                </div>
             </main>
         </div>
     );

@@ -72,7 +72,7 @@ export default function StudentLoginPage() {
                             label="Email Address"
                             type="email"
                             required
-                            placeholder="john@school.edu"
+                            placeholder="Email address"
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
                         />

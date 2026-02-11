@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { collection, query, where, getDocs, doc, updateDoc, getDoc, onSnapshot, setDoc, QuerySnapshot, DocumentData } from "firebase/firestore";
+import { collection, query, where, doc, updateDoc, getDoc, onSnapshot, setDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -26,7 +26,15 @@ export default function AdminDashboard() {
         waste: 0
     });
 
+    // Auto-rotating monitor state
+    const [activeMonitor, setActiveMonitor] = useState(0);
+    const monitors = ['Registrations', 'Waste Metrics', 'System Health'];
+
     useEffect(() => {
+        const rotationInterval = setInterval(() => {
+            setActiveMonitor((prev) => (prev + 1) % monitors.length);
+        }, 5000); // Rotate every 5 seconds
+
         const usersRef = collection(db, "users");
         const usersQuery = query(usersRef, where("role", "==", "user"));
         const regRef = collection(db, "registrations");
@@ -41,7 +49,6 @@ export default function AdminDashboard() {
                 status: regsMap.get(user.uid)?.status || 'pending'
             }));
 
-            // Sort in-memory
             combinedData.sort((a, b) => {
                 const dateA = a.createdAt?.seconds || 0;
                 const dateB = b.createdAt?.seconds || 0;
@@ -52,29 +59,21 @@ export default function AdminDashboard() {
             setLoading(false);
         };
 
-        // Listen to Users
         const unsubUsers = onSnapshot(usersQuery, (snapshot) => {
             usersList = snapshot.docs.map(doc => ({
                 uid: doc.id,
                 ...doc.data()
             }));
             updateStudentsState();
-        }, (err) => {
-            console.error("Users listener error:", err);
-            setLoading(false);
         });
 
-        // Listen to Registrations
         const unsubRegs = onSnapshot(regRef, (snapshot) => {
             const newMap = new Map();
             snapshot.forEach(doc => newMap.set(doc.id, doc.data()));
             regsMap = newMap;
             updateStudentsState();
-        }, (err) => {
-            console.error("Regs listener error:", err);
         });
 
-        // Listen to Machines (IoT Data)
         const unsubMachines = onSnapshot(machinesRef, (snapshot) => {
             let totalBottles = 0;
             let totalCups = 0;
@@ -92,11 +91,10 @@ export default function AdminDashboard() {
                 cups: totalCups,
                 waste: totalWaste
             });
-        }, (err) => {
-            console.error("Machines listener error:", err);
         });
 
         return () => {
+            clearInterval(rotationInterval);
             unsubUsers();
             unsubRegs();
             unsubMachines();
@@ -123,194 +121,190 @@ export default function AdminDashboard() {
             }
         } catch (error) {
             console.error("Error updating status:", error);
-            alert("Failed to update status. Check permissions or network.");
         } finally {
             setUpdatingId(null);
         }
     };
 
     if (loading) return (
-        <div className="min-h-screen flex items-center justify-center bg-gray-50">
-            <div className="w-12 h-12 border-4 border-green-500 border-t-transparent rounded-full animate-spin"></div>
+        <div className="h-full flex items-center justify-center bg-transparent">
+            <div className="w-12 h-12 border-4 border-[#a855f7] border-t-transparent rounded-full animate-spin"></div>
         </div>
     );
 
     const stats = [
-        { label: 'Recycled Bottles', value: machineStats.bottles.toLocaleString(), change: '+12%', color: 'text-green-500', icon: '🗑️' },
-        { label: 'Plastic Cups Collected', value: machineStats.cups.toLocaleString(), change: '+5%', color: 'text-blue-500', icon: '🥤' },
-        { label: 'Paper Waste (kg)', value: machineStats.waste.toFixed(1), unit: 'kg', change: '-2%', color: 'text-red-500', icon: '📄' }
+        { label: 'Recycled Bottles', value: machineStats.bottles.toLocaleString(), icon: '♻️', accent: 'text-[#13ec5b]' },
+        { label: 'Plastic Cups', value: machineStats.cups.toLocaleString(), icon: '🥤', accent: 'text-blue-400' },
+        { label: 'Waste Reduced', value: machineStats.waste.toFixed(1), unit: 'kg', icon: '🌍', accent: 'text-[#a855f7]' }
     ];
 
-    const recentApprovals = students.filter(s => s.status === 'approved').length;
-    const pendingCount = students.filter(s => s.status === 'pending').length;
-    const rejectedCount = students.filter(s => s.status === 'rejected').length;
-
     return (
-        <div className="p-6 lg:p-10 bg-gray-50 min-h-screen">
-            {/* Header */}
-            <header className="mb-8">
-                <div className="flex items-center justify-between mb-2">
-                    <div>
-                        <h1 className="text-4xl font-black text-gray-900 mb-2">Main Monitoring Dashboard</h1>
-                        <p className="text-gray-500 font-medium">Real-time sustainability metrics for PDM School</p>
-                    </div>
-                    <div className="flex gap-2">
-                        <button className="px-4 py-2 bg-green-500 text-white text-sm font-bold rounded-lg">Day</button>
-                        <button className="px-4 py-2 bg-white text-gray-600 text-sm font-bold rounded-lg">Week</button>
-                        <button className="px-4 py-2 bg-white text-gray-600 text-sm font-bold rounded-lg">Month</button>
+        <div className="space-y-6 animate-in">
+            {/* Header Area */}
+            <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-slate-200 pb-6">
+                <div>
+                    <h1 className="text-3xl font-black text-slate-900 tracking-tighter mb-1 italic uppercase leading-none">System Control</h1>
+                    <div className="flex items-center gap-2">
+                        <div className="flex h-2 w-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.3)]"></div>
+                        <p className="text-slate-500 font-bold text-[10px] tracking-widest uppercase">Live Network: Active • PDM School</p>
                     </div>
                 </div>
-            </header>
+                <div className="flex gap-3">
+                    <Button variant="outline" className="h-10 rounded-xl border-slate-200 bg-white text-slate-700 font-bold text-[10px] uppercase tracking-widest px-6 hover:bg-slate-50 transition-all shadow-sm">Analytics</Button>
+                    <Button variant="primary" className="h-10 rounded-xl bg-slate-900 text-white font-bold text-[10px] uppercase tracking-widest px-6 shadow-md hover:bg-slate-800 transition-all">Export Data</Button>
+                </div>
+            </div>
 
-            {/* Stats Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            {/* Compact Stats Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 {stats.map((stat, i) => (
-                    <Card key={i} className="p-6 bg-white hover:shadow-lg transition-shadow">
-                        <div className="flex items-start justify-between mb-4">
-                            <div className="text-3xl">{stat.icon}</div>
-                            <span className={`text-xs font-bold ${stat.change.startsWith('+') ? 'text-green-500' : 'text-red-500'}`}>
-                                {stat.change}
-                            </span>
+                    <Card key={i} className="p-6 bg-white border border-slate-200 shadow-sm rounded-3xl relative overflow-hidden group hover:shadow-md transition-all">
+                        <div className="relative z-10 flex items-center justify-between">
+                            <div>
+                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">{stat.label}</p>
+                                <h3 className="text-3xl font-black text-slate-900 tracking-tighter flex items-end gap-1.5 leading-none">
+                                    {stat.value} <span className="text-sm font-bold text-slate-400 mb-0.5">{stat.unit}</span>
+                                </h3>
+                            </div>
+                            <div className="w-12 h-12 rounded-2xl bg-slate-50 flex items-center justify-center text-2xl border border-slate-100">
+                                {stat.icon}
+                            </div>
                         </div>
-                        <p className="text-sm text-gray-500 mb-1">{stat.label}</p>
-                        <p className="text-3xl font-black text-gray-900">
-                            {stat.value} {stat.unit && <span className="text-base font-bold text-gray-500">{stat.unit}</span>}
-                        </p>
                     </Card>
                 ))}
             </div>
 
-            {/* Charts Row */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-                {/* Waste Collection Trends */}
-                <Card className="lg:col-span-2 p-6 bg-white">
-                    <div className="flex items-center justify-between mb-6">
-                        <div>
-                            <h3 className="text-lg font-bold text-gray-900">Waste Collection Trends</h3>
-                            <p className="text-sm text-gray-500">Weekly growth analysis</p>
+            {/* Compact Light Monitoring Section */}
+            <Card className="p-8 bg-white border border-slate-200 shadow-sm rounded-[2.5rem] relative overflow-hidden admin-glass">
+                <div className="flex flex-col lg:flex-row items-center justify-between gap-8">
+                    <div className="max-w-md">
+                        <div className="flex items-center gap-2 mb-4">
+                            <span className="px-3 py-1 bg-emerald-100 text-emerald-700 rounded-full text-[9px] font-black uppercase tracking-widest border border-emerald-200/50">Live Monitor</span>
+                            <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 pulse"></div>
                         </div>
-                        <button className="text-gray-400">
-                            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                                <path d="M6 10a2 2 0 11-4 0 2 2 0 014 0zM12 10a2 2 0 11-4 0 2 2 0 014 0zM16 12a2 2 0 100-4 2 2 0 000 4z" />
-                            </svg>
-                        </button>
-                    </div>
-                    {/* Placeholder for chart */}
-                    <div className="h-48 bg-gradient-to-t from-green-100 to-transparent rounded-lg flex items-end justify-center p-4">
-                        <div className="flex items-end gap-2 w-full max-w-md">
-                            {[40, 60, 55, 80, 70, 85, 75].map((h, i) => (
-                                <div key={i} className="flex-1 bg-green-500 rounded-t-lg" style={{ height: `${h}%`, opacity: 0.8 }}></div>
+                        <h2 className="text-3xl font-black text-slate-900 mb-4 tracking-tighter italic uppercase leading-tight">
+                            System Efficiency: <br /> <span className="text-emerald-500">Fully Operational.</span>
+                        </h2>
+                        <p className="text-slate-500 font-bold text-sm mb-6 opacity-80 leading-relaxed">
+                            Synchronization in progress. Current module focus: <br />
+                            <span className="text-slate-900 font-black text-base">{monitors[activeMonitor]}</span>
+                        </p>
+                        <div className="flex gap-2">
+                            {monitors.map((m, i) => (
+                                <div key={m} className={`h-1.5 rounded-full transition-all duration-500 ${activeMonitor === i ? 'w-10 bg-emerald-500 shadow-lg shadow-emerald-200' : 'w-2.5 bg-slate-100'}`}></div>
                             ))}
                         </div>
                     </div>
-                    <div className="flex items-center justify-between mt-4 text-xs text-gray-400 font-bold">
-                        {['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'].map(day => (
-                            <span key={day}>{day}</span>
-                        ))}
+                    <div className="w-full lg:w-80 h-44 bg-slate-50 rounded-[2rem] border border-slate-100 p-8 flex items-center justify-center shadow-inner relative overflow-hidden">
+                        <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{ backgroundImage: 'radial-gradient(#000 1px, transparent 1px)', backgroundSize: '20px 20px' }}></div>
+                        <div className="text-center animate-in relative z-10" key={activeMonitor}>
+                            {activeMonitor === 0 && (
+                                <div>
+                                    <p className="text-[10px] font-black text-emerald-600 uppercase tracking-widest mb-2">Member Directory</p>
+                                    <div className="flex items-center justify-center gap-2">
+                                        <span className="text-4xl font-black text-slate-900 tracking-tighter">{students.length}</span>
+                                        <span className="text-[10px] font-bold text-slate-400 uppercase mt-2 italic">Active</span>
+                                    </div>
+                                </div>
+                            )}
+                            {activeMonitor === 1 && (
+                                <div>
+                                    <p className="text-[10px] font-black text-indigo-600 uppercase tracking-widest mb-2">Environmental Progress</p>
+                                    <div className="flex items-center justify-center gap-2">
+                                        <span className="text-4xl font-black text-slate-900 tracking-tighter">{machineStats.waste.toFixed(1)}</span>
+                                        <span className="text-sm font-black text-slate-400 uppercase mt-2">KG</span>
+                                    </div>
+                                </div>
+                            )}
+                            {activeMonitor === 2 && (
+                                <div>
+                                    <p className="text-[10px] font-black text-slate-900 uppercase tracking-widest mb-2">Core Integrity</p>
+                                    <div className="flex items-center justify-center gap-2">
+                                        <span className="text-4xl font-black text-emerald-600 tracking-tighter">100%</span>
+                                        <span className="text-[10px] font-bold text-slate-400 uppercase mt-2 italic">Stability</span>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
                     </div>
-                </Card>
-
-                {/* Daily Analytics */}
-                <Card className="p-6 bg-white">
-                    <div className="mb-6">
-                        <h3 className="text-lg font-bold text-gray-900">Daily Analytics</h3>
-                        <p className="text-sm text-gray-500">Hourly traffic distribution</p>
-                        <span className="text-xs font-bold text-green-500">+8% vs avg</span>
-                    </div>
-                    <div className="h-48 flex items-end justify-between gap-1">
-                        {[50, 70, 90, 80, 95, 60, 70, 55].map((h, i) => (
-                            <div key={i} className="flex-1 bg-green-200 rounded-t" style={{ height: `${h}%` }}></div>
-                        ))}
-                    </div>
-                    <div className="flex items-center justify-between mt-4 text-xs text-gray-400 font-bold">
-                        {['8AM', '10AM', '12PM', '2PM', '4PM', '6PM', '8PM'].map(time => (
-                            <span key={time} className="rotate-0">{time.slice(0, 2)}</span>
-                        ))}
-                    </div>
-                </Card>
-            </div>
-
-            {/* Student Registrations Table */}
-            <Card className="bg-white overflow-hidden">
-                <div className="p-6 border-b border-gray-100 flex items-center justify-between">
-                    <div>
-                        <h2 className="text-xl font-bold text-gray-900">Student Registrations</h2>
-                        <p className="text-sm text-gray-500 mt-1">
-                            <span className="text-green-500 font-bold">{recentApprovals} Approved</span> •
-                            <span className="text-orange-500 font-bold ml-1">{pendingCount} Pending</span> •
-                            <span className="text-red-500 font-bold ml-1">{rejectedCount} Rejected</span>
-                        </p>
-                    </div>
-                    <input
-                        type="text"
-                        placeholder="Search students..."
-                        className="px-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-green-500"
-                    />
                 </div>
-                <div className="overflow-x-auto">
+            </Card>
+
+            {/* Compact Light Table */}
+            <section className="space-y-4">
+                <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                        <div className="w-1 h-6 bg-emerald-500 rounded-full"></div>
+                        <h2 className="text-xl font-black text-slate-900 tracking-tight uppercase italic">Member Directory</h2>
+                    </div>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Showing {students.length} active entries</p>
+                </div>
+
+                <div className="overflow-hidden rounded-3xl border border-slate-100 bg-white shadow-sm">
                     <table className="w-full text-left">
-                        <thead className="bg-gray-50 border-b border-gray-100">
-                            <tr className="text-xs text-gray-500 uppercase tracking-wider">
-                                <th className="px-6 py-4 font-bold">Student</th>
-                                <th className="px-6 py-4 font-bold">ID Number</th>
-                                <th className="px-6 py-4 font-bold">Course</th>
-                                <th className="px-6 py-4 font-bold">Status</th>
-                                <th className="px-6 py-4 font-bold text-right">Actions</th>
+                        <thead>
+                            <tr className="bg-slate-50 border-b border-slate-100 text-[10px] text-slate-400 font-bold uppercase tracking-widest">
+                                <th className="px-8 py-4">Identity</th>
+                                <th className="px-8 py-4">Credentials</th>
+                                <th className="px-8 py-4">Status</th>
+                                <th className="px-8 py-4 text-right">Actions</th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-gray-50">
+                        <tbody className="divide-y divide-slate-50">
                             {students.map((student) => (
-                                <tr key={student.uid} className="hover:bg-gray-50 transition-colors">
-                                    <td className="px-6 py-4">
-                                        <div className="flex items-center gap-3">
-                                            <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-white ${student.status === 'approved' ? 'bg-green-500' :
-                                                student.status === 'rejected' ? 'bg-red-500' : 'bg-gray-400'
-                                                }`}>
+                                <tr key={student.uid} className="group hover:bg-slate-50/50 transition-colors">
+                                    <td className="px-8 py-3.5">
+                                        <div className="flex items-center gap-4">
+                                            <div className="w-10 h-10 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center font-black text-slate-600 text-base group-hover:bg-emerald-50 group-hover:text-emerald-600 group-hover:border-emerald-100 transition-all">
                                                 {student.name.charAt(0)}
                                             </div>
                                             <div>
-                                                <p className="font-bold text-gray-900">{student.name}</p>
-                                                <p className="text-xs text-gray-500">{student.email}</p>
+                                                <p className="font-bold text-sm text-slate-900 tracking-tight leading-none mb-1">{student.name}</p>
+                                                <p className="text-[9px] font-bold text-slate-400 uppercase">{student.email}</p>
                                             </div>
                                         </div>
                                     </td>
-                                    <td className="px-6 py-4 font-mono text-sm font-bold text-gray-600">{student.studentId}</td>
-                                    <td className="px-6 py-4 font-bold text-gray-900">{student.course}</td>
-                                    <td className="px-6 py-4">
-                                        <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold uppercase ${student.status === 'approved' ? 'bg-green-100 text-green-700' :
-                                            student.status === 'rejected' ? 'bg-red-100 text-red-700' :
-                                                'bg-orange-100 text-orange-700'
-                                            }`}>
-                                            {student.status}
-                                        </span>
+                                    <td className="px-8 py-3.5">
+                                        <div className="inline-flex gap-2">
+                                            <span className="px-2 py-1 bg-slate-100 text-slate-600 rounded-md text-[9px] font-bold">{student.course}</span>
+                                            <span className="px-2 py-1 bg-slate-50 text-slate-400 rounded-md text-[9px] font-mono italic">ID: {student.studentId}</span>
+                                        </div>
                                     </td>
-                                    <td className="px-6 py-4 text-right">
-                                        <div className="flex justify-end gap-2">
-                                            {student.status === 'pending' && (
+                                    <td className="px-8 py-3.5">
+                                        <div className="flex items-center gap-2">
+                                            <div className={`w-1.5 h-1.5 rounded-full ${student.status === 'approved' ? 'bg-emerald-500' : student.status === 'rejected' ? 'bg-red-500' : 'bg-slate-300'}`}></div>
+                                            <span className={`text-[10px] font-black uppercase tracking-widest ${student.status === 'approved' ? 'text-emerald-600' : student.status === 'rejected' ? 'text-red-500' : 'text-slate-400'}`}>
+                                                {student.status}
+                                            </span>
+                                        </div>
+                                    </td>
+                                    <td className="px-8 py-3.5 text-right">
+                                        <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-all">
+                                            {student.status === 'pending' ? (
                                                 <>
                                                     <Button
                                                         size="sm"
-                                                        variant="outline"
-                                                        className="text-red-500 border-red-200 hover:bg-red-50"
+                                                        variant="ghost"
+                                                        className="h-8 text-red-500 font-bold text-[9px] uppercase tracking-widest hover:bg-red-50 px-4 rounded-lg"
                                                         onClick={() => handleStatusUpdate(student.uid, 'rejected')}
                                                         disabled={updatingId === student.uid}
                                                     >
-                                                        Reject
+                                                        Decline
                                                     </Button>
                                                     <Button
                                                         size="sm"
-                                                        className="bg-green-500 hover:bg-green-600 text-white"
+                                                        className="h-8 bg-emerald-500 text-white font-bold text-[9px] uppercase tracking-widest rounded-lg hover:bg-emerald-600 px-6 shadow-sm"
                                                         onClick={() => handleStatusUpdate(student.uid, 'approved')}
                                                         disabled={updatingId === student.uid}
                                                     >
                                                         Approve
                                                     </Button>
                                                 </>
-                                            )}
-                                            {student.status !== 'pending' && (
+                                            ) : (
                                                 <Button
                                                     size="sm"
-                                                    variant="outline"
+                                                    variant="ghost"
+                                                    className="h-8 font-bold text-[9px] uppercase tracking-widest hover:bg-slate-100 px-4 rounded-lg text-slate-400 hover:text-slate-900"
                                                     onClick={() => handleStatusUpdate(student.uid, 'pending')}
                                                     disabled={updatingId === student.uid}
                                                 >
@@ -321,24 +315,10 @@ export default function AdminDashboard() {
                                     </td>
                                 </tr>
                             ))}
-                            {students.length === 0 && (
-                                <tr>
-                                    <td colSpan={5} className="px-6 py-20 text-center">
-                                        <div className="flex flex-col items-center gap-4">
-                                            <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center text-gray-300">
-                                                <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
-                                                </svg>
-                                            </div>
-                                            <p className="text-gray-400 font-bold uppercase tracking-wide text-xs">No Students Yet</p>
-                                        </div>
-                                    </td>
-                                </tr>
-                            )}
                         </tbody>
                     </table>
                 </div>
-            </Card>
+            </section>
         </div>
     );
 }

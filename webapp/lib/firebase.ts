@@ -17,16 +17,31 @@ let auth: Auth;
 let db: Firestore;
 
 try {
+    const isConfigValid = firebaseConfig.apiKey && firebaseConfig.authDomain && firebaseConfig.projectId;
+
+    if (!isConfigValid) {
+        throw new Error("Missing Firebase configuration environment variables. Please check your .env.local file.");
+    }
+
     app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
     auth = getAuth(app);
     db = getFirestore(app);
 } catch (error) {
-    console.warn("Firebase initialization failed (expected during build if env vars are missing):", error);
-    // Provide mocks or throw if critical at runtime
+    console.error("Firebase initialization failed:", error);
+    // We still need to export something to avoid import errors, 
+    // but we should probably handle this better in the UI components
     // @ts-ignore
-    auth = {};
+    auth = new Proxy({}, {
+        get: () => {
+            throw new Error("Firebase Auth accessed before initialization. Check your environment variables.");
+        }
+    });
     // @ts-ignore
-    db = {};
+    db = new Proxy({}, {
+        get: () => {
+            throw new Error("Firestore accessed before initialization. Check your environment variables.");
+        }
+    });
 }
 
 export { app, auth, db };
