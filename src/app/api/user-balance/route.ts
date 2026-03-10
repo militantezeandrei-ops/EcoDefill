@@ -9,32 +9,53 @@ export async function GET(req: NextRequest) {
             return NextResponse.json({ message: auth.error }, { status: auth.status });
         }
 
-        const user = await prisma.user.findUnique({
-            where: { id: auth.user!.userId },
-            select: { balance: true }
-        });
+        const userId = auth.user!.userId;
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        // Run ALL queries in parallel instead of sequentially
+        const [user, todaysRedemptions, todaysEarnings, recentTransactions] = await Promise.all([
+            prisma.user.findUnique({
+                where: { id: userId },
+                select: { balance: true, fullName: true, course: true, yearLevel: true, section: true }
+            }),
+            prisma.transaction.aggregate({
+                where: { userId, type: "REDEEM", createdAt: { gte: today } },
+                _sum: { amount: true }
+            }),
+            prisma.transaction.aggregate({
+                where: { userId, type: "EARN", createdAt: { gte: today } },
+                _sum: { amount: true }
+            }),
+            prisma.transaction.findMany({
+                where: { userId },
+                orderBy: { createdAt: "desc" },
+                take: 5,
+                select: {
+                    id: true,
+                    type: true,
+                    amount: true,
+                    materialType: true,
+                    count: true,
+                    status: true,
+                    createdAt: true
+                }
+            })
+        ]);
 
         if (!user) {
             return NextResponse.json({ message: "User not found" }, { status: 404 });
         }
 
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-
-        const todaysRedemptions = await prisma.transaction.aggregate({
-            where: {
-                userId: auth.user!.userId,
-                type: "REDEEM",
-                createdAt: { gte: today }
-            },
-            _sum: { amount: true }
-        });
-
-        const dailyRedeemed = todaysRedemptions._sum.amount || 0;
-
         return NextResponse.json({
             balance: user.balance,
-            dailyRedeemed
+            fullName: user.fullName,
+            course: user.course,
+            yearLevel: user.yearLevel,
+            section: user.section,
+            dailyRedeemed: todaysRedemptions._sum.amount || 0,
+            dailyEarned: todaysEarnings._sum.amount || 0,
+            recentTransactions
         });
 
     } catch (error) {

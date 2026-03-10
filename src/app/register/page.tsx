@@ -64,7 +64,10 @@ export default function Register() {
                 method: "POST",
                 body: JSON.stringify({
                     email: formData.email,
-                    password: formData.password
+                    password: formData.password,
+                    fullName: formData.fullName,
+                    course: formData.course,
+                    section: formData.section,
                 })
             });
             router.push("/login");
@@ -97,7 +100,7 @@ export default function Register() {
                     name="email"
                     label="Email Address"
                     icon="mail"
-                    placeholder="student@pdm.edu.ph"
+                    placeholder="Juan@gmail.com"
                     type="email"
                     value={formData.email}
                     onChange={handleChange}
@@ -117,8 +120,11 @@ export default function Register() {
                                 <option disabled value="">Select</option>
                                 <option value="BSIT">BSIT</option>
                                 <option value="BSCS">BSCS</option>
-                                <option value="BSEd">BSEd</option>
-                                <option value="BSBA">BSBA</option>
+                                <option value="BSHM">BSHM</option>
+                                <option value="BSTM">BSTM</option>
+                                <option value="BECED">BECED</option>
+                                <option value="BTLED">BTLED</option>
+                                <option value="BSOAD">BSOAD</option>
                             </select>
                             <span className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 material-symbols-outlined pointer-events-none">school</span>
                         </div>

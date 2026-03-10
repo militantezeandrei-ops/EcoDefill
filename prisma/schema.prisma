@@ -3,8 +3,9 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 enum Role {
@@ -16,26 +17,34 @@ enum Role {
 model User {
   id           String        @id @default(uuid())
   email        String        @unique
+  fullName     String?       // E.g. "Juan Dela Cruz"
   passwordHash String
   role         Role          @default(STUDENT)
   balance      Float         @default(0) // total stored points (1 point = 100ml)
+  course       String?       // E.g. "BSCS"
+  yearLevel    String?       // E.g. "1", "2", "3", "4"
+  section      String?       // E.g. "3A"
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
 
-  transactions Transaction[]
-  qrTokens     QrToken[]
+  transactions    Transaction[]
+  qrTokens        QrToken[]
   machineSessions MachineSession[]
+  recyclingLogs   RecyclingLog[]
 
   @@index([email])
 }
 
 model Transaction {
-  id        String   @id @default(uuid())
-  userId    String
-  user      User     @relation(fields: [userId], references: [id])
-  type      String   // "EARN" or "REDEEM"
-  amount    Float    // point amount
-  createdAt DateTime @default(now())
+  id           String   @id @default(uuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id])
+  type         String   // "EARN" or "REDEEM"
+  amount       Float    // point amount
+  materialType String?  // Optional: BOTTLE, CUP, PAPER
+  count        Int?     // Optional: Number of items
+  status       String   @default("SUCCESS") // SUCCESS, REJECTED
+  createdAt    DateTime @default(now())
 
   @@index([userId, type, createdAt])
 }
@@ -70,4 +79,30 @@ model MachineSession {
 
   @@index([machineId, status])
   @@index([jti])
+}
+
+model RecyclingLog {
+  id           String   @id @default(uuid())
+  machineId    String
+  userId       String
+  user         User     @relation(fields: [userId], references: [id])
+  materialType String   // BOTTLE, CUP, PAPER
+  count        Int
+  pointsEarned Float
+  status       String   @default("SUCCESS") // SUCCESS, REJECTED
+  createdAt    DateTime @default(now())
+
+  @@index([userId, createdAt])
+  @@index([machineId, createdAt])
+}
+
+model MachineLog {
+  id           String   @id @default(uuid())
+  machineId    String
+  status       String   // ONLINE, OFFLINE, ERROR
+  message      String?
+  pingMs       Int?
+  createdAt    DateTime @default(now())
+
+  @@index([machineId, createdAt])
 }

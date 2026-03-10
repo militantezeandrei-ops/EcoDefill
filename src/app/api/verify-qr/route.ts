@@ -33,6 +33,8 @@ export async function POST(req: Request) {
         }
 
         // 3. Process Transaction Atomically
+        let txResult: { userName: string; pointsDeducted: number; waterAmount: number } | null = null;
+
         await prisma.$transaction(async (tx) => {
             const user = await tx.user.findUnique({ where: { id: decoded.userId } });
 
@@ -50,7 +52,7 @@ export async function POST(req: Request) {
             await tx.transaction.create({
                 data: {
                     userId: user.id,
-                    amount: session.pointsToDeduct, // Or -session.pointsToDeduct depending on how they want it in UI. Their old code did positive amounts for REDEEM: `amount: qrToken.amount` so keeping positive to not break their UI history.
+                    amount: session.pointsToDeduct,
                     type: 'REDEEM'
                 }
             });
@@ -60,9 +62,21 @@ export async function POST(req: Request) {
                 where: { id: session.id },
                 data: { status: 'APPROVED' }
             });
+
+            txResult = {
+                userName: user.fullName || user.email?.split('@')[0] || 'Student',
+                pointsDeducted: session.pointsToDeduct,
+                waterAmount: session.amountToDispense,
+            };
         });
 
-        return NextResponse.json({ success: true, message: 'QR Verified. Machine dispensing...' });
+        return NextResponse.json({
+            success: true,
+            message: 'QR Verified. Machine dispensing...',
+            userName: txResult!.userName,
+            pointsDeducted: txResult!.pointsDeducted,
+            waterAmount: txResult!.waterAmount,
+        });
     } catch (error: any) {
         if (error.message === 'Insufficient balance') {
             return NextResponse.json({ error: 'Insufficient balance.' }, { status: 400 });

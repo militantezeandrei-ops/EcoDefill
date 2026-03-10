@@ -155,8 +155,8 @@ export default function RedeemWater() {
                                 <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-2">Scan at Water Station</h3>
                                 <p className="text-slate-500 text-sm mb-6">Your token is ready. Please scan to dispense {(parseInt(pointsToRedeem) || 0) * 100}ml of water.</p>
 
-                                <div className="bg-white p-4 rounded-xl border-4 border-slate-100 dark:border-zinc-700 shadow-sm mb-4">
-                                    <QRCode value={JSON.stringify({ token: qrToken, type: "REDEEM" })} size={200} />
+                                <div className="bg-white p-8 rounded-2xl border-4 border-slate-100 dark:border-zinc-700 shadow-md mb-4">
+                                    <QRCode value={JSON.stringify({ token: qrToken, type: "REDEEM" })} size={300} level="H" />
                                 </div>
 
                                 <p className="text-red-500 font-bold mb-4">Expires in: {timeLeft}s</p>
