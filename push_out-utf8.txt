@@ -1,0 +1,36 @@
+﻿Environment variables loaded from .env
+Prisma schema loaded from prisma\schema.prisma
+Datasource "db": SQLite database "dev.db" at "file:./dev.db"
+npx : Error: P1012
+At line:1 char:1
++ npx prisma db push > 
+push_out.txt 2>&1 ; 
+Get-Content push_out.txt 
+| O ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~
+    + CategoryInfo        
+      : NotSpecified: (E  
+  rror: P1012:String) [   
+ ], RemoteException
+    + FullyQualifiedError 
+   Id : NativeCommandErr  
+  or
+ 
+
+error: Error validating: 
+You defined the enum 
+`Role`. But the current 
+connector does not 
+support enums.
+  -->  
+prisma\schema.prisma:10
+   | 
+ 9 | 
+10 | enum Role {
+11 |   STUDENT
+12 |   ADMIN
+13 | }
+   | 
+
+

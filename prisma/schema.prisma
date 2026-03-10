@@ -1,0 +1,73 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  STUDENT
+  ADMIN
+}
+
+
+model User {
+  id           String        @id @default(uuid())
+  email        String        @unique
+  passwordHash String
+  role         Role          @default(STUDENT)
+  balance      Float         @default(0) // total stored points (1 point = 100ml)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  transactions Transaction[]
+  qrTokens     QrToken[]
+  machineSessions MachineSession[]
+
+  @@index([email])
+}
+
+model Transaction {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  type      String   // "EARN" or "REDEEM"
+  amount    Float    // point amount
+  createdAt DateTime @default(now())
+
+  @@index([userId, type, createdAt])
+}
+
+model QrToken {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  token     String   @unique
+  type      String   @default("EARN") // "EARN" or "REDEEM"
+  amount    Float    @default(0)
+  expiresAt DateTime
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([token])
+  @@index([userId, expiresAt])
+}
+
+model MachineSession {
+  id              String        @id @default(uuid())
+  machineId       String        // Identifier for the physical ESP32
+  userId          String
+  pointsToDeduct  Float
+  amountToDispense Float        // e.g., 300 (ml)
+  status          String        @default("INITIATED") // INITIATED, APPROVED, DISPENSED, FAILED
+  jti             String        @unique // JWT ID for replay prevention
+  
+  user            User          @relation(fields: [userId], references: [id])
+  createdAt       DateTime      @default(now())
+  expiresAt       DateTime      // Set to 60s from creation
+
+  @@index([machineId, status])
+  @@index([jti])
+}

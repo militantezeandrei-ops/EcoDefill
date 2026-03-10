@@ -1,0 +1,98 @@
+﻿
+> ecodefill-app@1.0.0 lint
+> next lint
+
+npm : 
+At line:1 char:1
++ npm run lint > 
+lint2.txt 2>&1; 
+Get-Content lint2.txt | 
+Out-File -Enco ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~
+    + CategoryInfo        
+      : NotSpecified: (:  
+  String) [], RemoteExc   
+ eption
+    + FullyQualifiedError 
+   Id : NativeCommandErr  
+  or
+ 
+./src/app/(dashboard)/qr/p
+age.tsx
+69:25  Warning: Using 
+`<img>` could result in 
+slower LCP and higher 
+bandwidth. Consider using 
+`<Image />` from 
+`next/image` to 
+automatically optimize 
+images. This may incur 
+additional usage or cost 
+from your provider. See: h
+ttps://nextjs.org/docs/mes
+sages/no-img-element  
+@next/next/no-img-element
+
+./src/app/api/verify-qr/ro
+ute.ts
+61:5  Error: Parsing 
+error: 'catch' or 
+'finally' expected.
+
+./src/app/layout.tsx
+19:17  Warning: Custom 
+fonts not added in 
+`pages/_document.js` will 
+only load for a single 
+page. This is 
+discouraged. See: https://
+nextjs.org/docs/messages/n
+o-page-custom-font  @next/
+next/no-page-custom-font
+20:17  Warning: Custom 
+fonts not added in 
+`pages/_document.js` will 
+only load for a single 
+page. This is 
+discouraged. See: https://
+nextjs.org/docs/messages/n
+o-page-custom-font  @next/
+next/no-page-custom-font
+
+./src/app/page.tsx
+24:21  Warning: Using 
+`<img>` could result in 
+slower LCP and higher 
+bandwidth. Consider using 
+`<Image />` from 
+`next/image` to 
+automatically optimize 
+images. This may incur 
+additional usage or cost 
+from your provider. See: h
+ttps://nextjs.org/docs/mes
+sages/no-img-element  
+@next/next/no-img-element
+
+./src/hooks/useAuth.tsx
+4:21  Error: 
+'usePathname' is defined 
+but never used.  @typescri
+pt-eslint/no-unused-vars
+39:22  Error: 'e' is 
+defined but never used.  @
+typescript-eslint/no-unuse
+d-vars
+
+./src/lib/auth.ts
+29:14  Error: 'err' is 
+defined but never used.  @
+typescript-eslint/no-unuse
+d-vars
+
+info  - Need to disable 
+some ESLint rules? Learn 
+more here: https://nextjs.
+org/docs/basic-features/es
+lint#disabling-rules
