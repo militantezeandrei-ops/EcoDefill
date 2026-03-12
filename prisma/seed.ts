@@ -45,8 +45,8 @@ async function main() {
 
     const users = [];
 
-    // Generate 25 students
-    for (let i = 0; i < studentNames.length; i++) {
+    // Generate 20 students
+    for (let i = 0; i < 20; i++) {
         const fullName = studentNames[i];
         const firstName = fullName.split(" ")[0].toLowerCase();
         const email = `${firstName}.${i + 1}@gmail.com`;
@@ -56,7 +56,7 @@ async function main() {
         const balance = Math.floor(Math.random() * 300); // Random initial balance
 
         users.push(await prisma.user.create({
-            data:n
+            data: {
                 email,
                 fullName,
                 passwordHash: studentPassword, // 'student1' for all

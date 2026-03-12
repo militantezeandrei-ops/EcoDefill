@@ -10,8 +10,13 @@ export async function GET(req: NextRequest) {
         }
 
         const userId = auth.user!.userId;
+
+        // Redeem limit resets at midnight (school hours only)
         const today = new Date();
         today.setHours(0, 0, 0, 0);
+
+        // Earn limit uses a rolling 24-hour window
+        const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
 
         // Run ALL queries in parallel instead of sequentially
         const [user, todaysRedemptions, todaysEarnings, recentTransactions] = await Promise.all([
@@ -24,7 +29,7 @@ export async function GET(req: NextRequest) {
                 _sum: { amount: true }
             }),
             prisma.transaction.aggregate({
-                where: { userId, type: "EARN", createdAt: { gte: today } },
+                where: { userId, type: "EARN", createdAt: { gte: twentyFourHoursAgo } },
                 _sum: { amount: true }
             }),
             prisma.transaction.findMany({
@@ -44,7 +49,8 @@ export async function GET(req: NextRequest) {
         ]);
 
         if (!user) {
-            return NextResponse.json({ message: "User not found" }, { status: 404 });
+            // Return 401 so the client clears the stale token and redirects to login
+            return NextResponse.json({ message: "User session expired. Please log in again." }, { status: 401 });
         }
 
         return NextResponse.json({

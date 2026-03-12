@@ -16,110 +16,129 @@ export default function ScanPage() {
     const [isError, setIsError] = useState(false);
     const [result, setResult] = useState<VerifyResult | null>(null);
     const [scanCount, setScanCount] = useState(0);
+    const [cameraReady, setCameraReady] = useState(false);
 
-    const scannerRef = useRef<Html5QrcodeScanner | null>(null);
+    const scannerRef = useRef<any>(null);
     const processingRef = useRef(false);
+    const isInitializing = useRef(false);
 
-    const initScanner = useCallback(() => {
-        // Clean up any existing scanner first
+    const stopScanner = useCallback(async () => {
         if (scannerRef.current) {
             try {
-                scannerRef.current.clear();
-            } catch {
-                // Ignore clear errors
+                if (scannerRef.current.isScanning) {
+                    await scannerRef.current.stop();
+                }
+                const container = document.getElementById("qr-reader");
+                if (container) container.innerHTML = "";
+            } catch (err) {
+                console.error("Failed to stop scanner", err);
             }
             scannerRef.current = null;
         }
-
-        scannerRef.current = new Html5QrcodeScanner(
-            "qr-reader",
-            {
-                fps: 10,
-                qrbox: { width: 250, height: 250 },
-                rememberLastUsedCamera: true,
-                showTorchButtonIfSupported: true,
-            },
-            false
-        );
-
-        scannerRef.current.render(
-            async (decodedText: string) => {
-                // Block duplicate scans with a ref (survives re-renders)
-                if (processingRef.current) return;
-                processingRef.current = true;
-
-                setScanResult(decodedText);
-                setVerifying(true);
-                setMessage("Verifying token...");
-                setIsError(false);
-                setResult(null);
-
-                try {
-                    const payload = JSON.parse(decodedText);
-
-                    if (!payload.token || payload.type !== "REDEEM") {
-                        throw new Error("Invalid QR Code format.");
-                    }
-
-                    const response = await fetch("/api/verify-qr", {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({
-                            token: payload.token,
-                            machineId: "MACHINE_001",
-                        }),
-                    });
-
-                    const data = await response.json();
-
-                    if (!response.ok) {
-                        throw new Error(data.error || "Verification failed");
-                    }
-
-                    setMessage("Verified! Dispensing water...");
-                    setIsError(false);
-                    setResult({
-                        userName: data.userName || "Student",
-                        pointsDeducted: data.pointsDeducted || 0,
-                        waterAmount: data.waterAmount || 0,
-                    });
-                    setScanCount((c) => c + 1);
-                } catch (error: any) {
-                    console.error("Scan error:", error);
-                    setMessage(error.message || "Failed to process QR code");
-                    setIsError(true);
-                } finally {
-                    setVerifying(false);
-                    // Clear the scanner after processing to stop the camera
-                    if (scannerRef.current) {
-                        try {
-                            scannerRef.current.clear();
-                        } catch {
-                            // Ignore
-                        }
-                        scannerRef.current = null;
-                    }
-                }
-            },
-            () => { /* Ignore scan failures — no QR in frame yet */ }
-        );
     }, []);
 
+    const initScanner = useCallback(async () => {
+        if (isInitializing.current) return;
+        isInitializing.current = true;
+
+        await stopScanner();
+        
+        try {
+            const { Html5Qrcode, Html5QrcodeSupportedFormats } = await import("html5-qrcode");
+            
+            const element = document.getElementById("qr-reader");
+            if (!element) {
+                isInitializing.current = false;
+                return;
+            }
+
+            const scanner = new Html5Qrcode("qr-reader", {
+                formatsToSupport: [Html5QrcodeSupportedFormats.QR_CODE],
+                verbose: false
+            });
+            scannerRef.current = scanner;
+
+            const config = {
+                fps: 15,
+                qrbox: { width: 250, height: 250 },
+                aspectRatio: 1.0
+            };
+
+            await scanner.start(
+                { facingMode: "environment" },
+                config,
+                async (decodedText: string) => {
+                    if (processingRef.current) return;
+                    processingRef.current = true;
+
+                    console.log("QR Decoded:", decodedText);
+                    setScanResult(decodedText);
+                    setVerifying(true);
+                    setMessage("Verifying token...");
+                    setIsError(false);
+                    setResult(null);
+
+                    try {
+                        let tokenToVerify = decodedText;
+                        try {
+                            const payload = JSON.parse(decodedText);
+                            if (payload.token) tokenToVerify = payload.token;
+                        } catch (e) {}
+
+                        const response = await fetch("/api/verify-qr", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({
+                                token: tokenToVerify,
+                                machineId: "MACHINE_001",
+                            }),
+                        });
+
+                        const data = await response.json();
+                        if (!response.ok) throw new Error(data.error || "Verification failed");
+
+                        setMessage("Verified! Dispensing water...");
+                        setIsError(false);
+                        setResult({
+                            userName: data.userName || "Student",
+                            pointsDeducted: data.pointsDeducted || 0,
+                            waterAmount: data.waterAmount || 0,
+                        });
+                        setScanCount((c) => c + 1);
+
+                        // Stop camera after success
+                        await scanner.stop();
+                    } catch (error: any) {
+                        console.error("Scan error:", error);
+                        setMessage(error.message || "Failed to process QR code");
+                        setIsError(true);
+                        processingRef.current = false;
+                    } finally {
+                        setVerifying(false);
+                    }
+                },
+                () => {} // silent failure
+            );
+            setCameraReady(true);
+        } catch (err) {
+            console.error("Camera init error", err);
+            setMessage("Could not access camera. Please ensure permissions are granted.");
+            setIsError(true);
+        } finally {
+            isInitializing.current = false;
+        }
+    }, [stopScanner]);
+
     useEffect(() => {
-        initScanner();
+        const timer = setTimeout(() => {
+            initScanner();
+        }, 500);
 
         return () => {
-            processingRef.current = false;
-            if (scannerRef.current) {
-                try {
-                    scannerRef.current.clear();
-                } catch {
-                    // Ignore
-                }
-                scannerRef.current = null;
-            }
+            clearTimeout(timer);
+            stopScanner();
         };
-    }, [initScanner]);
+    }, [initScanner, stopScanner]);
 
     const resetScanner = () => {
         processingRef.current = false;

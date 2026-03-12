@@ -1,3 +1,9 @@
+// -----------------------------------------------------------------------------
+// EcoDefill Database Schema
+// -----------------------------------------------------------------------------
+// PRIMARY SOURCE OF TRUTH: Modify only after human review.
+// DO NOT RUN MIGRATIONS SILENTLY.
+
 generator client {
   provider = "prisma-client-js"
 }
@@ -13,7 +19,8 @@ enum Role {
   ADMIN
 }
 
-
+/// Represents both Students and Admin accounts.
+/// Balance is stored in 'points' where 1 point typically equals 100ml.
 model User {
   id           String        @id @default(uuid())
   email        String        @unique
@@ -35,6 +42,7 @@ model User {
   @@index([email])
 }
 
+/// Records all point-related events (EARN from recycling, REDEEM for water).
 model Transaction {
   id           String   @id @default(uuid())
   userId       String
@@ -49,21 +57,28 @@ model Transaction {
   @@index([userId, type, createdAt])
 }
 
+/// Short-lived tokens for QR interactions. 
+/// 'EARN' for recycling machine, 'REDEEM' for water dispenser.
 model QrToken {
-  id        String   @id @default(uuid())
-  userId    String
-  user      User     @relation(fields: [userId], references: [id])
-  token     String   @unique
-  type      String   @default("EARN") // "EARN" or "REDEEM"
-  amount    Float    @default(0)
-  expiresAt DateTime
-  used      Boolean  @default(false)
-  createdAt DateTime @default(now())
+  id           String    @id @default(uuid())
+  userId       String
+  user         User      @relation(fields: [userId], references: [id])
+  token        String    @unique // Original long token (JWT/JSON)
+  shortToken   String?   @unique // New high-density short token (e.g., ECO-A3F9B2C1)
+  type         String    @default("EARN") // "EARN" or "REDEEM"
+  amount       Float     @default(0)
+  expiresAt    DateTime
+  used         Boolean   @default(false)
+  usedAt       DateTime? // Timestamp when the token was successfully used
+  createdAt    DateTime  @default(now())
 
   @@index([token])
+  @@index([shortToken])
   @@index([userId, expiresAt])
 }
 
+/// Represents an active hardware interaction session (e.g., dispensing water).
+/// Uses JTI for replay prevention.
 model MachineSession {
   id              String        @id @default(uuid())
   machineId       String        // Identifier for the physical ESP32
@@ -81,6 +96,7 @@ model MachineSession {
   @@index([jti])
 }
 
+/// Detailed logs for items processed by the recycling machine.
 model RecyclingLog {
   id           String   @id @default(uuid())
   machineId    String
@@ -96,6 +112,7 @@ model RecyclingLog {
   @@index([machineId, createdAt])
 }
 
+/// System-level logs for IoT hardware health monitoring.
 model MachineLog {
   id           String   @id @default(uuid())
   machineId    String
@@ -106,3 +123,4 @@ model MachineLog {
 
   @@index([machineId, createdAt])
 }
+

@@ -19,13 +19,17 @@ export async function POST(req: NextRequest) {
 
         const userId = auth.user!.userId;
 
-        // Generate a secure, URL-safe base64 token
+        // Generate a long legacy token for DB record (backward compatibility)
         const token = crypto.randomBytes(32).toString('base64url');
+        
+        // Generate a short unique token for high-density QR scanning
+        // E.g. "ECO-A3F9B2C1"
+        const shortToken = `ECO-${crypto.randomBytes(4).toString("hex").toUpperCase()}`;
 
         // Set expiry to strictly 60 seconds from now
         const expiresAt = new Date(Date.now() + 60 * 1000);
 
-        // Clean up old unused tokens for this user first (optional, keeps DB clean)
+        // Clean up old unused tokens for this user first
         await prisma.qrToken.deleteMany({
             where: { userId, used: false, expiresAt: { lt: new Date() } }
         });
@@ -34,12 +38,15 @@ export async function POST(req: NextRequest) {
             data: {
                 userId,
                 token,
+                shortToken,
+                type: "EARN", // Default for this endpoint
                 expiresAt
             }
         });
 
         return NextResponse.json({
-            token: qrToken.token,
+            success: true,
+            token: qrToken.shortToken, // Return the short token for QR encoding
             expiresAt: qrToken.expiresAt
         });
 

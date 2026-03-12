@@ -36,6 +36,12 @@ export async function apiClient<T>(
     }
 
     if (!response.ok) {
+        // If 401, clear stale auth and redirect to login
+        if (response.status === 401 && typeof window !== "undefined") {
+            localStorage.removeItem("token");
+            localStorage.removeItem("user");
+            window.location.href = "/login";
+        }
         throw new Error(body.message || body || "API Request Failed");
     }
 
