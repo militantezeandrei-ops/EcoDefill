@@ -1,10 +1,17 @@
+// -----------------------------------------------------------------------------
+// EcoDefill Database Schema
+// -----------------------------------------------------------------------------
+// PRIMARY SOURCE OF TRUTH: Modify only after human review.
+// DO NOT RUN MIGRATIONS SILENTLY.
+
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 enum Role {
@@ -12,49 +19,66 @@ enum Role {
   ADMIN
 }
 
-
+/// Represents both Students and Admin accounts.
+/// Balance is stored in 'points' where 1 point typically equals 100ml.
 model User {
   id           String        @id @default(uuid())
   email        String        @unique
+  fullName     String?       // E.g. "Juan Dela Cruz"
   passwordHash String
   role         Role          @default(STUDENT)
   balance      Float         @default(0) // total stored points (1 point = 100ml)
+  course       String?       // E.g. "BSCS"
+  yearLevel    String?       // E.g. "1", "2", "3", "4"
+  section      String?       // E.g. "3A"
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
 
-  transactions Transaction[]
-  qrTokens     QrToken[]
+  transactions    Transaction[]
+  qrTokens        QrToken[]
   machineSessions MachineSession[]
+  recyclingLogs   RecyclingLog[]
 
   @@index([email])
 }
 
+/// Records all point-related events (EARN from recycling, REDEEM for water).
 model Transaction {
-  id        String   @id @default(uuid())
-  userId    String
-  user      User     @relation(fields: [userId], references: [id])
-  type      String   // "EARN" or "REDEEM"
-  amount    Float    // point amount
-  createdAt DateTime @default(now())
+  id           String   @id @default(uuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id])
+  type         String   // "EARN" or "REDEEM"
+  amount       Float    // point amount
+  materialType String?  // Optional: BOTTLE, CUP, PAPER
+  count        Int?     // Optional: Number of items
+  status       String   @default("SUCCESS") // SUCCESS, REJECTED
+  createdAt    DateTime @default(now())
 
   @@index([userId, type, createdAt])
 }
 
+/// Short-lived tokens for QR interactions. 
+/// 'EARN' for recycling machine, 'REDEEM' for water dispenser.
 model QrToken {
-  id        String   @id @default(uuid())
-  userId    String
-  user      User     @relation(fields: [userId], references: [id])
-  token     String   @unique
-  type      String   @default("EARN") // "EARN" or "REDEEM"
-  amount    Float    @default(0)
-  expiresAt DateTime
-  used      Boolean  @default(false)
-  createdAt DateTime @default(now())
+  id           String    @id @default(uuid())
+  userId       String
+  user         User      @relation(fields: [userId], references: [id])
+  token        String    @unique // Original long token (JWT/JSON)
+  shortToken   String?   @unique // New high-density short token (e.g., ECO-A3F9B2C1)
+  type         String    @default("EARN") // "EARN" or "REDEEM"
+  amount       Float     @default(0)
+  expiresAt    DateTime
+  used         Boolean   @default(false)
+  usedAt       DateTime? // Timestamp when the token was successfully used
+  createdAt    DateTime  @default(now())
 
   @@index([token])
+  @@index([shortToken])
   @@index([userId, expiresAt])
 }
 
+/// Represents an active hardware interaction session (e.g., dispensing water).
+/// Uses JTI for replay prevention.
 model MachineSession {
   id              String        @id @default(uuid())
   machineId       String        // Identifier for the physical ESP32
@@ -71,3 +95,32 @@ model MachineSession {
   @@index([machineId, status])
   @@index([jti])
 }
+
+/// Detailed logs for items processed by the recycling machine.
+model RecyclingLog {
+  id           String   @id @default(uuid())
+  machineId    String
+  userId       String
+  user         User     @relation(fields: [userId], references: [id])
+  materialType String   // BOTTLE, CUP, PAPER
+  count        Int
+  pointsEarned Float
+  status       String   @default("SUCCESS") // SUCCESS, REJECTED
+  createdAt    DateTime @default(now())
+
+  @@index([userId, createdAt])
+  @@index([machineId, createdAt])
+}
+
+/// System-level logs for IoT hardware health monitoring.
+model MachineLog {
+  id           String   @id @default(uuid())
+  machineId    String
+  status       String   // ONLINE, OFFLINE, ERROR
+  message      String?
+  pingMs       Int?
+  createdAt    DateTime @default(now())
+
+  @@index([machineId, createdAt])
+}
+

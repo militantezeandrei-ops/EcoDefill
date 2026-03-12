@@ -27,15 +27,14 @@ export async function POST(req: NextRequest) {
         const { amount } = result.data;
         const userId = auth.user!.userId;
 
-        // Check daily limit
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
+        // Check rolling 24-hour limit (resets every 24 hours from last action, not at midnight)
+        const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
 
         const todaysEarnings = await prisma.transaction.aggregate({
             where: {
                 userId,
                 type: "EARN",
-                createdAt: { gte: today }
+                createdAt: { gte: twentyFourHoursAgo }
             },
             _sum: { amount: true }
         });

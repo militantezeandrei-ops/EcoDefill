@@ -19,11 +19,40 @@ export default function RedeemWater() {
     const [expiresAt, setExpiresAt] = useState<Date | null>(null);
     const [timeLeft, setTimeLeft] = useState(0);
 
+    const [isSuccess, setIsSuccess] = useState(false);
+
     const [loading, setLoading] = useState(false);
     const [fetching, setFetching] = useState(true);
     const [error, setError] = useState("");
 
     const MAX_DAILY_REDEEM = 5;
+
+    // Poll for QR scan status
+    useEffect(() => {
+        if (!qrToken || isSuccess) return;
+
+        const pollInterval = setInterval(async () => {
+            try {
+                const data = await apiClient<{ used: boolean }>("/api/qr-status?token=" + qrToken);
+                if (data.used) {
+                    setIsSuccess(true);
+                    setQrToken("");
+                    setExpiresAt(null);
+                    clearInterval(pollInterval);
+                    
+                    // Trigger balance update
+                    const userData = await apiClient<{ balance: number, dailyRedeemed: number }>("/api/user-balance");
+                    setBalance(userData.balance);
+                    setDailyRedeemed(userData.dailyRedeemed);
+                    updateUserBalance(userData.balance);
+                }
+            } catch (err) {
+                console.error("Polling error", err);
+            }
+        }, 2000);
+
+        return () => clearInterval(pollInterval);
+    }, [qrToken, isSuccess, updateUserBalance]);
 
     useEffect(() => {
         const fetchUserData = async () => {
@@ -62,6 +91,7 @@ export default function RedeemWater() {
 
     const handleGenerateQR = async () => {
         setError("");
+        setIsSuccess(false);
         const points = parseInt(pointsToRedeem, 10);
 
         if (isNaN(points) || points <= 0) {
@@ -88,7 +118,7 @@ export default function RedeemWater() {
 
             setQrToken(data.token);
             setExpiresAt(new Date(data.expiresAt));
-            setTimeLeft(60);
+            setTimeLeft(30);
         } catch (err: unknown) {
             setError(err instanceof Error ? err.message : "Failed to generate QR code");
         } finally {
@@ -101,7 +131,7 @@ export default function RedeemWater() {
     const isValidInput = !isNaN(parsedPoints) && parsedPoints > 0 && parsedPoints <= balance && parsedPoints <= remainingRedeemable;
 
     return (
-        <div className="flex flex-col min-h-screen bg-slate-50 dark:bg-zinc-900 w-full overflow-hidden">
+        <div className="flex flex-col min-h-screen bg-slate-50 dark:bg-zinc-900 w-full overflow-hidden relative">
             {/* Header matching ui */}
             <header className="bg-blue-600 text-white flex items-center p-4">
                 <Link href="/dashboard" className="flex size-10 items-center justify-center rounded-full hover:bg-white/10 transition-colors">
@@ -149,97 +179,126 @@ export default function RedeemWater() {
                             </div>
                         </div>
 
-                        {/* QR Code Display Area */}
-                        {qrToken ? (
-                            <div className="w-full max-w-sm bg-white dark:bg-zinc-800 rounded-[20px] p-6 shadow-sm border border-slate-100 dark:border-zinc-700 flex flex-col items-center text-center">
-                                <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-2">Scan at Water Station</h3>
-                                <p className="text-slate-500 text-sm mb-6">Your token is ready. Please scan to dispense {(parseInt(pointsToRedeem) || 0) * 100}ml of water.</p>
+                        {/* Redemption Form Area */}
+                        <div className="w-full max-w-sm space-y-4">
+                            <div className="bg-white dark:bg-zinc-800 rounded-[24px] p-6 shadow-sm border border-slate-100 dark:border-zinc-700">
+                                {error && <div className="p-3 mb-4 bg-red-100 text-red-700 rounded-lg text-sm text-center font-medium">{error}</div>}
 
-                                <div className="bg-white p-4 rounded-xl border-4 border-slate-100 dark:border-zinc-700 shadow-sm mb-4">
-                                    <QRCode value={JSON.stringify({ token: qrToken, type: "REDEEM" })} size={200} />
+                                <p className="text-slate-900 dark:text-white font-bold mb-3 text-sm ml-1">Points to Redeem</p>
+                                <div className="flex items-center justify-between mb-6 bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-700 rounded-[12px] p-2">
+                                    <button
+                                        onClick={() => {
+                                            setError("");
+                                            const current = parseInt(pointsToRedeem) || 1;
+                                            if (current > 1) setPointsToRedeem((current - 1).toString());
+                                        }}
+                                        disabled={parseInt(pointsToRedeem || "1") <= 1}
+                                        className="size-12 rounded-[10px] bg-white dark:bg-zinc-800 flex items-center justify-center text-slate-600 dark:text-slate-300 shadow-sm border border-slate-100 dark:border-zinc-700 active:scale-95 disabled:opacity-50 disabled:active:scale-100 transition-all font-bold text-xl"
+                                    >
+                                        -
+                                    </button>
+                                    <div className="flex-1 text-center">
+                                        <span className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">{pointsToRedeem || "0"}</span>
+                                        <span className="text-slate-500 text-sm ml-1 font-semibold">PTS</span>
+                                    </div>
+                                    <button
+                                        onClick={() => {
+                                            setError("");
+                                            const current = parseInt(pointsToRedeem) || 0;
+                                            const maxAllowed = Math.min(remainingRedeemable, balance);
+                                            if (current < maxAllowed) setPointsToRedeem((current + 1).toString());
+                                        }}
+                                        disabled={parseInt(pointsToRedeem || "0") >= Math.min(remainingRedeemable, balance)}
+                                        className="size-12 rounded-[10px] bg-white dark:bg-zinc-800 flex items-center justify-center text-slate-600 dark:text-slate-300 shadow-sm border border-slate-100 dark:border-zinc-700 active:scale-95 disabled:opacity-50 disabled:active:scale-100 transition-all font-bold text-xl"
+                                    >
+                                        +
+                                    </button>
                                 </div>
 
-                                <p className="text-red-500 font-bold mb-4">Expires in: {timeLeft}s</p>
-
-                                <Button
-                                    className="w-full"
-                                    variant="secondary"
-                                    icon="close"
-                                    onClick={() => setQrToken("")}
-                                >
-                                    Cancel
-                                </Button>
-                            </div>
-                        ) : (
-                            /* Redemption Form Area */
-                            <div className="w-full max-w-sm space-y-4">
-                                <div className="bg-white dark:bg-zinc-800 rounded-[24px] p-6 shadow-sm border border-slate-100 dark:border-zinc-700">
-                                    {error && <div className="p-3 mb-4 bg-red-100 text-red-700 rounded-lg text-sm text-center font-medium">{error}</div>}
-
-                                    <p className="text-slate-900 dark:text-white font-bold mb-3 text-sm ml-1">Points to Redeem</p>
-                                    <div className="flex items-center justify-between mb-6 bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-700 rounded-[12px] p-2">
-                                        <button
-                                            onClick={() => {
-                                                setError("");
-                                                const current = parseInt(pointsToRedeem) || 1;
-                                                if (current > 1) setPointsToRedeem((current - 1).toString());
-                                            }}
-                                            disabled={parseInt(pointsToRedeem || "1") <= 1}
-                                            className="size-12 rounded-[10px] bg-white dark:bg-zinc-800 flex items-center justify-center text-slate-600 dark:text-slate-300 shadow-sm border border-slate-100 dark:border-zinc-700 active:scale-95 disabled:opacity-50 disabled:active:scale-100 transition-all font-bold text-xl"
-                                        >
-                                            -
-                                        </button>
-                                        <div className="flex-1 text-center">
-                                            <span className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">{pointsToRedeem || "0"}</span>
-                                            <span className="text-slate-500 text-sm ml-1 font-semibold">PTS</span>
+                                <div className="bg-blue-50 dark:bg-blue-900/20 rounded-[12px] p-4 flex items-center justify-between border border-blue-100 dark:border-blue-800/50">
+                                    <div className="flex items-center gap-2">
+                                        <div className="size-8 rounded-full bg-blue-200 dark:bg-blue-800 flex items-center justify-center">
+                                            <span className="material-symbols-outlined text-blue-700 dark:text-blue-300 text-sm">water_drop</span>
                                         </div>
-                                        <button
-                                            onClick={() => {
-                                                setError("");
-                                                const current = parseInt(pointsToRedeem) || 0;
-                                                const maxAllowed = Math.min(remainingRedeemable, balance);
-                                                if (current < maxAllowed) setPointsToRedeem((current + 1).toString());
-                                            }}
-                                            disabled={parseInt(pointsToRedeem || "0") >= Math.min(remainingRedeemable, balance)}
-                                            className="size-12 rounded-[10px] bg-white dark:bg-zinc-800 flex items-center justify-center text-slate-600 dark:text-slate-300 shadow-sm border border-slate-100 dark:border-zinc-700 active:scale-95 disabled:opacity-50 disabled:active:scale-100 transition-all font-bold text-xl"
-                                        >
-                                            +
-                                        </button>
+                                        <span className="text-slate-600 dark:text-slate-300 text-sm">You will receive:</span>
                                     </div>
-
-                                    <div className="bg-blue-50 dark:bg-blue-900/20 rounded-[12px] p-4 flex items-center justify-between border border-blue-100 dark:border-blue-800/50">
-                                        <div className="flex items-center gap-2">
-                                            <div className="size-8 rounded-full bg-blue-200 dark:bg-blue-800 flex items-center justify-center">
-                                                <span className="material-symbols-outlined text-blue-700 dark:text-blue-300 text-sm">water_drop</span>
-                                            </div>
-                                            <span className="text-slate-600 dark:text-slate-300 text-sm">You will receive:</span>
-                                        </div>
-                                        <span className="text-blue-700 dark:text-blue-400 font-bold text-lg">
-                                            {isValidInput ? parsedPoints * 100 : 0} ml
-                                        </span>
-                                    </div>
-                                </div>
-
-                                <div className="flex bg-slate-100 dark:bg-zinc-800/80 rounded-xl p-4 items-start gap-3">
-                                    <span className="material-symbols-outlined text-slate-400 text-xl mt-0.5">info</span>
-                                    <p className="text-slate-500 dark:text-slate-400 text-xs leading-relaxed">
-                                        Scanning the QR code at the water station will deduct the points immediately. Ensure you have your bottle ready.
-                                    </p>
+                                    <span className="text-blue-700 dark:text-blue-400 font-bold text-lg">
+                                        {isValidInput ? parsedPoints * 100 : 0} ml
+                                    </span>
                                 </div>
                             </div>
-                        )}
+
+                            <div className="flex bg-slate-100 dark:bg-zinc-800/80 rounded-xl p-4 items-start gap-3">
+                                <span className="material-symbols-outlined text-slate-400 text-xl mt-0.5">info</span>
+                                <p className="text-slate-500 dark:text-slate-400 text-xs leading-relaxed">
+                                    Scanning the QR code at the water station will deduct the points immediately. Ensure you have your bottle ready.
+                                </p>
+                            </div>
+                        </div>
                     </>
                 )}
             </main>
 
+            {/* Middle QR Modal */}
+            {qrToken && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300">
+                    <div className="w-full max-w-sm bg-white dark:bg-zinc-800 rounded-[32px] p-8 shadow-2xl flex flex-col items-center text-center animate-in zoom-in-95 duration-300">
+                        <div className="w-full flex justify-end mb-2">
+                            <button onClick={() => setQrToken("")} className="size-10 rounded-full bg-slate-100 dark:bg-zinc-700 flex items-center justify-center text-slate-500 transition-colors hover:bg-slate-200">
+                                <span className="material-symbols-outlined">close</span>
+                            </button>
+                        </div>
+                        
+                        <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">Scan QR Code</h3>
+                        <p className="text-slate-500 text-sm mb-6">Point the machine camera at this code to dispense water.</p>
+
+                        <div className="bg-white p-6 rounded-3xl border-2 border-blue-100 dark:border-zinc-700 shadow-inner mb-6">
+                            <QRCode value={qrToken} size={220} level="M" />
+                        </div>
+
+                        <div className="flex items-center gap-2 bg-red-50 dark:bg-red-900/20 px-4 py-2 rounded-full mb-6 text-red-600 dark:text-red-400 text-sm font-bold animate-pulse">
+                            <span className="material-symbols-outlined text-sm">timer</span>
+                            <span>Expires in {timeLeft}s</span>
+                        </div>
+
+                        <div className="w-full p-4 bg-blue-50 dark:bg-blue-900/20 rounded-2xl flex items-center gap-3">
+                            <div className="size-10 rounded-xl bg-blue-500 flex items-center justify-center text-white shrink-0">
+                                <span className="material-symbols-outlined">water_drop</span>
+                            </div>
+                            <div className="text-left">
+                                <p className="text-xs text-blue-600 dark:text-blue-400 font-bold uppercase tracking-widest">Selected Amount</p>
+                                <p className="text-lg font-bold text-slate-900 dark:text-white">{(parseInt(pointsToRedeem) || 0) * 100}ml</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Success Modal */}
+            {isSuccess && (
+                <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-blue-600/90 backdrop-blur-md animate-in fade-in duration-500">
+                    <div className="w-full max-w-sm flex flex-col items-center text-center animate-in zoom-in-95 duration-500">
+                        <div className="size-24 rounded-full bg-white flex items-center justify-center mb-6 shadow-2xl scale-110">
+                            <span className="material-symbols-outlined text-blue-600 text-5xl font-bold">check</span>
+                        </div>
+                        <h3 className="text-3xl font-black text-white mb-2 tracking-tight">Success!</h3>
+                        <p className="text-blue-100 text-lg mb-8">Your water is being dispensed. <br/>Points deducted successfully.</p>
+                        
+                        <Link href="/dashboard" className="w-full py-4 bg-white text-blue-600 font-bold rounded-2xl shadow-xl active:scale-95 transition-all text-center">
+                            Back to Home
+                        </Link>
+                    </div>
+                </div>
+            )}
+
             {/* Bottom Generate Action */}
-            {!qrToken && !fetching && (
+            {!qrToken && !fetching && !isSuccess && (
                 <div className="p-4 bg-white dark:bg-zinc-900 border-t border-slate-100 dark:border-zinc-800 shadow-[0_-10px_40px_rgba(0,0,0,0.05)] w-full max-w-sm mx-auto fixed bottom-16 left-1/2 -translate-x-1/2 z-40">
                     <Button
                         onClick={handleGenerateQR}
                         disabled={!isValidInput || loading || dailyRedeemed >= MAX_DAILY_REDEEM}
                         className="w-full shadow-lg shadow-blue-500/30"
-                        variant="primary" /* Will map to blue since globals sets primary, but let's override class */
+                        variant="primary"
                     >
                         {loading ? "Generating..." : "Generate QR Code"}
                     </Button>

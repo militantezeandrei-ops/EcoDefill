@@ -1,9 +1,36 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
+import { apiClient } from "@/lib/api";
+
+interface UserProfile {
+    balance: number;
+    fullName: string | null;
+    course: string | null;
+    yearLevel: string | null;
+    section: string | null;
+}
 
 export default function ProfilePage() {
     const { user, logout } = useAuth();
+    const [profile, setProfile] = useState<UserProfile | null>(null);
+
+    useEffect(() => {
+        const fetchProfile = async () => {
+            try {
+                const data = await apiClient<UserProfile>("/api/user-balance");
+                setProfile(data);
+            } catch (err) {
+                console.error("Failed to fetch profile", err);
+            }
+        };
+        fetchProfile();
+    }, []);
+
+    // Show immediately with cached data, update when API responds
+    const displayName = profile?.fullName || user?.email?.split('@')[0] || 'Student';
+    const balance = profile?.balance ?? user?.balance ?? 0;
 
     return (
         <div className="flex-1 overflow-y-auto pb-8 w-full h-full">
@@ -11,34 +38,56 @@ export default function ProfilePage() {
                 <h1 className="text-xl font-bold tracking-tight text-center">Profile</h1>
             </div>
 
-            <div className="flex flex-col items-center px-6 pt-6 pb-8">
-                <div className="relative mb-6">
+            <div className="flex flex-col items-center px-6 pt-6 pb-6">
+                <div className="relative mb-5">
                     <div className="p-1 rounded-full bg-gradient-to-tr from-primary to-green-300">
                         <div
-                            className="w-32 h-32 rounded-full bg-cover bg-center border-4 border-white dark:border-zinc-900"
-                            style={{ backgroundImage: "url('https://ui-avatars.com/api/?name=" + (user?.email || "Student") + "&background=random')" }}
-                        ></div>
+                            className="w-28 h-28 rounded-full bg-cover bg-center border-4 border-white dark:border-zinc-900"
+                            style={{ backgroundImage: "url('https://ui-avatars.com/api/?name=" + encodeURIComponent(displayName) + "&background=2f7f33&color=fff&size=128')" }}
+                        />
                     </div>
-                    <button className="absolute bottom-1 right-1 bg-primary text-white p-2 rounded-full shadow-lg border-2 border-white dark:border-zinc-900 hover:bg-primary/90 transition-colors">
-                        <span className="material-symbols-outlined text-[20px]">edit</span>
+                    <button className="absolute bottom-0 right-0 bg-primary text-white p-2 rounded-full shadow-lg border-2 border-white dark:border-zinc-900 hover:bg-primary/90 transition-colors">
+                        <span className="material-symbols-outlined text-[18px]">edit</span>
                     </button>
                 </div>
 
-                <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-1">Student Account</h2>
-                <p className="text-slate-500 dark:text-slate-400 text-sm mb-1">{user?.email}</p>
+                <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-1">{displayName}</h2>
+                <p className="text-slate-500 dark:text-slate-400 text-sm mb-2">{user?.email}</p>
 
-                <div className="flex gap-2 mt-2">
-                    <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-primary/10 text-primary dark:bg-primary/20 dark:text-green-300">
-                        ECO-WARRIOR
-                    </span>
+                {/* Course / Year / Section Badges */}
+                <div className="flex flex-wrap gap-2 mt-1 justify-center">
+                    {profile?.course ? (
+                        <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300">
+                            <span className="material-symbols-outlined text-[14px]">school</span>
+                            {profile.course}
+                        </span>
+                    ) : (
+                        <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold bg-gray-100 dark:bg-zinc-700 text-gray-400 animate-pulse w-16 h-6" />
+                    )}
+                    {profile?.yearLevel ? (
+                        <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300">
+                            <span className="material-symbols-outlined text-[14px]">calendar_today</span>
+                            Year {profile.yearLevel}
+                        </span>
+                    ) : (
+                        <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold bg-gray-100 dark:bg-zinc-700 text-gray-400 animate-pulse w-20 h-6" />
+                    )}
+                    {profile?.section ? (
+                        <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300">
+                            <span className="material-symbols-outlined text-[14px]">group</span>
+                            Section {profile.section}
+                        </span>
+                    ) : (
+                        <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold bg-gray-100 dark:bg-zinc-700 text-gray-400 animate-pulse w-24 h-6" />
+                    )}
                 </div>
             </div>
 
-            <div className="px-6 mb-8">
-                <div className="bg-white dark:bg-zinc-800 rounded-2xl p-6 shadow-sm border border-slate-100 dark:border-zinc-700 flex items-center justify-between">
+            <div className="px-6 mb-6">
+                <div className="bg-white dark:bg-zinc-800 rounded-2xl p-5 shadow-sm border border-slate-100 dark:border-zinc-700 flex items-center justify-between">
                     <div>
-                        <p className="text-sm font-medium text-slate-500 dark:text-slate-400 mb-1">Total Lifetime Points</p>
-                        <p className="text-3xl font-bold text-primary dark:text-green-400">{user?.balance || 0} <span className="text-sm font-normal text-slate-400">pts</span></p>
+                        <p className="text-sm font-medium text-slate-500 dark:text-slate-400 mb-1">Total Points</p>
+                        <p className="text-3xl font-bold text-primary dark:text-green-400">{balance} <span className="text-sm font-normal text-slate-400">pts</span></p>
                     </div>
                     <div className="h-12 w-12 rounded-full bg-green-50 dark:bg-green-900/30 flex items-center justify-center text-primary dark:text-green-400">
                         <span className="material-symbols-outlined text-2xl">eco</span>

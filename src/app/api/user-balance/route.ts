@@ -9,32 +9,59 @@ export async function GET(req: NextRequest) {
             return NextResponse.json({ message: auth.error }, { status: auth.status });
         }
 
-        const user = await prisma.user.findUnique({
-            where: { id: auth.user!.userId },
-            select: { balance: true }
-        });
+        const userId = auth.user!.userId;
 
-        if (!user) {
-            return NextResponse.json({ message: "User not found" }, { status: 404 });
-        }
-
+        // Redeem limit resets at midnight (school hours only)
         const today = new Date();
         today.setHours(0, 0, 0, 0);
 
-        const todaysRedemptions = await prisma.transaction.aggregate({
-            where: {
-                userId: auth.user!.userId,
-                type: "REDEEM",
-                createdAt: { gte: today }
-            },
-            _sum: { amount: true }
-        });
+        // Earn limit uses a rolling 24-hour window
+        const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
 
-        const dailyRedeemed = todaysRedemptions._sum.amount || 0;
+        // Run ALL queries in parallel instead of sequentially
+        const [user, todaysRedemptions, todaysEarnings, recentTransactions] = await Promise.all([
+            prisma.user.findUnique({
+                where: { id: userId },
+                select: { balance: true, fullName: true, course: true, yearLevel: true, section: true }
+            }),
+            prisma.transaction.aggregate({
+                where: { userId, type: "REDEEM", createdAt: { gte: today } },
+                _sum: { amount: true }
+            }),
+            prisma.transaction.aggregate({
+                where: { userId, type: "EARN", createdAt: { gte: twentyFourHoursAgo } },
+                _sum: { amount: true }
+            }),
+            prisma.transaction.findMany({
+                where: { userId },
+                orderBy: { createdAt: "desc" },
+                take: 5,
+                select: {
+                    id: true,
+                    type: true,
+                    amount: true,
+                    materialType: true,
+                    count: true,
+                    status: true,
+                    createdAt: true
+                }
+            })
+        ]);
+
+        if (!user) {
+            // Return 401 so the client clears the stale token and redirects to login
+            return NextResponse.json({ message: "User session expired. Please log in again." }, { status: 401 });
+        }
 
         return NextResponse.json({
             balance: user.balance,
-            dailyRedeemed
+            fullName: user.fullName,
+            course: user.course,
+            yearLevel: user.yearLevel,
+            section: user.section,
+            dailyRedeemed: todaysRedemptions._sum.amount || 0,
+            dailyEarned: todaysEarnings._sum.amount || 0,
+            recentTransactions
         });
 
     } catch (error) {

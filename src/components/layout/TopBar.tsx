@@ -2,7 +2,7 @@
 
 import { useAuth } from "@/hooks/useAuth";
 
-export function TopBar({ title = "PDM Eco-Rewards" }: { title?: string }) {
+export function TopBar({ title = "EcoDefill" }: { title?: string }) {
     const { logout } = useAuth();
 
     return (

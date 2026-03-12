@@ -3,9 +3,15 @@ import prisma from "@/lib/prisma";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
 
+const VALID_COURSES = ["BSIT", "BSCS", "BSHM", "BSTM", "BECED", "BTLED", "BSOAD"];
+
 const registerSchemaServer = z.object({
     email: z.string().email(),
     password: z.string().min(6),
+    fullName: z.string().optional(),
+    course: z.string().optional(),
+    yearLevel: z.string().optional(),
+    section: z.string().optional(),
 });
 
 export async function POST(req: NextRequest) {
@@ -17,7 +23,7 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ message: "Invalid input format" }, { status: 400 });
         }
 
-        const { email, password } = result.data;
+        const { email, password, fullName, course, yearLevel, section } = result.data;
 
         const existingUser = await prisma.user.findUnique({ where: { email } });
         if (existingUser) {
@@ -30,8 +36,12 @@ export async function POST(req: NextRequest) {
             data: {
                 email,
                 passwordHash,
+                fullName: fullName || null,
                 role: "STUDENT",
                 balance: 0,
+                course: course || null,
+                yearLevel: yearLevel || null,
+                section: section || null,
             }
         });
 

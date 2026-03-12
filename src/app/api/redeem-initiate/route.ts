@@ -2,41 +2,31 @@ import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import jwt from "jsonwebtoken";
 import { v4 as uuidv4 } from "uuid";
+import crypto from "crypto";
+import { authenticateRequest } from "@/lib/api-middleware";
 
-// In MVP auth is just by checking a mocked Authorization header or passing userId from frontend for testing
 export async function POST(req: NextRequest) {
     try {
-        const { amount, userId } = await req.json();
+        // Use standard auth middleware — no insecure body fallback
+        const auth = await authenticateRequest(req);
+        if (auth.error) {
+            return NextResponse.json({ error: auth.error }, { status: auth.status });
+        }
 
-        // Very basic validation (In real apps, get userId from session/cookie)
+        const finalUserId = auth.user!.userId;
+
+        const { amount } = await req.json();
+
         if (!amount || amount <= 0) {
             return NextResponse.json({ error: "Invalid amount" }, { status: 400 });
         }
 
-        // IMPORTANT: In a real app, `userId` must come from the auth token (e.g. NextAuth session). 
-        // We are trusting the client request here for IoT testing purposes if no session is set up.
-        // Assuming your apiClient adds a token or we just pass it in. If your `login` system is working, 
-        // you should extract the token from headers here.
-
-        const authHeader = req.headers.get('authorization');
-        let finalUserId = userId; // fallback to body provided userId
-
-        if (authHeader && authHeader.startsWith('Bearer ')) {
-            const tokenStr = authHeader.split(' ')[1];
-            try {
-                const decoded = jwt.verify(tokenStr, process.env.JWT_SECRET || 'fallback-secret-key-123') as any;
-                finalUserId = decoded.userId;
-            } catch (e) {
-                // Ignore token error for now, use the body one if provided
-            }
-        }
-
-        if (!finalUserId) {
-            return NextResponse.json({ error: "Unauthorized. Missing user ID." }, { status: 401 });
-        }
-
         const user = await prisma.user.findUnique({ where: { id: finalUserId } });
-        if (!user || user.balance < amount) {
+        if (!user) {
+            return NextResponse.json({ error: "User session expired. Please log in again." }, { status: 401 });
+        }
+
+        if (user.balance < amount) {
             return NextResponse.json({ error: "Insufficient balance" }, { status: 400 });
         }
 
@@ -65,10 +55,28 @@ export async function POST(req: NextRequest) {
             jti: jti
         };
 
-        const qrToken = jwt.sign(qrPayload, process.env.JWT_SECRET || 'fallback-secret-key-123', { expiresIn: `${expiresInSeconds}s` });
+        // Generate a long legacy token for DB record (backward compatibility)
+        const token = jwt.sign(qrPayload, process.env.JWT_SECRET || 'fallback-secret-key-123', { expiresIn: `${expiresInSeconds}s` });
+
+        // Generate a short unique token for high-density QR scanning
+        // E.g. "ECO-A3F9B2C1"
+        const shortToken = `ECO-${crypto.randomBytes(4).toString("hex").toUpperCase()}`;
+
+        // Create QrToken in DB linked to this request
+        await prisma.qrToken.create({
+            data: {
+                userId: user.id,
+                token: token,
+                shortToken: shortToken,
+                type: "REDEEM",
+                amount: amount,
+                expiresAt: expiresAtDate
+            }
+        });
 
         return NextResponse.json({
-            token: qrToken,
+            success: true,
+            token: shortToken, // Return the short token for QR encoding
             expiresAt: expiresAtDate
         });
 
