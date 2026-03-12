@@ -7,7 +7,7 @@
 ## 🚀 Features
 
 - **User Mobile Dashboard**: Track your recycling progress and point balance.
-- **Smart QR System**: High-density QR tokens for seamless interaction with IoT hardware.
+- **Smart QR System**: Secure QR tokens for seamless interaction with IoT hardware.
 - **IoT Integration**: Synchronized communication between Next.js backend and ESP32-based hardware.
 - **Admin Portal**: Comprehensive dashboard for managing users, transactions, and hardware health.
 - **Atomic Transactions**: Secure point handling using Prisma transactions to prevent balance errors.
