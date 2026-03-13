@@ -27,7 +27,7 @@ export async function POST(req: NextRequest) {
         const { amount } = result.data;
         const userId = auth.user!.userId;
 
-        // Check rolling 24-hour limit (resets every 24 hours from last action, not at midnight)
+        // Check daily Earning limit
         const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
 
         const todaysEarnings = await prisma.transaction.aggregate({

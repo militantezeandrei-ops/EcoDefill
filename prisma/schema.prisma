@@ -26,6 +26,7 @@ model User {
   email        String        @unique
   fullName     String?       // E.g. "Juan Dela Cruz"
   passwordHash String
+
   role         Role          @default(STUDENT)
   balance      Float         @default(0) // total stored points (1 point = 100ml)
   course       String?       // E.g. "BSCS"

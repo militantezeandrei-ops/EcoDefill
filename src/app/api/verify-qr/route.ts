@@ -25,7 +25,10 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: 'QR code has already been used.' }, { status: 400 });
         }
 
-        if (new Date() > qrToken.expiresAt) {
+        // Provide a 10 second grace period for last-second scans to reach the server
+        const graceTime = new Date();
+        graceTime.setSeconds(graceTime.getSeconds() - 10);
+        if (graceTime > qrToken.expiresAt) {
             return NextResponse.json({ error: 'QR code has expired.' }, { status: 400 });
         }
 
@@ -107,6 +110,27 @@ export async function POST(req: Request) {
                     throw new Error('User not found');
                 }
 
+                // Check daily limits 
+                const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+
+                const todayEarned = await tx.transaction.aggregate({
+                    where: {
+                        userId: user.id,
+                        type: 'EARN',
+                        createdAt: {
+                            gte: twentyFourHoursAgo
+                        }
+                    },
+                    _sum: {
+                        amount: true
+                    }
+                });
+
+                const pointsEarned = todayEarned._sum.amount || 0;
+                if (pointsEarned >= 10) {
+                    throw new Error('Daily earning limit reached');
+                }
+
                 // Add 1 point for scanning personal QR (check-in/earn)
                 await tx.user.update({
                     where: { id: user.id },
@@ -140,6 +164,9 @@ export async function POST(req: Request) {
     } catch (error: any) {
         if (error.message === 'Insufficient balance') {
             return NextResponse.json({ error: 'Insufficient balance.' }, { status: 400 });
+        }
+        if (error.message === 'Daily earning limit reached') {
+            return NextResponse.json({ error: 'Daily earning limit of 10 points reached.' }, { status: 403 });
         }
         console.error("Verify QR Error:", error);
         return NextResponse.json({ error: 'Verification failed.' }, { status: 500 });

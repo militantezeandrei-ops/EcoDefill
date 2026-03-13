@@ -1,13 +1,12 @@
 "use client";
 
-import { useState } from "react";
-import { Shell } from "@/components/layout/Shell";
-import { Input } from "@/components/ui/Input";
-import { Button } from "@/components/ui/Button";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { apiClient } from "@/lib/api";
 import { z } from "zod";
+import Swal from "sweetalert2";
 
 const registerSchema = z.object({
     fullName: z.string().min(2, "Full Name is required"),
@@ -37,6 +36,22 @@ export default function Register() {
     });
     const [errors, setErrors] = useState<Record<string, string>>({});
     const [loading, setLoading] = useState(false);
+
+    useEffect(() => {
+        document.body.style.backgroundImage = `linear-gradient(to bottom, rgba(0,0,0,0.7), rgba(0,0,0,0.5), rgba(0,0,0,0.8)), url('/images/pdm-building.jpg')`;
+        document.body.style.backgroundSize = 'cover';
+        document.body.style.backgroundPosition = 'center';
+        document.body.style.backgroundAttachment = 'fixed';
+        document.body.style.backgroundRepeat = 'no-repeat';
+
+        return () => {
+            document.body.style.backgroundImage = '';
+            document.body.style.backgroundSize = '';
+            document.body.style.backgroundPosition = '';
+            document.body.style.backgroundAttachment = '';
+            document.body.style.backgroundRepeat = '';
+        };
+    }, []);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const { name, value, type } = e.target;
@@ -70,145 +85,234 @@ export default function Register() {
                     section: formData.section,
                 })
             });
+            
+            Swal.fire({
+                title: 'Success!',
+                text: 'Your account has been created successfully.',
+                icon: 'success',
+                background: '#18181b', // zinc-900
+                color: '#fff',
+                confirmButtonColor: '#10b981', // emerald-500
+            });
+            
             router.push("/login");
-        } catch (err: unknown) {
-            setErrors({ form: err instanceof Error ? err.message : "Failed to register" });
+        } catch (err: any) {
+            const errorMessage = err instanceof Error ? err.message : "Failed to register";
+            
+            Swal.fire({
+                title: 'Registration Failed',
+                text: errorMessage,
+                icon: 'error',
+                background: '#18181b',
+                color: '#fff',
+                confirmButtonColor: '#10b981',
+            });
+            
+            setErrors({ form: errorMessage });
         } finally {
             setLoading(false);
         }
     };
 
     return (
-        <Shell
-            title="Create Account"
-            subtitle="Join the PDM recycling community to earn water refill rewards for a greener campus."
-        >
-            <form onSubmit={handleSubmit} className="flex flex-col gap-5 px-6 pb-2 w-full mt-4">
-                {errors.form && <div className="p-3 bg-red-100 text-red-700 rounded-lg text-sm text-center">{errors.form}</div>}
+        <div className="flex min-h-[100dvh] w-full items-center justify-center bg-transparent py-8 font-display overflow-y-auto">
+            <div className="relative w-full max-w-[480px] mx-4 rounded-3xl bg-zinc-900/60 backdrop-blur-2xl p-8 shadow-[0_8px_32px_rgba(0,0,0,0.5)] border border-white/10 overflow-hidden my-4">
+                {/* Gradient accent top border */}
+                <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-emerald-400 via-emerald-500 to-green-600"></div>
 
-                <Input
-                    name="fullName"
-                    label="Full Name"
-                    icon="person"
-                    placeholder="Juan Dela Cruz"
-                    value={formData.fullName}
-                    onChange={handleChange}
-                    error={errors.fullName}
-                />
-
-                <Input
-                    name="email"
-                    label="Email Address"
-                    icon="mail"
-                    placeholder="Juan@gmail.com"
-                    type="email"
-                    value={formData.email}
-                    onChange={handleChange}
-                    error={errors.email}
-                />
-
-                <div className="grid grid-cols-2 gap-4">
-                    <label className="flex flex-col w-full">
-                        <span className="text-slate-900 dark:text-slate-100 text-sm font-semibold leading-normal pb-2 ml-1">Course</span>
-                        <div className="relative group">
-                            <select
-                                name="course"
-                                value={formData.course}
-                                onChange={handleChange}
-                                className={`form-select flex w-full rounded-lg text-slate-900 dark:text-white border-none bg-slate-50 dark:bg-zinc-800 focus:ring-2 focus:ring-primary/50 shadow-sm h-14 pl-4 pr-10 text-base appearance-none transition-all ${errors.course ? "ring-2 ring-red-500" : ""}`}
-                            >
-                                <option disabled value="">Select</option>
-                                <option value="BSIT">BSIT</option>
-                                <option value="BSCS">BSCS</option>
-                                <option value="BSHM">BSHM</option>
-                                <option value="BSTM">BSTM</option>
-                                <option value="BECED">BECED</option>
-                                <option value="BTLED">BTLED</option>
-                                <option value="BSOAD">BSOAD</option>
-                            </select>
-                            <span className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 material-symbols-outlined pointer-events-none">school</span>
-                        </div>
-                        {errors.course && <span className="text-red-500 text-xs ml-1 font-medium mt-1">{errors.course}</span>}
-                    </label>
-
-                    <label className="flex flex-col w-full">
-                        <span className="text-slate-900 dark:text-slate-100 text-sm font-semibold leading-normal pb-2 ml-1">Year Level</span>
-                        <div className="relative group">
-                            <select
-                                name="yearLevel"
-                                value={formData.yearLevel}
-                                onChange={handleChange}
-                                className={`form-select flex w-full rounded-lg text-slate-900 dark:text-white border-none bg-slate-50 dark:bg-zinc-800 focus:ring-2 focus:ring-primary/50 shadow-sm h-14 pl-4 pr-10 text-base appearance-none transition-all ${errors.yearLevel ? "ring-2 ring-red-500" : ""}`}
-                            >
-                                <option disabled value="">Select</option>
-                                <option value="1">1st Year</option>
-                                <option value="2">2nd Year</option>
-                                <option value="3">3rd Year</option>
-                                <option value="4">4th Year</option>
-                            </select>
-                            <span className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 material-symbols-outlined pointer-events-none">calendar_today</span>
-                        </div>
-                        {errors.yearLevel && <span className="text-red-500 text-xs ml-1 font-medium mt-1">{errors.yearLevel}</span>}
-                    </label>
-                </div>
-
-                <Input
-                    name="section"
-                    label="Section"
-                    icon="class"
-                    placeholder="e.g 1A"
-                    value={formData.section}
-                    onChange={handleChange}
-                    error={errors.section}
-                />
-
-                <Input
-                    name="password"
-                    label="Password"
-                    type="password"
-                    icon="lock"
-                    placeholder="Min. 8 characters"
-                    value={formData.password}
-                    onChange={handleChange}
-                    error={errors.password}
-                />
-
-                <Input
-                    name="confirmPassword"
-                    label="Confirm Password"
-                    type="password"
-                    icon="lock"
-                    placeholder="Re-enter password"
-                    value={formData.confirmPassword}
-                    onChange={handleChange}
-                    error={errors.confirmPassword}
-                />
-
-                <div className="flex items-start gap-3 mt-2">
-                    <div className="relative flex items-center">
-                        <input
-                            name="agreeTerms"
-                            checked={formData.agreeTerms}
-                            onChange={handleChange}
-                            className={`peer size-5 cursor-pointer appearance-none rounded-md border ${errors.agreeTerms ? "border-red-500 ring-2 ring-red-500/50" : "border-slate-300 dark:border-slate-600"} bg-slate-50 dark:bg-zinc-800 checked:bg-primary checked:border-primary transition-all`}
-                            type="checkbox"
+                <div className="mb-6 mt-2 text-center flex flex-col items-center">
+                    <div className="w-20 h-20 relative mb-4">
+                        <Image
+                            src="/images/pdm-logo.png"
+                            alt="PDM Logo"
+                            fill
+                            className="object-contain drop-shadow-2xl"
+                            priority
                         />
-                        <span className="material-symbols-outlined absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-white opacity-0 peer-checked:opacity-100 text-[16px] pointer-events-none">check</span>
                     </div>
-                    <p className="text-slate-500 dark:text-slate-400 text-sm leading-tight pt-0.5">
-                        I agree to the <a className="text-primary font-semibold hover:underline" href="#">Terms of Service</a> and <a className="text-primary font-semibold hover:underline" href="#">Privacy Policy</a>.
-                    </p>
+                    <h1 className="text-2xl font-bold text-white tracking-tight">Create Account</h1>
+                    <p className="mt-2 text-sm text-emerald-100/70 font-medium">Join EcoDefill for a greener campus.</p>
                 </div>
 
-                <div className="pt-4 pb-8 border-t border-slate-200 dark:border-slate-800/50 mt-4">
-                    <Button type="submit" icon="arrow_forward" disabled={loading}>
-                        {loading ? "Creating..." : "Create Account"}
-                    </Button>
-                    <p className="text-center text-slate-500 dark:text-slate-400 text-sm mt-4">
-                        Already have an account? <Link href="/login" className="text-primary font-bold hover:underline">Sign In</Link>
+                <form onSubmit={handleSubmit} className="space-y-4">
+                    <div>
+                        <label className="block text-[12px] font-semibold text-emerald-50/80 uppercase tracking-wider mb-1.5 ml-1">Full Name</label>
+                        <div className="relative group">
+                            <input
+                                name="fullName"
+                                type="text"
+                                className="block w-full rounded-xl border border-white/10 bg-black/40 px-4 py-3 pl-11 shadow-inner focus:border-emerald-500/50 focus:bg-black/60 focus:outline-none focus:ring-1 focus:ring-emerald-500/50 text-white placeholder-white/30 transition-all font-medium text-sm"
+                                placeholder="Juan Dela Cruz"
+                                value={formData.fullName}
+                                onChange={handleChange}
+                            />
+                            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40 group-focus-within:text-emerald-400 material-symbols-outlined text-[20px] pointer-events-none transition-colors">person</span>
+                        </div>
+                        {errors.fullName && <span className="text-red-400 text-xs ml-1 font-medium mt-1 block">{errors.fullName}</span>}
+                    </div>
+
+                    <div>
+                        <label className="block text-[12px] font-semibold text-emerald-50/80 uppercase tracking-wider mb-1.5 ml-1">Email Address</label>
+                        <div className="relative group">
+                            <input
+                                name="email"
+                                type="email"
+                                className="block w-full rounded-xl border border-white/10 bg-black/40 px-4 py-3 pl-11 shadow-inner focus:border-emerald-500/50 focus:bg-black/60 focus:outline-none focus:ring-1 focus:ring-emerald-500/50 text-white placeholder-white/30 transition-all font-medium text-sm"
+                                placeholder="Juan@gmail.com"
+                                value={formData.email}
+                                onChange={handleChange}
+                            />
+                            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40 group-focus-within:text-emerald-400 material-symbols-outlined text-[20px] pointer-events-none transition-colors">mail</span>
+                        </div>
+                        {errors.email && <span className="text-red-400 text-xs ml-1 font-medium mt-1 block">{errors.email}</span>}
+                    </div>
+
+                    <div className="grid grid-cols-3 gap-3">
+                        <div className="flex flex-col w-full">
+                            <label className="block text-[12px] font-semibold text-emerald-50/80 uppercase tracking-wider mb-1.5 ml-1">Course</label>
+                            <div className="relative group">
+                                <select
+                                    name="course"
+                                    value={formData.course}
+                                    onChange={handleChange}
+                                    className="form-select flex w-full rounded-xl border border-white/10 bg-black/40 px-3 py-3 shadow-inner focus:border-emerald-500/50 focus:bg-black/60 focus:outline-none focus:ring-1 focus:ring-emerald-500/50 text-white transition-all font-medium text-sm appearance-none"
+                                >
+                                    <option disabled value="" className="bg-zinc-800">Select</option>
+                                    <option value="BSIT" className="bg-zinc-800">BSIT</option>
+                                    <option value="BSCS" className="bg-zinc-800">BSCS</option>
+                                    <option value="BSHM" className="bg-zinc-800">BSHM</option>
+                                    <option value="BSTM" className="bg-zinc-800">BSTM</option>
+                                    <option value="BECED" className="bg-zinc-800">BECED</option>
+                                    <option value="BTLED" className="bg-zinc-800">BTLED</option>
+                                    <option value="BSOAD" className="bg-zinc-800">BSOAD</option>
+                                </select>
+                                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-white/40 group-focus-within:text-emerald-400 material-symbols-outlined text-[18px] pointer-events-none transition-colors">school</span>
+                            </div>
+                            {errors.course && <span className="text-red-400 text-xs ml-1 font-medium mt-1 block">{errors.course}</span>}
+                        </div>
+
+                        <div className="flex flex-col w-full">
+                            <label className="block text-[12px] font-semibold text-emerald-50/80 uppercase tracking-wider mb-1.5 ml-1">Year</label>
+                            <div className="relative group">
+                                <select
+                                    name="yearLevel"
+                                    value={formData.yearLevel}
+                                    onChange={handleChange}
+                                    className="form-select flex w-full rounded-xl border border-white/10 bg-black/40 px-3 py-3 shadow-inner focus:border-emerald-500/50 focus:bg-black/60 focus:outline-none focus:ring-1 focus:ring-emerald-500/50 text-white transition-all font-medium text-sm appearance-none"
+                                >
+                                    <option disabled value="" className="bg-zinc-800">Select</option>
+                                    <option value="1" className="bg-zinc-800">1st</option>
+                                    <option value="2" className="bg-zinc-800">2nd</option>
+                                    <option value="3" className="bg-zinc-800">3rd</option>
+                                    <option value="4" className="bg-zinc-800">4th</option>
+                                </select>
+                                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-white/40 group-focus-within:text-emerald-400 material-symbols-outlined text-[18px] pointer-events-none transition-colors">calendar_today</span>
+                            </div>
+                            {errors.yearLevel && <span className="text-red-400 text-xs ml-1 font-medium mt-1 block">{errors.yearLevel}</span>}
+                        </div>
+
+                        <div className="flex flex-col w-full">
+                            <label className="block text-[12px] font-semibold text-emerald-50/80 uppercase tracking-wider mb-1.5 ml-1">Section</label>
+                            <div className="relative group">
+                                <select
+                                    name="section"
+                                    value={formData.section}
+                                    onChange={handleChange}
+                                    className="form-select flex w-full rounded-xl border border-white/10 bg-black/40 px-3 py-3 shadow-inner focus:border-emerald-500/50 focus:bg-black/60 focus:outline-none focus:ring-1 focus:ring-emerald-500/50 text-white transition-all font-medium text-sm appearance-none"
+                                >
+                                    <option disabled value="" className="bg-zinc-800">Select</option>
+                                    <option value="A" className="bg-zinc-800">A</option>
+                                    <option value="B" className="bg-zinc-800">B</option>
+                                    <option value="C" className="bg-zinc-800">C</option>
+                                    <option value="D" className="bg-zinc-800">D</option>
+                                </select>
+                                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-white/40 group-focus-within:text-emerald-400 material-symbols-outlined text-[18px] pointer-events-none transition-colors">class</span>
+                            </div>
+                            {errors.section && <span className="text-red-400 text-xs ml-1 font-medium mt-1 block">{errors.section}</span>}
+                        </div>
+                    </div>
+
+                    <div>
+                        <label className="block text-[12px] font-semibold text-emerald-50/80 uppercase tracking-wider mb-1.5 ml-1">Password</label>
+                        <div className="relative group">
+                            <input
+                                name="password"
+                                type="password"
+                                className="block w-full rounded-xl border border-white/10 bg-black/40 px-4 py-3 pl-11 shadow-inner focus:border-emerald-500/50 focus:bg-black/60 focus:outline-none focus:ring-1 focus:ring-emerald-500/50 text-white placeholder-white/30 transition-all font-medium text-sm"
+                                placeholder="Min. 8 characters"
+                                value={formData.password}
+                                onChange={handleChange}
+                            />
+                            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40 group-focus-within:text-emerald-400 material-symbols-outlined text-[20px] pointer-events-none transition-colors">lock</span>
+                        </div>
+                        {errors.password && <span className="text-red-400 text-xs ml-1 font-medium mt-1 block">{errors.password}</span>}
+                    </div>
+
+                    <div>
+                        <label className="block text-[12px] font-semibold text-emerald-50/80 uppercase tracking-wider mb-1.5 ml-1">Confirm Password</label>
+                        <div className="relative group">
+                            <input
+                                name="confirmPassword"
+                                type="password"
+                                className="block w-full rounded-xl border border-white/10 bg-black/40 px-4 py-3 pl-11 shadow-inner focus:border-emerald-500/50 focus:bg-black/60 focus:outline-none focus:ring-1 focus:ring-emerald-500/50 text-white placeholder-white/30 transition-all font-medium text-sm"
+                                placeholder="Re-enter password"
+                                value={formData.confirmPassword}
+                                onChange={handleChange}
+                            />
+                            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40 group-focus-within:text-emerald-400 material-symbols-outlined text-[20px] pointer-events-none transition-colors">lock</span>
+                        </div>
+                        {errors.confirmPassword && <span className="text-red-400 text-xs ml-1 font-medium mt-1 block">{errors.confirmPassword}</span>}
+                    </div>
+
+                    <div className="flex items-start gap-3 mt-4 px-1">
+                        <div className="relative flex items-center pt-0.5">
+                            <input
+                                name="agreeTerms"
+                                checked={formData.agreeTerms}
+                                onChange={handleChange}
+                                className={`peer size-4 cursor-pointer appearance-none rounded border ${errors.agreeTerms ? "border-red-500 ring-1 ring-red-500/50 bg-red-500/10" : "border-white/20 bg-black/40"} checked:bg-emerald-500 checked:border-emerald-500 transition-all`}
+                                type="checkbox"
+                            />
+                            <span className="material-symbols-outlined absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-white opacity-0 peer-checked:opacity-100 text-[14px] pointer-events-none">check</span>
+                        </div>
+                        <div className="flex flex-col">
+                            <p className="text-white/60 text-xs leading-snug">
+                                I agree to the <a className="text-emerald-400 font-semibold hover:text-emerald-300 transition-colors" href="#">Terms of Service</a> and <a className="text-emerald-400 font-semibold hover:text-emerald-300 transition-colors" href="#">Privacy Policy</a>.
+                            </p>
+                            {errors.agreeTerms && <span className="text-red-400 text-xs font-medium mt-1 block">{errors.agreeTerms}</span>}
+                        </div>
+                    </div>
+
+                    <div className="pt-4">
+                        <button
+                            type="submit"
+                            disabled={loading}
+                            className="flex w-full items-center justify-center rounded-xl bg-gradient-to-r from-emerald-600 to-green-500 py-3.5 px-4 text-[14px] font-bold text-white shadow-lg shadow-emerald-900/30 hover:from-emerald-500 hover:to-green-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 focus:ring-offset-zinc-900 disabled:opacity-50 transition-all gap-2"
+                        >
+                            {loading ? "Creating Account..." : (
+                                <>
+                                    Create Account
+                                    <span className="material-symbols-outlined text-[18px]">arrow_forward</span>
+                                </>
+                            )}
+                        </button>
+                    </div>
+                </form>
+
+                <div className="mt-5 text-center">
+                    <p className="text-white/60 text-sm">
+                        Already have an account? 
+                        <Link href="/login" className="text-emerald-400 font-bold hover:text-emerald-300 ml-2 transition-colors">
+                            Sign In
+                        </Link>
                     </p>
                 </div>
-            </form>
-        </Shell>
+            </div>
+            
+            {/* Footer text */}
+            <p className="fixed bottom-4 left-0 w-full text-center text-white/40 text-[11px] font-medium tracking-wide pointer-events-none hidden md:block">
+                Pambayang Dalubhasaan ng Marilao &copy; 2026
+            </p>
+        </div>
     );
 }
