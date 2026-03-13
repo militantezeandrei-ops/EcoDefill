@@ -71,6 +71,14 @@ export default function ScanPage() {
                     if (processingRef.current) return;
                     processingRef.current = true;
 
+                    try {
+                        if (scannerRef.current?.isScanning) {
+                            await scannerRef.current.stop();
+                        }
+                    } catch (e) {
+                        console.error("Failed to stop scanner", e);
+                    }
+
                     console.log("QR Decoded:", decodedText);
                     setScanResult(decodedText);
                     setVerifying(true);
@@ -106,13 +114,12 @@ export default function ScanPage() {
                         });
                         setScanCount((c) => c + 1);
 
-                        // Stop camera after success
-                        await scanner.stop();
+                        // await scanner.stop(); (Already stopped above)
                     } catch (error: any) {
                         console.error("Scan error:", error);
                         setMessage(error.message || "Failed to process QR code");
                         setIsError(true);
-                        processingRef.current = false;
+                        // Do NOT reset processingRef.current = false here so it doesn't auto-loop
                     } finally {
                         setVerifying(false);
                     }

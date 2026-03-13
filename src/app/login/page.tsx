@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { apiClient } from "@/lib/api";
@@ -8,6 +8,7 @@ import { useAuth } from "@/hooks/useAuth";
 import Link from "next/link";
 import Image from "next/image";
 import { z } from "zod";
+import Swal from "sweetalert2";
 
 const loginSchema = z.object({
     email: z.string().email("Invalid email address"),
@@ -18,16 +19,21 @@ export default function Login() {
     const { login } = useAuth();
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
-    const [error, setError] = useState("");
     const [loading, setLoading] = useState(false);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        setError("");
 
         const result = loginSchema.safeParse({ email, password });
         if (!result.success) {
-            setError(result.error.errors[0].message);
+            Swal.fire({
+                title: 'Validation Error',
+                text: result.error.errors[0].message,
+                icon: 'warning',
+                background: '#18181b',
+                color: '#fff',
+                confirmButtonColor: '#10b981',
+            });
             return;
         }
 
@@ -38,99 +44,142 @@ export default function Login() {
                 body: JSON.stringify({ email, password })
             });
 
+            if (data.user.role === 'ADMIN') {
+                Swal.fire({
+                    title: 'Access Denied',
+                    text: 'Admin accounts cannot log in via the mobile app.',
+                    icon: 'error',
+                    background: '#18181b',
+                    color: '#fff',
+                    confirmButtonColor: '#10b981',
+                });
+                return;
+            }
+
             login(data.token, data.user);
-        } catch (err: unknown) {
-            setError(err instanceof Error ? err.message : "Failed to log in");
+            
+            Swal.fire({
+                title: 'Welcome back!',
+                text: 'You have logged in successfully.',
+                icon: 'success',
+                timer: 1500,
+                showConfirmButton: false,
+                background: '#18181b',
+                color: '#fff',
+            });
+        } catch (err: any) {
+            Swal.fire({
+                title: 'Login Failed',
+                text: err instanceof Error ? err.message : "Failed to log in",
+                icon: 'error',
+                background: '#18181b',
+                color: '#fff',
+                confirmButtonColor: '#10b981',
+            });
         } finally {
             setLoading(false);
         }
     };
 
+    useEffect(() => {
+        document.body.style.backgroundImage = `linear-gradient(to bottom, rgba(0,0,0,0.7), rgba(0,0,0,0.5), rgba(0,0,0,0.8)), url('/images/pdm-building.jpg')`;
+        document.body.style.backgroundSize = 'cover';
+        document.body.style.backgroundPosition = 'center';
+        document.body.style.backgroundAttachment = 'fixed';
+        document.body.style.backgroundRepeat = 'no-repeat';
+
+        return () => {
+            document.body.style.backgroundImage = '';
+            document.body.style.backgroundSize = '';
+            document.body.style.backgroundPosition = '';
+            document.body.style.backgroundAttachment = '';
+            document.body.style.backgroundRepeat = '';
+        };
+    }, []);
+
     return (
-        <div className="relative min-h-screen w-full flex items-center justify-center overflow-hidden font-display">
-            {/* Background Image */}
-            <div className="absolute inset-0 z-0">
-                <Image
-                    src="/images/pdm-building.jpg"
-                    alt="PDM Campus"
-                    fill
-                    className="object-cover"
-                    priority
-                />
-                <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/50 to-black/80" />
-            </div>
+        <div 
+            className="flex min-h-[100dvh] w-full items-center justify-center bg-transparent py-8 font-display overflow-y-auto"
+        >
+            <div className="relative w-full max-w-[420px] mx-4 rounded-3xl bg-zinc-900/60 backdrop-blur-2xl p-8 shadow-[0_8px_32px_rgba(0,0,0,0.5)] border border-white/10 overflow-hidden">
+                {/* Gradient accent top border */}
+                <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-emerald-400 via-emerald-500 to-green-600"></div>
 
-            {/* Login Card */}
-            <div className="relative z-10 w-full max-w-[420px] mx-4">
-                <div className="bg-white/95 dark:bg-zinc-900/95 backdrop-blur-xl rounded-3xl shadow-2xl shadow-black/30 overflow-hidden">
-                    {/* Logo Section */}
-                    <div className="flex flex-col items-center pt-8 pb-4 px-6">
-                        <div className="w-24 h-24 relative mb-4">
-                            <Image
-                                src="/images/pdm-logo.png"
-                                alt="PDM Logo"
-                                fill
-                                className="object-contain drop-shadow-lg"
-                                priority
-                            />
-                        </div>
-                        <h1 className="text-slate-900 dark:text-white text-2xl font-bold tracking-tight text-center">
-                            Welcome to EcoDefill
-                        </h1>
-                        <p className="text-slate-500 dark:text-slate-400 text-sm text-center mt-1.5 max-w-[280px]">
-                            Log in to recycle, earn points, and redeem water refills.
-                        </p>
+                <div className="mb-8 mt-2 text-center flex flex-col items-center">
+                    <div className="w-24 h-24 relative mb-5">
+                        <Image
+                            src="/images/pdm-logo.png"
+                            alt="PDM Logo"
+                            fill
+                            className="object-contain drop-shadow-2xl"
+                            priority
+                        />
                     </div>
-
-                    {/* Form */}
-                    <form onSubmit={handleSubmit} className="flex flex-col gap-4 px-6 pb-8 pt-2">
-                        {error && (
-                            <div className="p-3 bg-red-50 border border-red-200 text-red-700 rounded-xl text-sm text-center font-medium flex items-center justify-center gap-2">
-                                <span className="material-symbols-outlined text-base">error</span>
-                                {error}
-                            </div>
-                        )}
-
-                        <Input
-                            label="Email Address"
-                            type="email"
-                            icon="mail"
-                            placeholder="Juan@gmail.com"
-                            value={email}
-                            onChange={(e) => setEmail(e.target.value)}
-                        />
-
-                        <Input
-                            label="Password"
-                            type="password"
-                            icon="lock"
-                            placeholder="Enter your password"
-                            value={password}
-                            onChange={(e) => setPassword(e.target.value)}
-                        />
-
-                        <div className="pt-2">
-                            <Button type="submit" icon="login" disabled={loading}>
-                                {loading ? "Logging in..." : "Login"}
-                            </Button>
-                        </div>
-
-                        <div className="text-center pt-1">
-                            <p className="text-slate-500 dark:text-slate-400 text-sm">
-                                Don&apos;t have an account?
-                                <Link href="/register" className="text-primary font-bold hover:underline ml-1">
-                                    Create Account
-                                </Link>
-                            </p>
-                        </div>
-                    </form>
+                    <h1 className="text-3xl font-bold text-white tracking-tight">EcoDefill</h1>
+                    <p className="mt-2 text-sm text-emerald-100/70 font-medium">Log in to recycle, earn points, and redeem water refills.</p>
                 </div>
 
-                {/* Footer */}
-                <p className="text-center text-white/50 text-xs mt-6 font-medium">
-                    Pamantasan ng Dalubhasaan ng Marilao • EcoDefill v1.0
-                </p>
+                <form onSubmit={handleSubmit} className="space-y-5">
+                    <div>
+                        <label className="block text-[13px] font-semibold text-emerald-50/80 uppercase tracking-wider mb-2 ml-1">Email Address</label>
+                        <div className="relative group">
+                            <input
+                                type="email"
+                                required
+                                className="block w-full rounded-xl border border-white/10 bg-black/40 px-4 py-3.5 pl-11 shadow-inner focus:border-emerald-500/50 focus:bg-black/60 focus:outline-none focus:ring-1 focus:ring-emerald-500/50 text-white placeholder-white/30 transition-all font-medium"
+                                placeholder="Juan@gmail.com"
+                                value={email}
+                                onChange={(e) => setEmail(e.target.value)}
+                            />
+                            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40 group-focus-within:text-emerald-400 material-symbols-outlined text-[20px] pointer-events-none transition-colors">mail</span>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label className="block text-[13px] font-semibold text-emerald-50/80 uppercase tracking-wider mb-2 ml-1">Password</label>
+                        <div className="relative group">
+                            <input
+                                type="password"
+                                required
+                                className="block w-full rounded-xl border border-white/10 bg-black/40 px-4 py-3.5 pl-11 shadow-inner focus:border-emerald-500/50 focus:bg-black/60 focus:outline-none focus:ring-1 focus:ring-emerald-500/50 text-white placeholder-white/30 transition-all font-medium"
+                                placeholder="••••••••"
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
+                            />
+                            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40 group-focus-within:text-emerald-400 material-symbols-outlined text-[20px] pointer-events-none transition-colors">lock</span>
+                        </div>
+                    </div>
+
+                    <div className="pt-2 pb-2">
+                        <button
+                            type="submit"
+                            disabled={loading}
+                            className="flex w-full items-center justify-center rounded-xl bg-gradient-to-r from-emerald-600 to-green-500 py-4 px-4 text-[15px] font-bold text-white shadow-lg shadow-emerald-900/30 hover:from-emerald-500 hover:to-green-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 focus:ring-offset-zinc-900 disabled:opacity-50 transition-all gap-2"
+                        >
+                            {loading ? "Authenticating..." : (
+                                <>
+                                    Log In 
+                                    <span className="material-symbols-outlined text-[20px]">login</span>
+                                </>
+                            )}
+                        </button>
+                    </div>
+                </form>
+
+                <div className="mt-6 text-center">
+                    <p className="text-white/60 text-sm">
+                        Don&apos;t have an account?
+                        <Link href="/register" className="text-emerald-400 font-bold hover:text-emerald-300 ml-2 transition-colors">
+                            Create Account
+                        </Link>
+                    </p>
+                </div>
             </div>
+            
+            {/* Footer text */}
+            <p className="absolute bottom-6 left-0 w-full text-center text-white/40 text-[11px] font-medium tracking-wide">
+                Pambayang Dalubhasaan ng Marilao &copy; 2026<br/>EcoDefill v1.0
+            </p>
         </div>
     );
 }

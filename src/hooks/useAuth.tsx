@@ -49,12 +49,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setToken(newToken);
         setUser(newUser);
 
-        // Redirect logic base on role
-        if (newUser.role === 'ADMIN') {
-            router.push("/admin");
-        } else {
-            router.push("/dashboard");
-        }
+        // Redirect logic
+        router.push("/dashboard");
     };
 
     const logout = () => {

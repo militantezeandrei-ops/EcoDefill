@@ -6,9 +6,12 @@ import { apiClient } from "@/lib/api";
 import Link from "next/link";
 import QRCode from "react-qr-code";
 import { Button } from "@/components/ui/Button";
+import { useRouter } from "next/navigation";
+import Swal from "sweetalert2";
 
 export default function RedeemWater() {
     const { user, updateUserBalance } = useAuth();
+    const router = useRouter();
 
     const [balance, setBalance] = useState(user?.balance || 0);
     const [dailyRedeemed, setDailyRedeemed] = useState(0);
@@ -45,6 +48,20 @@ export default function RedeemWater() {
                     setBalance(userData.balance);
                     setDailyRedeemed(userData.dailyRedeemed);
                     updateUserBalance(userData.balance);
+                    Swal.fire({
+                        title: 'Success!',
+                        html: 'Your water is being dispensed.<br/>Points deducted successfully.',
+                        icon: 'success',
+                        confirmButtonText: 'Back to Home',
+                        confirmButtonColor: '#2563eb',
+                        background: '#18181b',
+                        color: '#fff',
+                        allowOutsideClick: false,
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            router.push('/dashboard');
+                        }
+                    });
                 }
             } catch (err) {
                 console.error("Polling error", err);
@@ -80,7 +97,8 @@ export default function RedeemWater() {
             const diff = Math.max(0, Math.floor((expiresAt.getTime() - now.getTime()) / 1000));
             setTimeLeft(diff);
 
-            if (diff === 0) {
+            // Give a 10s grace period for verification delay
+            if (now.getTime() > expiresAt.getTime() + 10000) {
                 setQrToken("");
                 setExpiresAt(null);
                 clearInterval(interval);
@@ -258,7 +276,7 @@ export default function RedeemWater() {
 
                         <div className="flex items-center gap-2 bg-red-50 dark:bg-red-900/20 px-4 py-2 rounded-full mb-6 text-red-600 dark:text-red-400 text-sm font-bold animate-pulse">
                             <span className="material-symbols-outlined text-sm">timer</span>
-                            <span>Expires in {timeLeft}s</span>
+                            <span>{timeLeft > 0 ? `Expires in ${timeLeft}s` : 'Finalizing scan...'}</span>
                         </div>
 
                         <div className="w-full p-4 bg-blue-50 dark:bg-blue-900/20 rounded-2xl flex items-center gap-3">
@@ -274,22 +292,7 @@ export default function RedeemWater() {
                 </div>
             )}
 
-            {/* Success Modal */}
-            {isSuccess && (
-                <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-blue-600/90 backdrop-blur-md animate-in fade-in duration-500">
-                    <div className="w-full max-w-sm flex flex-col items-center text-center animate-in zoom-in-95 duration-500">
-                        <div className="size-24 rounded-full bg-white flex items-center justify-center mb-6 shadow-2xl scale-110">
-                            <span className="material-symbols-outlined text-blue-600 text-5xl font-bold">check</span>
-                        </div>
-                        <h3 className="text-3xl font-black text-white mb-2 tracking-tight">Success!</h3>
-                        <p className="text-blue-100 text-lg mb-8">Your water is being dispensed. <br/>Points deducted successfully.</p>
-                        
-                        <Link href="/dashboard" className="w-full py-4 bg-white text-blue-600 font-bold rounded-2xl shadow-xl active:scale-95 transition-all text-center">
-                            Back to Home
-                        </Link>
-                    </div>
-                </div>
-            )}
+            
 
             {/* Bottom Generate Action */}
             {!qrToken && !fetching && !isSuccess && (
