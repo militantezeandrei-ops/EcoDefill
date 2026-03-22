@@ -15,8 +15,9 @@ export function BottomNav() {
     ];
 
     return (
-        <div className="fixed bottom-2 left-1/2 -translate-x-1/2 z-50 px-4 w-full max-w-sm">
-            <nav className="bg-zinc-900/90 backdrop-blur-2xl border border-black/10 rounded-[1.5rem] p-1 flex items-center justify-between shadow-[0_10px_30px_rgba(0,0,0,0.5)]">
+        <div className="fixed inset-x-0 bottom-0 z-50 px-4 pb-[calc(var(--safe-bottom)+8px)]">
+            <nav className="mx-auto w-full rounded-full border border-slate-200/70 bg-white/88 px-2 py-1 shadow-[0_12px_30px_rgba(15,23,42,0.2)] backdrop-blur-xl dark:border-zinc-700/70 dark:bg-zinc-900/88">
+                <div className="flex items-center justify-between gap-1">
                 {navItems.map((item) => {
                     const isActive = pathname === item.path;
                     const Icon = item.icon;
@@ -24,27 +25,29 @@ export function BottomNav() {
                         <Link
                             key={item.path}
                             href={item.path}
-                            className="group relative flex flex-col items-center justify-center outline-none flex-1 py-1"
+                            className={`group relative flex flex-col items-center justify-center outline-none flex-1 py-1.5 px-2 rounded-full active:scale-95 transition-all ${isActive ? "bg-[#8FD8FF]/35 shadow-[0_6px_16px_rgba(143,216,255,0.3)]" : ""}`}
                             aria-label={item.label}
                         >
                             <div
-                                className={`flex items-center justify-center px-4 py-1.5 transition-all duration-300 rounded-2xl ${isActive
-                                    ? 'bg-emerald-500/20 text-emerald-400 shadow-sm'
-                                    : 'text-zinc-500 hover:text-zinc-300'
+                                className={`flex items-center justify-center size-8 transition-all duration-300 rounded-full ${isActive
+                                    ? 'text-[#36B5F0]'
+                                    : 'text-slate-500 hover:text-slate-700 dark:text-zinc-400 dark:hover:text-zinc-200'
                                     }`}
                             >
                                 <Icon
                                     size={22}
+                                    strokeWidth={2.5}
                                     className="transition-all duration-300"
                                 />
                             </div>
-                            <span className={`text-[10px] uppercase tracking-tighter font-black mt-0.5 transition-all duration-300 ${isActive ? 'text-emerald-400' : 'text-zinc-600'
+                            <span className={`mt-1 text-[10px] font-semibold leading-none transition-all duration-300 ${isActive ? 'text-[#36B5F0]' : 'text-slate-500 dark:text-zinc-500'
                                 }`}>
                                 {item.label}
                             </span>
                         </Link>
                     );
                 })}
+                </div>
             </nav>
         </div>
     );

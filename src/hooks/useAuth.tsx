@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, createContext, useContext, ReactNode } from "react";
 import { useRouter } from "next/navigation";
+import { clearStoredAuth, hydrateStoredAuth, setStoredAuth, setStoredUser } from "@/lib/auth-storage";
 
 interface User {
     id: string;
@@ -15,8 +16,8 @@ interface AuthContextType {
     token: string | null;
     isAuthenticated: boolean;
     isLoading: boolean;
-    login: (token: string, user: User) => void;
-    logout: () => void;
+    login: (token: string, user: User) => Promise<void>;
+    logout: () => Promise<void>;
     updateUserBalance: (newBalance: number) => void;
 }
 
@@ -29,23 +30,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const router = useRouter();
 
     useEffect(() => {
-        const storedToken = localStorage.getItem("token");
-        const storedUser = localStorage.getItem("user");
+        let isMounted = true;
 
-        if (storedToken && storedUser) {
-            setToken(storedToken);
-            try {
-                setUser(JSON.parse(storedUser));
-            } catch {
-                console.error("Failed to parse user from local storage");
+        const init = async () => {
+            const { token: storedToken, user: storedUser } = await hydrateStoredAuth();
+            if (!isMounted) return;
+
+            if (storedToken) {
+                setToken(storedToken);
             }
-        }
-        setIsLoading(false);
+            if (storedUser) {
+                setUser(storedUser);
+            }
+            setIsLoading(false);
+        };
+
+        init();
+
+        return () => {
+            isMounted = false;
+        };
     }, []);
 
-    const login = (newToken: string, newUser: User) => {
-        localStorage.setItem("token", newToken);
-        localStorage.setItem("user", JSON.stringify(newUser));
+    const login = async (newToken: string, newUser: User) => {
+        await setStoredAuth(newToken, newUser);
         setToken(newToken);
         setUser(newUser);
 
@@ -53,9 +61,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         router.push("/dashboard");
     };
 
-    const logout = () => {
-        localStorage.removeItem("token");
-        localStorage.removeItem("user");
+    const logout = async () => {
+        await clearStoredAuth();
         setToken(null);
         setUser(null);
         router.push("/login");
@@ -67,7 +74,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             if (prev.balance === newBalance) return prev; // Avoid triggering re-renders if nothing changed
             
             const updatedUser = { ...prev, balance: newBalance };
-            localStorage.setItem("user", JSON.stringify(updatedUser));
+            void setStoredUser(updatedUser);
             return updatedUser;
         });
     }, []);

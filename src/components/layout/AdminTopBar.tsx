@@ -6,7 +6,7 @@ export function AdminTopBar({ title = "Admin Panel" }: { title?: string }) {
     const { logout } = useAuth();
 
     return (
-        <div className="flex items-center bg-zinc-900 text-white p-4 pb-2 justify-between sticky top-0 z-10 shadow-md">
+        <div className="sticky top-0 z-30 flex items-center justify-between bg-zinc-900 px-4 pb-2 pt-[calc(var(--safe-top)+12px)] text-white shadow-md">
             <div className="flex size-12 shrink-0 items-center justify-center rounded-full bg-zinc-800">
                 <span className="material-symbols-outlined text-2xl">admin_panel_settings</span>
             </div>

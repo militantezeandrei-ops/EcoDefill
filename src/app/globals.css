@@ -1,13 +1,100 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss/base";
+@import "tailwindcss/components";
+@import "tailwindcss/utilities";
+
+@layer base {
+  :root {
+    --safe-top: env(safe-area-inset-top, 0px);
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
+    --safe-left: env(safe-area-inset-left, 0px);
+    --safe-right: env(safe-area-inset-right, 0px);
+  }
+
+  * {
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+  }
+
+  ::selection {
+    background: transparent;
+    color: inherit;
+  }
+
+  input::selection,
+  textarea::selection {
+    background: rgba(59, 130, 246, 0.25);
+    color: inherit;
+  }
+
+  html,
+  body {
+    margin: 0;
+    padding: 0;
+    min-height: 100dvh;
+  }
+
+  body {
+    overscroll-behavior-y: none;
+    -webkit-overflow-scrolling: touch;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
+  }
+}
 
 @layer utilities {
   .text-balance {
     text-wrap: balance;
   }
-}
 
-body {
-    min-height: max(884px, 100dvh);
+  @keyframes tab-slide-left-in {
+    from {
+      opacity: 0.92;
+      transform: translateX(14px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+
+  @keyframes tab-slide-right-in {
+    from {
+      opacity: 0.92;
+      transform: translateX(-14px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+
+  @keyframes tab-fade-in {
+    from {
+      opacity: 0.8;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
+  .tab-slide-none {
+    animation: none;
+  }
+
+  .tab-slide-left {
+    animation: tab-slide-left-in 220ms cubic-bezier(0.22, 1, 0.36, 1);
+    will-change: transform, opacity;
+  }
+
+  .tab-slide-right {
+    animation: tab-slide-right-in 220ms cubic-bezier(0.22, 1, 0.36, 1);
+    will-change: transform, opacity;
+  }
+
+  .tab-fade {
+    animation: tab-fade-in 180ms ease-out;
+    will-change: opacity;
+  }
+
 }

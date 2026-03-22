@@ -10,6 +10,14 @@
         "postinstall": "prisma generate"
     },
     "dependencies": {
+        "@capacitor/app": "^8.0.1",
+        "@capacitor/device": "^8.0.1",
+        "@capacitor/haptics": "^8.0.1",
+        "@capacitor/keyboard": "^8.0.1",
+        "@capacitor/preferences": "^8.0.1",
+        "@capacitor/splash-screen": "^8.0.1",
+        "@capacitor/status-bar": "^8.0.1",
+        "@capacitor/toast": "^8.0.1",
         "@prisma/client": "^5.10.0",
         "@tailwindcss/container-queries": "^0.1.1",
         "@tailwindcss/forms": "^0.5.11",
@@ -22,7 +30,6 @@
         "react-dom": "^18.2.0",
         "react-qr-code": "^2.0.18",
         "recharts": "^3.8.0",
-        "sweetalert2": "^11.26.22",
         "uuid": "^13.0.0",
         "zod": "^3.22.4"
     },

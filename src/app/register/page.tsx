@@ -5,8 +5,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { apiClient } from "@/lib/api";
+import { showToast } from "@/lib/toast";
 import { z } from "zod";
-import Swal from "sweetalert2";
 
 const registerSchema = z.object({
     fullName: z.string().min(2, "Full Name is required"),
@@ -85,29 +85,13 @@ export default function Register() {
                     section: formData.section,
                 })
             });
-            
-            Swal.fire({
-                title: 'Success!',
-                text: 'Your account has been created successfully.',
-                icon: 'success',
-                background: '#18181b', // zinc-900
-                color: '#fff',
-                confirmButtonColor: '#10b981', // emerald-500
-            });
-            
+
+            await showToast({ text: "Your account has been created successfully.", type: "success" });
             router.push("/login");
         } catch (err: any) {
             const errorMessage = err instanceof Error ? err.message : "Failed to register";
-            
-            Swal.fire({
-                title: 'Registration Failed',
-                text: errorMessage,
-                icon: 'error',
-                background: '#18181b',
-                color: '#fff',
-                confirmButtonColor: '#10b981',
-            });
-            
+
+            await showToast({ text: errorMessage, duration: "long", type: "error" });
             setErrors({ form: errorMessage });
         } finally {
             setLoading(false);

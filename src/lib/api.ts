@@ -1,24 +1,32 @@
-// A simple wrapper around fetch to automatically handle auth headers and JSON parsing.
+import { Capacitor } from "@capacitor/core";
+import { clearStoredAuth, getCachedToken } from "@/lib/auth-storage";
 
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "";
+const BASE_URL = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/+$/, "");
+
+function resolveUrl(endpoint: string) {
+    if (endpoint.startsWith("http")) return endpoint;
+
+    if (!BASE_URL) {
+        if (Capacitor.isNativePlatform() && endpoint.startsWith("/api")) {
+            throw new Error("NEXT_PUBLIC_API_URL is required on native builds to reach API routes.");
+        }
+        return endpoint;
+    }
+
+    return endpoint.startsWith("/") ? `${BASE_URL}${endpoint}` : `${BASE_URL}/${endpoint}`;
+}
 
 export async function apiClient<T>(
     endpoint: string,
     options: RequestInit = {}
 ): Promise<T> {
-    const url = endpoint.startsWith("http") ? endpoint : `${BASE_URL}${endpoint}`;
-
-    const getAuthToken = () => {
-        if (typeof window !== "undefined") {
-            return localStorage.getItem("token");
-        }
-        return null;
-    };
-
-    const token = getAuthToken();
+    const url = resolveUrl(endpoint);
+    const token = getCachedToken();
 
     const headers = new Headers(options.headers || {});
-    headers.set("Content-Type", "application/json");
+    if (!headers.has("Content-Type")) {
+        headers.set("Content-Type", "application/json");
+    }
 
     if (token) {
         headers.set("Authorization", `Bearer ${token}`);
@@ -42,11 +50,16 @@ export async function apiClient<T>(
     if (!response.ok) {
         // If 401, clear stale auth and redirect to login
         if (response.status === 401 && typeof window !== "undefined") {
-            localStorage.removeItem("token");
-            localStorage.removeItem("user");
+            await clearStoredAuth();
             window.location.href = "/login";
         }
-        throw new Error(body.message || body || "API Request Failed");
+
+        const message =
+            body?.message ||
+            body?.error ||
+            (typeof body === "string" ? body : null) ||
+            "API Request Failed";
+        throw new Error(message);
     }
 
     return body as T;

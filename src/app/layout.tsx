@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 
 import "./globals.css";
 import { AuthProvider } from "@/hooks/useAuth";
+import { NativeMobileShell } from "@/components/native/NativeMobileShell";
 import { Inter } from "next/font/google";
 
 const inter = Inter({
@@ -27,6 +28,7 @@ export default function RootLayout({
             </head>
             <body>
                 <AuthProvider>
+                    <NativeMobileShell />
                     {children}
                 </AuthProvider>
             </body>

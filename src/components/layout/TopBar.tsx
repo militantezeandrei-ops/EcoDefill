@@ -6,7 +6,7 @@ export function TopBar({ title = "EcoDefill" }: { title?: string }) {
     const { logout } = useAuth();
 
     return (
-        <div className="flex items-center bg-white dark:bg-zinc-900 p-4 pb-2 justify-between sticky top-0 z-10 border-b border-gray-100 dark:border-zinc-800">
+        <div className="sticky top-0 z-30 flex items-center justify-between border-b border-gray-100 bg-white/95 px-4 pb-2 pt-[calc(var(--safe-top)+12px)] backdrop-blur-md dark:border-zinc-800 dark:bg-zinc-900/95">
             <div className="text-slate-900 dark:text-white flex size-12 shrink-0 items-center justify-center rounded-full bg-gray-50 dark:bg-zinc-800">
                 <span className="material-symbols-outlined text-2xl">menu</span>
             </div>

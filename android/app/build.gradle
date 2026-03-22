@@ -25,7 +25,7 @@ android {
 }
 
 configurations.all {
-    resolutionStrategy.eachDependency { DependencyResolveDetails details ->
+    resolutionStrategy.eachDependency { details ->
         def requested = details.requested
         if (requested.group == 'org.jetbrains.kotlin') {
             if (requested.name == 'kotlin-stdlib-jdk7' || requested.name == 'kotlin-stdlib-jdk8') {

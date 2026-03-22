@@ -60,6 +60,9 @@ DIRECT_URL="postgresql://user:password@localhost:5432/ecodefill"
 JWT_SECRET="your_super_secret_jwt_key"
 MACHINE_SECRET="your_shared_iot_secret_key"
 
+# Required for Capacitor native builds (local web assets + remote API)
+NEXT_PUBLIC_API_URL="https://eco-defill.vercel.app"
+
 # Next Auth (if applicable)
 NEXTAUTH_URL="http://localhost:3000"
 NEXTAUTH_SECRET="another_secret_key"
@@ -86,6 +89,8 @@ npm run dev
 ```
 
 The application will be available at `http://localhost:3000`.
+
+For native live-reload during development, set `CAP_SERVER_URL` before running Capacitor sync/copy (for example `http://<your-lan-ip>:3000`).
 
 ---
 

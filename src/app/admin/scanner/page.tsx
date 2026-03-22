@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef, useCallback } from "react";
 import { AdminTopBar } from "@/components/layout/AdminTopBar";
-import { Html5QrcodeScanner } from "html5-qrcode";
+import { apiClient } from "@/lib/api";
 
 interface VerifyResult {
     userName: string;
@@ -86,17 +86,17 @@ export default function QRScanner() {
                             if (payload.token) tokenToVerify = payload.token;
                         } catch (e) {}
 
-                        const response = await fetch("/api/verify-qr", {
+                        const data = await apiClient<{
+                            userName?: string;
+                            pointsDeducted?: number;
+                            waterAmount?: number;
+                        }>("/api/verify-qr", {
                             method: "POST",
-                            headers: { "Content-Type": "application/json" },
                             body: JSON.stringify({
                                 token: tokenToVerify,
                                 machineId: "MACHINE_001",
                             }),
                         });
-
-                        const data = await response.json();
-                        if (!response.ok) throw new Error(data.error || "Verification failed");
 
                         setStatus("success");
                         setMessage("Verified successfully!");
