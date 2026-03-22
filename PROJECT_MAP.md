@@ -19,18 +19,14 @@ This document serves as the single source of truth for the project's structure, 
 | `/api/auth/login` | POST | Student login, returns JWT. |
 | `/api/auth/register` | POST | Student registration. |
 | `/api/admin/login` | POST | Admin login. |
-| `/api/admin/users` | GET | List users grouped by Course/Year/Section. |
-| `/api/admin/recycling` | GET | Recycling activity logs. |
-| `/api/admin/transactions` | GET | Financial/Point transaction logs. |
-| `/api/admin/dashboard-stats` | GET | Global stats for admin overview. |
 | `/api/qr-generate` | POST | Generate EARN/REDEEM QR tokens. |
 | `/api/verify-qr` | POST | Validate QR tokens (used by IoT/Admin). |
 | `/api/machine-status` | GET/POST | IoT machine polling and heartbeat. |
 | `/api/add-point` | POST | Direct point addition (e.g., from machine). |
-| `/api/redeem-points` | POST | Point redemption logic. |
 | `/api/user-balance` | GET | Current logged-in user's point balance. |
 | `/api/user-transactions` | GET | Transaction history for current user. |
 | `/api/redeem-initiate` | POST | Creates a MachineSession and generates a shortToken for water redemption QR. |
+| `/api/admin/polling/activities` | GET | Real-time event polling for admin notifications. |
 
 ## 🗄️ Database Models (Prisma)
 

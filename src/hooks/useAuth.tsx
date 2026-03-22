@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, createContext, useContext, ReactNode } from "react";
+import { useState, useEffect, useCallback, createContext, useContext, ReactNode } from "react";
 import { useRouter } from "next/navigation";
 
 interface User {
@@ -61,13 +61,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         router.push("/login");
     };
 
-    const updateUserBalance = (newBalance: number) => {
-        if (user) {
-            const updatedUser = { ...user, balance: newBalance };
-            setUser(updatedUser);
+    const updateUserBalance = useCallback((newBalance: number) => {
+        setUser((prev) => {
+            if (!prev) return null;
+            if (prev.balance === newBalance) return prev; // Avoid triggering re-renders if nothing changed
+            
+            const updatedUser = { ...prev, balance: newBalance };
             localStorage.setItem("user", JSON.stringify(updatedUser));
-        }
-    }
+            return updatedUser;
+        });
+    }, []);
 
     return (
         <AuthContext.Provider

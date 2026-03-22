@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
-import { apiClient } from "@/lib/api";
+import { useCachedFetch } from "@/hooks/useCachedFetch";
 
 interface Transaction {
     id: string;
@@ -27,29 +27,14 @@ type FilterType = "all" | "EARN" | "REDEEM";
 
 export default function HistoryPage() {
     const { user } = useAuth();
-    const [data, setData] = useState<TransactionData | null>(null);
-    const [loading, setLoading] = useState(true);
     const [filter, setFilter] = useState<FilterType>("all");
 
-    useEffect(() => {
-        const fetchTransactions = async () => {
-            setLoading(true);
-            try {
-                const url = filter === "all" ? "/api/user-transactions" : `/api/user-transactions?type=${filter}`;
-                const res = await apiClient<TransactionData>(url);
-                setData(res);
-            } catch (err) {
-                console.error("Failed to fetch transactions", err);
-            } finally {
-                setLoading(false);
-            }
-        };
-        fetchTransactions();
-    }, [filter]);
+    const url = filter === "all" ? "/api/user-transactions" : `/api/user-transactions?type=${filter}`;
+    const { data, loading } = useCachedFetch<TransactionData>(url);
 
     const balance = user?.balance || 0;
-    const totalRecycled = data?.stats.totalRecycledItems || 0;
-    const totalRedeemed = data?.stats.totalRedeemed || 0;
+    const totalRecycled = data?.stats?.totalRecycledItems || 0;
+    const totalRedeemed = data?.stats?.totalRedeemed || 0;
 
     const formatDate = (dateStr: string) => {
         const date = new Date(dateStr);
@@ -86,7 +71,7 @@ export default function HistoryPage() {
 
     return (
         <div className="flex-1 overflow-y-auto pb-8 w-full h-full">
-            <header className="sticky top-0 z-10 bg-white/95 dark:bg-zinc-900/95 backdrop-blur-md border-b border-gray-100 dark:border-zinc-800">
+            <header className="sticky top-0 z-10 bg-white/95 dark:bg-[#0a0c10]/95 backdrop-blur-md border-b border-gray-100 dark:border-zinc-800/80">
                 <div className="px-5 py-3 flex items-center justify-between">
                     <h1 className="text-xl font-bold tracking-tight text-primary dark:text-green-500">Transactions</h1>
                     <button className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-zinc-800 text-slate-600 dark:text-slate-300 transition-colors">
@@ -101,7 +86,7 @@ export default function HistoryPage() {
                             onClick={() => setFilter(item.value)}
                             className={`px-4 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${filter === item.value
                                 ? "bg-primary text-white shadow-sm"
-                                : "bg-white dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 text-slate-600 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-zinc-700"
+                                : "bg-white dark:bg-[#111827] border border-gray-200 dark:border-zinc-800/80 text-slate-600 dark:text-slate-300 hover:bg-gray-50 dark:hover:border-zinc-700 hover:dark:text-white"
                                 }`}
                         >
                             {item.label}
@@ -145,13 +130,12 @@ export default function HistoryPage() {
                             <h3 className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-3 ml-1">{dateLabel}</h3>
                             <div className="space-y-2.5">
                                 {txs.map(tx => (
-                                    <div key={tx.id} className="bg-white dark:bg-zinc-800 rounded-xl p-4 shadow-sm border border-gray-100 dark:border-zinc-700 flex items-center justify-between">
+                                    <div key={tx.id} className="bg-white dark:bg-[#111827] rounded-2xl p-4 shadow-[0_2px_15px_rgb(0,0,0,0.03)] dark:shadow-none border border-slate-100 dark:border-zinc-800/80 flex items-center justify-between hover:border-slate-200 dark:hover:border-zinc-700 transition-colors">
                                         <div className="flex items-center gap-3">
-                                            <div className={`h-11 w-11 rounded-full flex items-center justify-center shrink-0 ${
-                                                tx.type === "EARN"
+                                            <div className={`h-11 w-11 rounded-full flex items-center justify-center shrink-0 ${tx.type === "EARN"
                                                     ? "bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400"
                                                     : "bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400"
-                                            }`}>
+                                                }`}>
                                                 <span className="material-symbols-outlined">
                                                     {tx.type === "EARN" ? "recycling" : "water_drop"}
                                                 </span>
@@ -169,11 +153,10 @@ export default function HistoryPage() {
                                             </div>
                                         </div>
                                         <div className="text-right">
-                                            <span className={`block font-bold text-sm ${
-                                                tx.type === "EARN"
+                                            <span className={`block font-bold text-sm ${tx.type === "EARN"
                                                     ? "text-green-600 dark:text-green-500"
                                                     : "text-red-500"
-                                            }`}>
+                                                }`}>
                                                 {tx.type === "EARN" ? "+" : "-"}{tx.amount} pts
                                             </span>
                                             {tx.type === "REDEEM" && (

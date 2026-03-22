@@ -3,12 +3,12 @@
 #include <ArduinoJson.h>
 
 // ---------------- WIFI ----------------
-const char* ssid = "ZTE_2.4G_iWhgQR";
-const char* password = "v3WSQWKw";
+const char* ssid = "militante";
+const char* password = "militante22";
 
 // ---------------- API ----------------
-const char* verifyApiUrl = "http://192.168.1.10:3000/api/verify-qr";
-const char* statusApiUrl = "http://192.168.1.10:3000/api/machine-status?machineId=MACHINE_01";
+const char* verifyApiUrl = "http://192.168.0.104:3000/api/verify-qr";
+const char* statusApiUrl = "http://192.168.0.104:3000/api/machine-status?machineId=MACHINE_01";
 
 const char* machineId = "MACHINE_01";
 
