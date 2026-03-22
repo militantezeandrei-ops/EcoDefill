@@ -29,8 +29,8 @@ export function BottomNav() {
                         >
                             <div
                                 className={`flex items-center justify-center px-4 py-1.5 transition-all duration-300 rounded-2xl ${isActive
-                                        ? 'bg-emerald-500/20 text-emerald-400 shadow-sm'
-                                        : 'text-zinc-500 hover:text-zinc-300'
+                                    ? 'bg-emerald-500/20 text-emerald-400 shadow-sm'
+                                    : 'text-zinc-500 hover:text-zinc-300'
                                     }`}
                             >
                                 <Icon
