@@ -1,8 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
-import { apiClient } from "@/lib/api";
+import { useCachedFetch } from "@/hooks/useCachedFetch";
 
 interface UserProfile {
     balance: number;
@@ -14,19 +13,7 @@ interface UserProfile {
 
 export default function ProfilePage() {
     const { user, logout } = useAuth();
-    const [profile, setProfile] = useState<UserProfile | null>(null);
-
-    useEffect(() => {
-        const fetchProfile = async () => {
-            try {
-                const data = await apiClient<UserProfile>("/api/user-balance");
-                setProfile(data);
-            } catch (err) {
-                console.error("Failed to fetch profile", err);
-            }
-        };
-        fetchProfile();
-    }, []);
+    const { data: profile } = useCachedFetch<UserProfile>("/api/user-balance");
 
     // Show immediately with cached data, update when API responds
     const displayName = profile?.fullName || user?.email?.split('@')[0] || 'Student';
@@ -34,7 +21,7 @@ export default function ProfilePage() {
 
     return (
         <div className="flex-1 overflow-y-auto pb-8 w-full h-full">
-            <div className="flex items-center justify-center px-6 pt-12 pb-4 sticky top-0 bg-white/90 dark:bg-zinc-900/90 backdrop-blur-md z-10">
+            <div className="flex items-center justify-center px-6 pt-12 pb-4 sticky top-0 bg-white/90 dark:bg-[#0a0c10]/90 backdrop-blur-md z-10">
                 <h1 className="text-xl font-bold tracking-tight text-center">Profile</h1>
             </div>
 
@@ -84,7 +71,7 @@ export default function ProfilePage() {
             </div>
 
             <div className="px-6 mb-6">
-                <div className="bg-white dark:bg-zinc-800 rounded-2xl p-5 shadow-sm border border-slate-100 dark:border-zinc-700 flex items-center justify-between">
+                <div className="bg-white dark:bg-[#111827] rounded-2xl p-5 shadow-[0_2px_15px_rgb(0,0,0,0.03)] dark:shadow-none border border-slate-100 dark:border-zinc-800/80 flex items-center justify-between">
                     <div>
                         <p className="text-sm font-medium text-slate-500 dark:text-slate-400 mb-1">Total Points</p>
                         <p className="text-3xl font-bold text-primary dark:text-green-400">{balance} <span className="text-sm font-normal text-slate-400">pts</span></p>
@@ -98,7 +85,7 @@ export default function ProfilePage() {
             <div className="px-6">
                 <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-4">Settings</h3>
                 <div className="flex flex-col gap-3">
-                    <button className="flex items-center w-full p-4 bg-white dark:bg-zinc-800 rounded-xl border border-slate-100 dark:border-zinc-700 hover:border-primary/30 transition-colors group">
+                    <button className="flex items-center w-full p-4 bg-white dark:bg-[#111827] rounded-2xl shadow-[0_2px_15px_rgb(0,0,0,0.03)] dark:shadow-none border border-slate-100 dark:border-zinc-800/80 hover:border-slate-200 dark:hover:border-zinc-700 transition-colors group">
                         <div className="h-10 w-10 rounded-full bg-slate-50 dark:bg-zinc-700 flex items-center justify-center text-slate-600 dark:text-slate-300 group-hover:bg-primary/10 group-hover:text-primary transition-colors">
                             <span className="material-symbols-outlined">person</span>
                         </div>
@@ -106,7 +93,7 @@ export default function ProfilePage() {
                         <span className="material-symbols-outlined text-slate-400">chevron_right</span>
                     </button>
 
-                    <button className="flex items-center w-full p-4 bg-white dark:bg-zinc-800 rounded-xl border border-slate-100 dark:border-zinc-700 hover:border-primary/30 transition-colors group">
+                    <button className="flex items-center w-full p-4 bg-white dark:bg-[#111827] rounded-2xl shadow-[0_2px_15px_rgb(0,0,0,0.03)] dark:shadow-none border border-slate-100 dark:border-zinc-800/80 hover:border-slate-200 dark:hover:border-zinc-700 transition-colors group">
                         <div className="h-10 w-10 rounded-full bg-slate-50 dark:bg-zinc-700 flex items-center justify-center text-slate-600 dark:text-slate-300 group-hover:bg-primary/10 group-hover:text-primary transition-colors">
                             <span className="material-symbols-outlined">help</span>
                         </div>
@@ -116,7 +103,7 @@ export default function ProfilePage() {
 
                     <button
                         onClick={logout}
-                        className="w-full mt-4 p-4 rounded-xl border border-red-100 bg-red-50 dark:bg-red-900/20 dark:border-red-900/30 text-red-600 dark:text-red-400 font-semibold hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors flex items-center justify-center gap-2"
+                        className="w-full mt-4 p-4 rounded-2xl border border-red-100 bg-red-50 dark:bg-red-900/10 dark:border-red-900/30 text-red-600 dark:text-red-400 font-bold hover:bg-red-100 dark:hover:bg-red-900/20 shadow-[0_2px_15px_rgb(0,0,0,0.03)] dark:shadow-none transition-colors flex items-center justify-center gap-2"
                     >
                         <span className="material-symbols-outlined">logout</span>
                         Logout

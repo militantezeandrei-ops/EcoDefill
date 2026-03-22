@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
-import { apiClient } from "@/lib/api";
+import { useCachedFetch } from "@/hooks/useCachedFetch";
 import Link from "next/link";
 import { TopBar } from "@/components/layout/TopBar";
 
@@ -31,21 +31,13 @@ const MAX_DAILY_REDEEM = 5;
 export default function Dashboard() {
     const { user, updateUserBalance } = useAuth();
     const router = useRouter();
-    const [data, setData] = useState<BalanceData | null>(null);
+    const { data } = useCachedFetch<BalanceData>("/api/user-balance");
 
     useEffect(() => {
-        const fetchData = async () => {
-            try {
-                const res = await apiClient<BalanceData>("/api/user-balance");
-                setData(res);
-                updateUserBalance(res.balance);
-            } catch (err) {
-                console.error("Failed to fetch dashboard data", err);
-            }
-        };
-        fetchData();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
+        if (data?.balance !== undefined) {
+             updateUserBalance(data.balance);
+        }
+    }, [data?.balance, updateUserBalance]);
 
     // Show cached data immediately, update when API responds
     const balance = data?.balance ?? user?.balance ?? 0;
@@ -70,16 +62,8 @@ export default function Dashboard() {
     };
 
     return (
-        <div className="flex-1 overflow-y-auto w-full h-full pb-8">
-            <TopBar />
+        <div className="flex-1 overflow-y-auto w-full h-full pb-8 pt-6">
 
-            {/* Greeting */}
-            <div className="px-5 pt-6 pb-2">
-                <p className="text-slate-500 dark:text-slate-400 text-sm font-medium">
-                    Welcome back, {fullName}!
-                </p>
-                <h1 className="text-slate-900 dark:text-white text-2xl font-bold mt-1">Ready to recycle?</h1>
-            </div>
 
             {/* Points Balance Card — always visible immediately */}
             <div className="px-5 py-3">
@@ -88,7 +72,7 @@ export default function Dashboard() {
                         <span className="material-symbols-outlined text-[140px] text-white">eco</span>
                     </div>
                     <div className="relative z-10">
-                        <p className="text-green-200 text-xs font-semibold uppercase tracking-wider mb-1">Your Balance</p>
+                        <p className="text-green-200 text-xs font-semibold uppercase tracking-wider mb-1">{fullName} Your balance is</p>
                         <div className="flex items-baseline gap-2">
                             <span className="text-5xl font-bold tracking-tighter">{balance}</span>
                             <span className="text-green-200 text-lg font-medium">pts</span>
@@ -109,98 +93,64 @@ export default function Dashboard() {
                 </h2>
                 <div className="grid grid-cols-2 gap-3">
                     {/* Earning Limit */}
-                    <div className="bg-white dark:bg-zinc-800 rounded-2xl p-4 shadow-sm border border-gray-100 dark:border-zinc-700">
-                        <div className="flex items-center gap-2 mb-3">
-                            <div className="size-8 rounded-lg bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
-                                <span className="material-symbols-outlined text-green-600 dark:text-green-400 text-base">savings</span>
-                            </div>
-                            <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Earning</span>
+                    <div className="bg-white dark:bg-[#111827] rounded-2xl p-4 shadow-[0_2px_20px_rgb(0,0,0,0.04)] dark:shadow-none border border-slate-100 dark:border-zinc-800/80">
+                        <div className="flex items-center justify-between mb-2">
+                            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Earning</span>
+                            <span className="text-xs font-bold text-slate-900 dark:text-gray-100 bg-slate-50 dark:bg-zinc-800 px-2 py-0.5 rounded-md">{dailyEarned}/{MAX_DAILY_EARN}</span>
                         </div>
-                        <div className="flex items-baseline gap-1 mb-2">
-                            <span className="text-2xl font-bold text-slate-900 dark:text-white">{dailyEarned}</span>
-                            <span className="text-sm text-slate-400 font-medium">/ {MAX_DAILY_EARN}</span>
-                        </div>
-                        <div className="w-full bg-gray-100 dark:bg-zinc-700 rounded-full h-2 overflow-hidden">
+                        <div className="w-full bg-slate-100 dark:bg-zinc-800 rounded-full h-1.5 overflow-hidden">
                             <div
-                                className="h-full bg-gradient-to-r from-green-500 to-primary rounded-full transition-all duration-500 ease-out"
+                                className="h-full bg-gradient-to-r from-emerald-400 to-emerald-600 rounded-full transition-all duration-500"
                                 style={{ width: `${earnProgress}%` }}
                             />
                         </div>
-                        <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-1.5 font-medium">
-                            {MAX_DAILY_EARN - dailyEarned > 0 ? `${MAX_DAILY_EARN - dailyEarned} pts remaining` : 'Limit reached'}
-                        </p>
                     </div>
 
                     {/* Redemption Limit */}
-                    <div className="bg-white dark:bg-zinc-800 rounded-2xl p-4 shadow-sm border border-gray-100 dark:border-zinc-700">
-                        <div className="flex items-center gap-2 mb-3">
-                            <div className="size-8 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
-                                <span className="material-symbols-outlined text-blue-600 dark:text-blue-400 text-base">water_drop</span>
-                            </div>
-                            <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Redeem</span>
+                    <div className="bg-white dark:bg-[#111827] rounded-2xl p-4 shadow-[0_2px_20px_rgb(0,0,0,0.04)] dark:shadow-none border border-slate-100 dark:border-zinc-800/80">
+                        <div className="flex items-center justify-between mb-2">
+                            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Redeem</span>
+                            <span className="text-xs font-bold text-slate-900 dark:text-gray-100 bg-slate-50 dark:bg-zinc-800 px-2 py-0.5 rounded-md">{dailyRedeemed}/{MAX_DAILY_REDEEM}</span>
                         </div>
-                        <div className="flex items-baseline gap-1 mb-2">
-                            <span className="text-2xl font-bold text-slate-900 dark:text-white">{dailyRedeemed}</span>
-                            <span className="text-sm text-slate-400 font-medium">/ {MAX_DAILY_REDEEM}</span>
-                        </div>
-                        <div className="w-full bg-gray-100 dark:bg-zinc-700 rounded-full h-2 overflow-hidden">
+                        <div className="w-full bg-slate-100 dark:bg-zinc-800 rounded-full h-1.5 overflow-hidden">
                             <div
-                                className="h-full bg-gradient-to-r from-blue-400 to-blue-600 rounded-full transition-all duration-500 ease-out"
+                                className="h-full bg-gradient-to-r from-blue-400 to-blue-600 rounded-full transition-all duration-500"
                                 style={{ width: `${redeemProgress}%` }}
                             />
                         </div>
-                        <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-1.5 font-medium">
-                            {MAX_DAILY_REDEEM - dailyRedeemed > 0 ? `${MAX_DAILY_REDEEM - dailyRedeemed} pts remaining` : 'Limit reached'}
-                        </p>
                     </div>
                 </div>
             </div>
 
-            {/* Quick Actions */}
-            <div className="px-5 py-3 space-y-3">
-                <h2 className="text-slate-900 dark:text-white text-base font-bold">Quick Actions</h2>
+            <div className="px-5 py-3">
+                <h2 className="text-slate-900 dark:text-white text-base font-bold mb-3">Quick Actions</h2>
+                <div className="grid grid-cols-2 gap-3">
+                    <button
+                        onClick={() => router.push("/qr")}
+                        className="group relative overflow-hidden flex flex-col items-center justify-center gap-2 bg-gradient-to-br from-emerald-500 to-emerald-700 p-5 rounded-3xl text-white shadow-lg shadow-emerald-500/20 hover:shadow-emerald-500/40 hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98] transition-all outline-none border border-emerald-400/30"
+                    >
+                        {/* Glass shine effect */}
+                        <div className="absolute inset-0 bg-gradient-to-tr from-white/0 via-white/10 to-white/0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 rotate-45 scale-150 transform -translate-x-full group-hover:translate-x-full" />
 
-                <button
-                    onClick={() => router.push("/qr")}
-                    className="w-full group relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary to-green-800 p-5 text-left shadow-lg shadow-primary/20 hover:shadow-xl hover:shadow-primary/30 transition-all active:scale-[0.98]"
-                >
-                    <div className="absolute right-[-20px] top-[-20px] opacity-10 rotate-12">
-                        <span className="material-symbols-outlined text-[120px] text-white">qr_code_scanner</span>
-                    </div>
-                    <div className="relative z-10 flex items-center justify-between">
-                        <div>
-                            <div className="mb-2 inline-flex items-center justify-center rounded-lg bg-white/20 p-2 backdrop-blur-sm">
-                                <span className="material-symbols-outlined text-white">qr_code_scanner</span>
-                            </div>
-                            <h3 className="text-lg font-bold text-white">Receive Points</h3>
-                            <p className="mt-0.5 text-sm text-green-100">Scan QR at the recycling station</p>
+                        <div className="bg-white/20 p-2.5 rounded-2xl backdrop-blur-sm border border-white/10 shadow-inner group-hover:scale-110 transition-transform">
+                            <span className="material-symbols-outlined text-[28px]">qr_code_scanner</span>
                         </div>
-                        <div className="flex size-10 items-center justify-center rounded-full bg-white text-primary shadow-sm group-hover:bg-green-50">
-                            <span className="material-symbols-outlined">arrow_forward</span>
-                        </div>
-                    </div>
-                </button>
+                        <span className="text-[13px] font-bold tracking-wide mt-1">Receive Pts</span>
+                    </button>
 
-                <button
-                    onClick={() => router.push("/redeem")}
-                    className="w-full group relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-500 to-blue-700 p-5 text-left shadow-lg shadow-blue-500/20 hover:shadow-xl hover:shadow-blue-500/30 transition-all active:scale-[0.98]"
-                >
-                    <div className="absolute right-[-20px] top-[-20px] opacity-10 rotate-12">
-                        <span className="material-symbols-outlined text-[120px] text-white">water_bottle</span>
-                    </div>
-                    <div className="relative z-10 flex items-center justify-between">
-                        <div>
-                            <div className="mb-2 inline-flex items-center justify-center rounded-lg bg-white/20 p-2 backdrop-blur-sm">
-                                <span className="material-symbols-outlined text-white">local_drink</span>
-                            </div>
-                            <h3 className="text-lg font-bold text-white">Redeem Water</h3>
-                            <p className="mt-0.5 text-sm text-blue-100">Exchange 1 pt for 100ml refill</p>
+                    <button
+                        onClick={() => router.push("/redeem")}
+                        className="group relative overflow-hidden flex flex-col items-center justify-center gap-2 bg-gradient-to-br from-blue-500 to-indigo-600 p-5 rounded-3xl text-white shadow-lg shadow-blue-500/20 hover:shadow-blue-500/40 hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98] transition-all outline-none border border-blue-400/30"
+                    >
+                        {/* Glass shine effect */}
+                        <div className="absolute inset-0 bg-gradient-to-tr from-white/0 via-white/10 to-white/0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 rotate-45 scale-150 transform -translate-x-full group-hover:translate-x-full" />
+
+                        <div className="bg-white/20 p-2.5 rounded-2xl backdrop-blur-sm border border-white/10 shadow-inner group-hover:scale-110 transition-transform">
+                            <span className="material-symbols-outlined text-[28px]">local_drink</span>
                         </div>
-                        <div className="flex size-10 items-center justify-center rounded-full bg-white text-blue-600 shadow-sm group-hover:bg-blue-50">
-                            <span className="material-symbols-outlined">arrow_forward</span>
-                        </div>
-                    </div>
-                </button>
+                        <span className="text-[13px] font-bold tracking-wide mt-1">Redeem Water</span>
+                    </button>
+                </div>
             </div>
 
             {/* Recent Transactions */}
@@ -228,33 +178,31 @@ export default function Dashboard() {
                         ))
                     ) : data.recentTransactions.length > 0 ? (
                         data.recentTransactions.map((tx) => (
-                            <div key={tx.id} className="flex items-center justify-between p-3.5 bg-white dark:bg-zinc-800 rounded-xl shadow-sm border border-gray-100 dark:border-zinc-700">
+                            <div key={tx.id} className="group flex items-center justify-between p-4 bg-white dark:bg-[#111827] rounded-2xl shadow-[0_2px_15px_rgb(0,0,0,0.03)] dark:shadow-none border border-slate-100 dark:border-zinc-800/80 hover:border-slate-200 dark:hover:border-zinc-700 transition-colors">
                                 <div className="flex items-center gap-3">
-                                    <div className={`size-10 rounded-full flex items-center justify-center ${
-                                        tx.type === "EARN"
-                                            ? "bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400"
-                                            : "bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400"
-                                    }`}>
+                                    <div className={`size-11 rounded-xl flex items-center justify-center shadow-inner ${tx.type === "EARN"
+                                        ? "bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-800/50"
+                                        : "bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 border border-blue-100 dark:border-blue-800/50"
+                                        }`}>
                                         <span className="material-symbols-outlined text-xl">
                                             {tx.type === "EARN" ? "recycling" : "water_drop"}
                                         </span>
                                     </div>
                                     <div>
-                                        <p className="text-slate-900 dark:text-white font-semibold text-sm">
+                                        <p className="text-slate-800 dark:text-gray-100 font-bold text-[13px] tracking-tight">
                                             {tx.type === "EARN"
                                                 ? `Recycled ${tx.count || 1} ${tx.materialType || 'Items'}`
                                                 : `Water Refill (${tx.amount * 100}ml)`}
                                         </p>
-                                        <p className="text-slate-400 dark:text-slate-500 text-xs mt-0.5">{formatTime(tx.createdAt)}</p>
+                                        <p className="text-slate-400 dark:text-slate-500 text-[11px] mt-0.5 font-medium">{formatTime(tx.createdAt)}</p>
                                     </div>
                                 </div>
-                                <p className={`font-bold text-sm ${
-                                    tx.type === "EARN"
-                                        ? "text-green-600 dark:text-green-400"
-                                        : "text-red-500 dark:text-red-400"
-                                }`}>
+                                <div className={`flex items-center justify-center px-3 py-1 rounded-full text-xs font-bold ${tx.type === "EARN"
+                                    ? "bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400"
+                                    : "bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400"
+                                    }`}>
                                     {tx.type === "EARN" ? "+" : "-"}{tx.amount} pts
-                                </p>
+                                </div>
                             </div>
                         ))
                     ) : (

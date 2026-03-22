@@ -7,13 +7,9 @@ export default function RewardsGuidePage() {
 
     return (
         <div className="flex-1 overflow-y-auto pb-8 w-full h-full">
-            <header className="sticky top-0 z-50 bg-white/90 dark:bg-zinc-900/90 backdrop-blur-md px-4 py-3 border-b border-gray-100 dark:border-zinc-800">
-                <div className="flex items-center justify-between">
-                    <button onClick={() => router.back()} className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-zinc-800 transition-colors">
-                        <span className="material-symbols-outlined text-slate-900 dark:text-gray-100">arrow_back</span>
-                    </button>
-                    <h1 className="text-lg font-bold text-center flex-1">Rewards Guide</h1>
-                    <div className="w-10"></div>
+            <header className="sticky top-0 z-50 bg-white/90 dark:bg-[#0a0c10]/90 backdrop-blur-md px-4 py-3 border-b border-gray-100 dark:border-zinc-800/80">
+                <div className="flex items-center justify-center">
+                    <h1 className="text-lg font-bold text-center">Rewards Guide</h1>
                 </div>
             </header>
 
@@ -45,7 +41,7 @@ export default function RewardsGuidePage() {
                         <span className="text-xs font-medium text-primary bg-primary/10 px-2 py-1 rounded-full">Standard Rates</span>
                     </div>
 
-                    <div className="bg-white dark:bg-zinc-800 rounded-xl p-4 shadow-sm border border-gray-100 dark:border-zinc-700 flex items-center gap-4">
+                    <div className="bg-white dark:bg-[#111827] rounded-2xl shadow-[0_2px_15px_rgb(0,0,0,0.03)] dark:shadow-none border border-gray-100 dark:border-zinc-800/80 p-4 flex items-center gap-4 hover:border-slate-200 dark:hover:border-zinc-700 transition-colors">
                         <div className="h-16 w-16 rounded-lg bg-green-50 dark:bg-green-900/20 flex items-center justify-center shrink-0">
                             <span className="material-symbols-outlined text-3xl text-green-600 dark:text-green-400">recycling</span>
                         </div>
@@ -61,7 +57,7 @@ export default function RewardsGuidePage() {
                         </div>
                     </div>
 
-                    <div className="bg-white dark:bg-zinc-800 rounded-xl p-4 shadow-sm border border-gray-100 dark:border-zinc-700 flex items-center gap-4">
+                    <div className="bg-white dark:bg-[#111827] rounded-2xl shadow-[0_2px_15px_rgb(0,0,0,0.03)] dark:shadow-none border border-gray-100 dark:border-zinc-800/80 p-4 flex items-center gap-4 hover:border-slate-200 dark:hover:border-zinc-700 transition-colors">
                         <div className="h-16 w-16 rounded-lg bg-orange-50 dark:bg-orange-900/20 flex items-center justify-center shrink-0">
                             <span className="material-symbols-outlined text-3xl text-orange-500 dark:text-orange-400">local_cafe</span>
                         </div>
@@ -76,7 +72,7 @@ export default function RewardsGuidePage() {
                             </div>
                         </div>
                     </div>
-                    <div className="bg-white dark:bg-zinc-800 rounded-xl p-4 shadow-sm border border-gray-100 dark:border-zinc-700 flex items-center gap-4">
+                    <div className="bg-white dark:bg-[#111827] rounded-2xl shadow-[0_2px_15px_rgb(0,0,0,0.03)] dark:shadow-none border border-gray-100 dark:border-zinc-800/80 p-4 flex items-center gap-4 hover:border-slate-200 dark:hover:border-zinc-700 transition-colors">
                         <div className="h-16 w-16 rounded-lg bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center shrink-0">
                             <span className="material-symbols-outlined text-3xl text-blue-500 dark:text-blue-400">
                                 description

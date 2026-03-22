@@ -14,6 +14,7 @@ interface UserData {
     totalEarned: number;
     totalItems: number;
     status: string;
+    
     joinedAt: string;
 }
 

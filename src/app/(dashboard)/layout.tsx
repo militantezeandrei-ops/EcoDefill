@@ -19,8 +19,8 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
 
     return (
         <div className="bg-background-light dark:bg-background-dark min-h-screen font-display">
-            <div className="relative flex min-h-screen w-full flex-col overflow-x-hidden max-w-md mx-auto bg-white dark:bg-zinc-900 shadow-xl pb-16">
-                <div className="flex-1 flex flex-col h-full bg-white dark:bg-zinc-900">
+            <div className="relative flex min-h-screen w-full flex-col overflow-x-hidden max-w-md mx-auto bg-slate-50 dark:bg-[#0a0c10] shadow-xl pb-24">
+                <div className="flex-1 flex flex-col h-full">
                     {children}
                 </div>
 

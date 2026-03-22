@@ -10,19 +10,29 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: 'Missing token or machineId' }, { status: 400 });
         }
 
-        // 1. Look up the QR Token in the database using the short token
+        // 1. Atomically claim the QR token to prevent double-scanning
+        const claimResult = await prisma.qrToken.updateMany({
+            where: { shortToken: token, used: false },
+            data: { used: true, usedAt: new Date() }
+        });
+
+        if (claimResult.count === 0) {
+            // It might not exist, or it might have already been used by a concurrent scan
+            const existing = await prisma.qrToken.findUnique({ where: { shortToken: token } });
+            if (!existing) {
+                return NextResponse.json({ error: 'Invalid or missing QR code.' }, { status: 404 });
+            }
+            return NextResponse.json({ error: 'QR code has already been used.' }, { status: 400 });
+        }
+
+        // 2. Now securely fetch the full token payload
         const qrToken = await prisma.qrToken.findUnique({
             where: { shortToken: token },
             include: { user: true }
         });
 
-        // 2. Validation
         if (!qrToken) {
-            return NextResponse.json({ error: 'Invalid or missing QR code.' }, { status: 404 });
-        }
-
-        if (qrToken.used || qrToken.usedAt) {
-            return NextResponse.json({ error: 'QR code has already been used.' }, { status: 400 });
+            return NextResponse.json({ error: 'Retrieval error.' }, { status: 500 });
         }
 
         // Provide a 10 second grace period for last-second scans to reach the server
@@ -61,12 +71,7 @@ export async function POST(req: Request) {
         let txResult: { userName: string; pointsDeducted: number; waterAmount: number } | null = null;
 
         await prisma.$transaction(async (tx) => {
-            // Mark token as used
-            await tx.qrToken.update({
-                where: { id: qrToken.id },
-                data: { used: true, usedAt: new Date() }
-            });
-
+            // Token is already safely marked as used via updateMany above.
             if (qrToken.type === "REDEEM") {
                 const user = await tx.user.findUnique({ where: { id: qrToken.userId } });
 
