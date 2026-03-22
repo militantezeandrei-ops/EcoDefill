@@ -1,9 +1,13 @@
 // A simple wrapper around fetch to automatically handle auth headers and JSON parsing.
 
+const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "";
+
 export async function apiClient<T>(
     endpoint: string,
     options: RequestInit = {}
 ): Promise<T> {
+    const url = endpoint.startsWith("http") ? endpoint : `${BASE_URL}${endpoint}`;
+
     const getAuthToken = () => {
         if (typeof window !== "undefined") {
             return localStorage.getItem("token");
@@ -20,7 +24,7 @@ export async function apiClient<T>(
         headers.set("Authorization", `Bearer ${token}`);
     }
 
-    const response = await fetch(endpoint, {
+    const response = await fetch(url, {
         ...options,
         headers,
     });

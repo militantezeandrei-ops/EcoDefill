@@ -1,6 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-    // Config options here
+    images: {
+        unoptimized: true,
+    },
 };
 
 export default nextConfig;

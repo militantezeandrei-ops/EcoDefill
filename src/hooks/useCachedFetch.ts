@@ -12,7 +12,8 @@ export function useCachedFetch<T>(url: string) {
         let isMounted = true;
 
         const fetchData = async () => {
-            if (!globalCache[url] && isMounted) {
+            // ONLY show loading state if we don't have cached data for this specific URL
+            if (!globalCache[url]) {
                 setLoading(true);
             }
 

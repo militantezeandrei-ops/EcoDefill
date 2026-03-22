@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { authenticateRequest, handleApiError } from "@/lib/api-middleware";
-
+ 
 export async function GET(req: NextRequest) {
     try {
         const auth = await authenticateRequest(req);
@@ -35,28 +35,32 @@ export async function GET(req: NextRequest) {
             }
         });
 
-        // Aggregate stats
-        const totalEarned = await prisma.transaction.aggregate({
-            where: { userId: auth.user!.userId, type: "EARN" },
-            _sum: { amount: true }
-        });
-
-        const totalRedeemed = await prisma.transaction.aggregate({
-            where: { userId: auth.user!.userId, type: "REDEEM" },
-            _sum: { amount: true }
-        });
-
-        const totalRecycledItems = await prisma.transaction.aggregate({
-            where: { userId: auth.user!.userId, type: "EARN" },
-            _sum: { count: true }
-        });
+        // Aggregate stats for the user
+        const [earnedAgg, redeemedAgg, recyclingCount] = await Promise.all([
+            prisma.transaction.aggregate({
+                where: { userId: auth.user!.userId, type: "EARN" },
+                _sum: { amount: true, count: true },
+                _count: { id: true }
+            }),
+            prisma.transaction.aggregate({
+                where: { userId: auth.user!.userId, type: "REDEEM" },
+                _sum: { amount: true },
+                _count: { id: true }
+            }),
+            // Count unique recycling sessions (EARN transactions) as fallback for items
+            prisma.transaction.count({
+                where: { userId: auth.user!.userId, type: "EARN" }
+            })
+        ]);
 
         return NextResponse.json({
             transactions,
             stats: {
-                totalEarned: totalEarned._sum.amount || 0,
-                totalRedeemed: totalRedeemed._sum.amount || 0,
-                totalRecycledItems: totalRecycledItems._sum.count || 0,
+                totalEarned: earnedAgg._sum.amount || 0,
+                totalRedeemed: redeemedAgg._sum.amount || 0,
+                totalRecycledItems: earnedAgg._sum.count || recyclingCount || 0,
+                earnedCount: earnedAgg._count.id,
+                redeemedCount: redeemedAgg._count.id
             }
         });
 

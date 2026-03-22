@@ -150,15 +150,12 @@ export default function RedeemWater() {
 
     return (
         <div className="flex flex-col min-h-screen bg-slate-50 dark:bg-zinc-900 w-full overflow-hidden relative">
-            {/* Header matching ui */}
+            {/* Header simplified */}
             <header className="bg-blue-600 text-white flex items-center p-4">
-                <Link href="/dashboard" className="flex size-10 items-center justify-center rounded-full hover:bg-white/10 transition-colors">
-                    <span className="material-symbols-outlined font-bold">arrow_back</span>
-                </Link>
-                <h1 className="flex-1 text-center text-lg font-bold pr-10">Redeem Water</h1>
+                <h1 className="flex-1 text-center text-lg font-bold uppercase tracking-tight">Redeem Water</h1>
             </header>
 
-            <main className="flex-1 overflow-y-auto px-4 pb-36 pt-6 flex flex-col items-center">
+            <main className="flex-1 overflow-y-auto px-4 pb-32 pt-6 flex flex-col items-center">
                 <div className="w-full max-w-sm mb-6">
                     <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-1">Redeem Your Points</h2>
                     <p className="text-slate-500 dark:text-slate-400 text-sm">Convert your eco-points into fresh water refills.</p>
@@ -292,15 +289,13 @@ export default function RedeemWater() {
                 </div>
             )}
 
-            
-
-            {/* Bottom Generate Action */}
+            {/* Bottom Generate Action - Positioned neatly above low-profile nav */}
             {!qrToken && !fetching && !isSuccess && (
-                <div className="p-4 bg-white dark:bg-zinc-900 border-t border-slate-100 dark:border-zinc-800 shadow-[0_-10px_40px_rgba(0,0,0,0.05)] w-full max-w-sm mx-auto fixed bottom-16 left-1/2 -translate-x-1/2 z-40">
+                <div className="p-4 w-full max-w-sm mx-auto fixed bottom-20 left-1/2 -translate-x-1/2 z-40">
                     <Button
                         onClick={handleGenerateQR}
                         disabled={!isValidInput || loading || dailyRedeemed >= MAX_DAILY_REDEEM}
-                        className="w-full shadow-lg shadow-blue-500/30"
+                        className="w-full shadow-[0_10px_30px_rgba(59,130,246,0.3)] transform active:scale-95 transition-all py-6 rounded-2xl"
                         variant="primary"
                     >
                         {loading ? "Generating..." : "Generate QR Code"}

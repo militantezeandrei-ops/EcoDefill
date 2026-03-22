@@ -95,7 +95,7 @@ export default function Dashboard() {
                     {/* Earning Limit */}
                     <div className="bg-white dark:bg-[#111827] rounded-2xl p-4 shadow-[0_2px_20px_rgb(0,0,0,0.04)] dark:shadow-none border border-slate-100 dark:border-zinc-800/80">
                         <div className="flex items-center justify-between mb-2">
-                            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Earning</span>
+                            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Points Earned</span>
                             <span className="text-xs font-bold text-slate-900 dark:text-gray-100 bg-slate-50 dark:bg-zinc-800 px-2 py-0.5 rounded-md">{dailyEarned}/{MAX_DAILY_EARN}</span>
                         </div>
                         <div className="w-full bg-slate-100 dark:bg-zinc-800 rounded-full h-1.5 overflow-hidden">
@@ -109,7 +109,7 @@ export default function Dashboard() {
                     {/* Redemption Limit */}
                     <div className="bg-white dark:bg-[#111827] rounded-2xl p-4 shadow-[0_2px_20px_rgb(0,0,0,0.04)] dark:shadow-none border border-slate-100 dark:border-zinc-800/80">
                         <div className="flex items-center justify-between mb-2">
-                            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Redeem</span>
+                            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Redeem Water</span>
                             <span className="text-xs font-bold text-slate-900 dark:text-gray-100 bg-slate-50 dark:bg-zinc-800 px-2 py-0.5 rounded-md">{dailyRedeemed}/{MAX_DAILY_REDEEM}</span>
                         </div>
                         <div className="w-full bg-slate-100 dark:bg-zinc-800 rounded-full h-1.5 overflow-hidden">
