@@ -6,23 +6,21 @@ export function TopBar({ title = "EcoDefill" }: { title?: string }) {
     const { logout } = useAuth();
 
     return (
-        <div className="sticky top-0 z-30 flex items-center justify-between border-b border-gray-100 bg-white/95 px-4 pb-2 pt-[calc(var(--safe-top)+12px)] backdrop-blur-md dark:border-zinc-800 dark:bg-zinc-900/95">
-            <div className="text-slate-900 dark:text-white flex size-12 shrink-0 items-center justify-center rounded-full bg-gray-50 dark:bg-zinc-800">
-                <span className="material-symbols-outlined text-2xl">menu</span>
-            </div>
+        <div className="sticky top-0 z-30 flex items-center justify-between bg-transparent px-4 pb-2 pt-[calc(var(--safe-top)+10px)]">
+            {/* Placeholder left icon for symmetry */}
+            <div className="size-10 shrink-0" />
 
-            <h2 className="text-slate-900 dark:text-white text-lg font-bold leading-tight tracking-[-0.015em] flex-1 text-center">
+            <h2 className="flex-1 text-center text-base font-black tracking-tight text-slate-900 dark:text-white">
                 {title}
             </h2>
 
-            <div className="flex w-12 items-center justify-end">
-                <button
-                    onClick={logout}
-                    className="flex size-10 cursor-pointer items-center justify-center overflow-hidden rounded-full bg-gray-50 dark:bg-zinc-800 text-slate-900 dark:text-white hover:bg-gray-100 dark:hover:bg-zinc-700 transition-colors"
-                >
-                    <span className="material-symbols-outlined text-2xl" title="Logout">logout</span>
-                </button>
-            </div>
+            <button
+                onClick={logout}
+                className="flex size-10 cursor-pointer items-center justify-center rounded-full bg-white/70 text-slate-500 shadow-sm backdrop-blur-md transition-colors hover:bg-white active:scale-95 dark:bg-zinc-800/70 dark:text-zinc-300"
+                aria-label="Logout"
+            >
+                <span className="material-symbols-outlined text-[20px]">logout</span>
+            </button>
         </div>
     );
 }

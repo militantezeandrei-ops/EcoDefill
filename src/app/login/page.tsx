@@ -89,12 +89,12 @@ export default function Login() {
     }, []);
 
     return (
-        <div className="relative flex h-[100dvh] w-full items-center justify-center overflow-hidden bg-transparent font-display">
-            <div className="relative mx-4 w-full max-w-[420px] overflow-hidden rounded-3xl border border-white/10 bg-zinc-900/40 p-6 shadow-[0_8px_32px_rgba(0,0,0,0.5)] backdrop-blur-md sm:p-8">
+        <div className="relative flex h-[100dvh] w-full items-center justify-center overflow-y-auto bg-transparent font-display -webkit-overflow-scrolling-touch px-4 py-6">
+            <div className="relative mx-4 w-full max-w-[420px] overflow-hidden rounded-3xl border border-white/10 bg-zinc-900/40 px-5 py-5 shadow-[0_8px_32px_rgba(0,0,0,0.5)] backdrop-blur-md">
                 <div className="absolute left-0 top-0 h-1.5 w-full bg-gradient-to-r from-emerald-400 via-emerald-500 to-green-600" />
 
-                <div className="mb-6 mt-0 flex flex-col items-center text-center">
-                    <div className="relative mb-4 h-20 w-20">
+                <div className="mb-4 mt-0 flex flex-col items-center text-center">
+                    <div className="relative mb-3 h-16 w-16">
                         <Image
                             src="/images/pdm-logo.png"
                             alt="PDM Logo"
@@ -107,7 +107,7 @@ export default function Login() {
                     <p className="mt-1 text-xs font-medium text-emerald-100/70">Log in to recycle, earn points, and redeem water refills.</p>
                 </div>
 
-                <form onSubmit={handleSubmit} className="space-y-4">
+                <form onSubmit={handleSubmit} className="space-y-3">
                     <div>
                         <label htmlFor="login-email" className="ml-1 mb-2 block text-[12px] font-semibold uppercase tracking-wider text-emerald-50/80">Email Address</label>
                         <div className="group relative">
@@ -177,7 +177,7 @@ export default function Login() {
                     </div>
                 </form>
 
-                <div className="mt-8 text-center text-[13px]">
+                <div className="mt-5 text-center text-[13px]">
                     <span className="text-white/50">Don&apos;t have an account?</span>
                     <Link href="/register" className="ml-2 font-bold text-emerald-400 transition-all hover:text-emerald-300 hover:underline hover:underline-offset-4">
                         Create Account

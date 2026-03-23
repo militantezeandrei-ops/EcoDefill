@@ -8,14 +8,14 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 export function Button({ children, icon, variant = "primary", fullWidth = true, className = "", ...props }: ButtonProps) {
-    let baseStyles = "font-bold text-lg h-14 rounded-lg shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 px-6 ";
+    let baseStyles = "tap-target font-semibold text-base h-12 rounded-xl shadow-sm hover:shadow-md transition-all duration-200 active:scale-[0.98] flex items-center justify-center gap-2 px-5 ";
 
     if (variant === "primary") {
         baseStyles += "bg-primary hover:bg-primary/90 text-white ";
     } else if (variant === "secondary") {
         baseStyles += "bg-slate-200 dark:bg-zinc-800 hover:bg-slate-300 dark:hover:bg-zinc-700 text-slate-900 dark:text-white ";
     } else if (variant === "outline") {
-        baseStyles += "bg-transparent border-2 border-primary text-primary hover:bg-primary/10 ";
+        baseStyles += "bg-transparent border border-primary/70 text-primary hover:bg-primary/10 ";
     }
 
     if (fullWidth) baseStyles += "w-full ";

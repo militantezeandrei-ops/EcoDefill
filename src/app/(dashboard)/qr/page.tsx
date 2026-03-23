@@ -63,25 +63,25 @@ export default function QRGeneration() {
     }, [qrData, router]);
 
     return (
-        <div className="flex flex-col items-center justify-center min-h-[70vh] p-6 text-center">
+        <div className="flex min-h-[70vh] flex-col items-center justify-center px-4 pb-4 pt-[calc(var(--safe-top)+14px)] text-center">
             {error ? (
-                <div className="bg-white p-8 rounded-3xl shadow-lg border border-red-100 flex flex-col items-center justify-center max-w-sm w-full mx-auto mt-10">
+                <div className="mx-auto mt-6 flex w-full max-w-sm flex-col items-center justify-center rounded-3xl border border-red-100 bg-white p-6 shadow-lg">
                     <span className="material-symbols-outlined text-red-500 text-6xl mb-4">cancel</span>
                     <h2 className="text-xl font-bold text-slate-800 mb-2">{error.includes("10 points") ? "Daily Limit Reached" : "Attention"}</h2>
                     <p className="text-slate-500 text-center">{error}</p>
                 </div>
             ) : (
                 <>
-                    <h1 className="text-2xl font-bold mb-2">Your Personal QR Code</h1>
-                    <p className="text-slate-500 mb-8">Scan this code at the EcoDefill station to receive points.</p>
+                    <h1 className="mb-2 text-2xl font-bold">Your Personal QR Code</h1>
+                    <p className="mb-6 text-sm leading-relaxed text-slate-500">Scan this code at the EcoDefill station to receive points.</p>
 
-                    <div className="bg-white p-6 rounded-3xl shadow-lg border border-gray-100 flex flex-col items-center justify-center mb-6">
+                    <div className="mb-4 flex flex-col items-center justify-center rounded-3xl border border-gray-100 bg-white p-5 shadow-lg">
                         {loading ? (
-                            <div className="w-64 h-64 flex items-center justify-center bg-gray-50 rounded-xl">
+                            <div className="flex h-64 w-64 items-center justify-center rounded-xl bg-gray-50">
                                 <span className="material-symbols-outlined animate-spin text-4xl text-primary">autorenew</span>
                             </div>
                         ) : (
-                            <div className="w-64 h-64 flex items-center justify-center bg-gray-50 rounded-xl border-4 border-primary/20 relative overflow-hidden group">
+                            <div className="relative flex h-64 w-64 items-center justify-center overflow-hidden rounded-xl border-4 border-primary/20 bg-gray-50">
                                 <img
                                     src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${qrData?.token}`}
                                     alt="QR Code"

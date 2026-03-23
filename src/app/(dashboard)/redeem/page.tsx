@@ -128,7 +128,7 @@ export default function RedeemWater() {
 
     return (
         <div className="relative flex min-h-screen flex-col bg-transparent">
-            <header className="sticky top-0 z-10 border-b border-slate-200/70 bg-white/92 px-5 py-4 backdrop-blur-md dark:border-zinc-800 dark:bg-zinc-900/92">
+            <header className="sticky top-0 z-10 border-b border-slate-200/70 bg-white/92 px-4 pb-3 pt-[calc(var(--safe-top)+12px)] backdrop-blur-md dark:border-zinc-800 dark:bg-zinc-900/92">
                 <h1 className="text-xl font-semibold text-slate-900 dark:text-white">Redeem Water</h1>
                 <p className="text-sm text-slate-500">Convert points to refill volume</p>
             </header>
@@ -189,7 +189,7 @@ export default function RedeemWater() {
                             <Button
                                 onClick={handleGenerateQR}
                                 disabled={!isValidInput || loading || dailyRedeemed >= MAX_DAILY_REDEEM}
-                                className="h-14 w-full rounded-2xl shadow-[0_16px_35px_rgba(59,130,246,0.35)] active:scale-[0.98]"
+                                className="h-14 w-full rounded-2xl shadow-[0_16px_35px_rgba(59,130,246,0.35)]"
                                 variant="primary"
                             >
                                 {loading ? "Generating..." : "Generate QR Code"}

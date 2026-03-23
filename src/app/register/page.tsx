@@ -143,8 +143,9 @@ export default function Register() {
     };
 
     return (
-        <div className="flex min-h-[100dvh] w-full items-center justify-center bg-transparent py-8 font-display overflow-y-auto">
-            <div className="relative w-full max-w-[480px] mx-4 rounded-3xl bg-zinc-900/40 backdrop-blur-md p-8 shadow-[0_8px_32px_rgba(0,0,0,0.5)] border border-white/10 overflow-hidden my-4">
+        <div className="fixed inset-0 w-full overflow-y-auto bg-transparent pt-[calc(var(--safe-top)+20px)] pb-20 font-display -webkit-overflow-scrolling-touch">
+            <div className="flex min-h-full w-full flex-col items-center justify-start px-4">
+                <div className="relative w-full max-w-[480px] rounded-3xl bg-zinc-900/40 backdrop-blur-md p-8 shadow-[0_8px_32px_rgba(0,0,0,0.5)] border border-white/10 overflow-hidden mb-8">
                 {/* Gradient accent top border */}
                 <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-emerald-400 via-emerald-500 to-green-600"></div>
 
@@ -387,18 +388,19 @@ export default function Register() {
 
                 <div className="mt-8 text-center text-[13px]">
                     <p className="text-white/60 text-sm">
-                        Already have an account? 
+                        Already have an account?
                         <Link href="/login" className="text-emerald-400 font-bold hover:text-emerald-300 ml-2 transition-colors">
                             Sign In
                         </Link>
                     </p>
                 </div>
             </div>
-            
+
             {/* Footer text */}
             <p className="fixed bottom-4 left-0 w-full text-center text-white/40 text-[11px] font-medium tracking-wide pointer-events-none hidden md:block">
                 Pambayang Dalubhasaan ng Marilao &copy; 2026
             </p>
+            </div>
         </div>
     );
 }

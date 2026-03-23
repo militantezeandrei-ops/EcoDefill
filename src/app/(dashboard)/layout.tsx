@@ -45,9 +45,9 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     if (isLoading || !isAuthenticated) return null;
 
     return (
-        <div className="relative min-h-screen w-full overflow-x-hidden bg-transparent font-display">
-            <main className="relative flex min-h-screen flex-col overflow-x-hidden pb-[calc(74px+var(--safe-bottom))]">
-                <div key={transitionKey} className={transitionClass}>
+        <div className="relative h-[100dvh] w-full overflow-x-hidden bg-transparent font-display">
+            <main className="relative flex h-[100dvh] min-h-0 flex-col overflow-x-hidden pb-[calc(110px+var(--safe-bottom))]">
+                <div key={transitionKey} className={`${transitionClass} flex min-h-0 flex-1 flex-col`}>
                     {children}
                 </div>
             </main>

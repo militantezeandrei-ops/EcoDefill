@@ -54,99 +54,155 @@ export default function Dashboard() {
     };
 
     return (
-        <div className="relative flex-1 overflow-y-auto pb-10 pt-5">
-            <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(circle_at_top_right,rgba(16,185,129,0.12),transparent_44%)]" />
+        <div className="relative flex-1 overflow-y-auto scroll-pb-32 pb-32">
+            {/* Ambient gradient */}
+            <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-56 bg-gradient-to-b from-emerald-100/60 to-transparent" />
 
-            <section className="px-4">
-                <div className="overflow-hidden rounded-[2rem] bg-gradient-to-br from-emerald-500 to-emerald-700 p-5 text-white shadow-[0_20px_40px_rgba(16,185,129,0.35)]">
-                    <p className="text-xs font-medium uppercase tracking-[0.14em] text-emerald-100">{fullName} Available Points</p>
-                    <p className="mt-3 text-5xl font-bold leading-none tracking-tight">{balance}</p>
-                    <p className="mt-3 text-sm text-emerald-50">{(balance * 0.1).toFixed(2)}L water</p>
+            {/* ── Balance Hero Card ── */}
+            <section className="px-4 pt-[calc(var(--safe-top)+56px)]">
+                <div className="relative overflow-hidden rounded-[24px] bg-gradient-to-br from-emerald-500 via-emerald-600 to-teal-700 px-5 pb-5 pt-6 text-white shadow-[0_12px_32px_rgba(5,150,105,0.3)]">
+                    {/* Decorative blobs */}
+                    <div className="absolute -right-8 -top-8 h-32 w-32 rounded-full bg-white/10 blur-2xl" />
+                    
+                    {/* Username */}
+                    <p className="text-[10px] font-black uppercase tracking-[0.22em] text-emerald-100/70">
+                        {fullName}&apos;s Balance
+                    </p>
+
+                    {/* Big balance */}
+                    <div className="mt-1.5 flex items-end gap-1.5">
+                        <span className="text-5xl font-black leading-none tracking-tighter">{balance}</span>
+                        <span className="mb-0.5 text-xs font-black uppercase tracking-widest text-emerald-200">pts</span>
+                    </div>
+
+                    {/* Water equiv badge */}
+                    <div className="mt-4 flex items-center justify-between">
+                        <div className="inline-flex items-center gap-1.5 rounded-full border border-white/20 bg-white/10 px-3 py-1 backdrop-blur-sm">
+                            <span className="material-symbols-outlined text-[14px] text-teal-200">water_drop</span>
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-white/90">
+                                ≈ {(balance * 0.1).toFixed(1)} L water saved
+                            </span>
+                        </div>
+                    </div>
                 </div>
             </section>
 
-            <section className="px-4 pt-4">
-                <h2 className="mb-3 text-sm font-semibold uppercase tracking-[0.12em] text-slate-500">Daily Limits</h2>
+            {/* ── Daily Progress (One horizontal row) ── */}
+            <section className="mt-5 px-4">
+                <h2 className="app-section-title">Daily Limits</h2>
                 <div className="grid grid-cols-2 gap-3">
-                    <article className="rounded-2xl border border-slate-200/80 bg-white/90 p-4 shadow-sm backdrop-blur dark:border-zinc-800 dark:bg-zinc-900/80">
-                        <p className="text-xs text-slate-500">Points Earned</p>
-                        <p className="mt-1 text-xl font-semibold text-slate-900 dark:text-white">{dailyEarned}/{MAX_DAILY_EARN}</p>
-                        <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-slate-100 dark:bg-zinc-800">
-                            <div className="h-full rounded-full bg-emerald-500" style={{ width: `${earnProgress}%` }} />
+                    {/* Earn col */}
+                    <div className="app-card flex flex-col gap-2 p-3">
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-1.5">
+                                <span className="material-symbols-outlined text-[16px] text-emerald-600">recycling</span>
+                                <span className="text-[11px] font-black text-slate-700 uppercase tracking-tight">Earned</span>
+                            </div>
+                            <span className="text-[11px] font-black text-emerald-600">{dailyEarned}<span className="text-[9px] text-slate-400">/{MAX_DAILY_EARN}</span></span>
                         </div>
-                    </article>
-                    <article className="rounded-2xl border border-slate-200/80 bg-white/90 p-4 shadow-sm backdrop-blur dark:border-zinc-800 dark:bg-zinc-900/80">
-                        <p className="text-xs text-slate-500">Water Redeemed</p>
-                        <p className="mt-1 text-xl font-semibold text-slate-900 dark:text-white">{dailyRedeemed}/{MAX_DAILY_REDEEM}</p>
-                        <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-slate-100 dark:bg-zinc-800">
-                            <div className="h-full rounded-full bg-blue-500" style={{ width: `${redeemProgress}%` }} />
+                        <div className="h-1.5 w-full rounded-full bg-slate-100 overflow-hidden">
+                            <div className="h-full bg-emerald-500 rounded-full transition-all duration-700" style={{ width: `${earnProgress}%` }} />
                         </div>
-                    </article>
+                    </div>
+
+                    {/* Redeem col */}
+                    <div className="app-card flex flex-col gap-2 p-3">
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-1.5">
+                                <span className="material-symbols-outlined text-[16px] text-blue-600">water_drop</span>
+                                <span className="text-[11px] font-black text-slate-700 uppercase tracking-tight">Used</span>
+                            </div>
+                            <span className="text-[11px] font-black text-blue-600">{dailyRedeemed}<span className="text-[9px] text-slate-400">/{MAX_DAILY_REDEEM}</span></span>
+                        </div>
+                        <div className="h-1.5 w-full rounded-full bg-slate-100 overflow-hidden">
+                            <div className="h-full bg-blue-500 rounded-full transition-all duration-700" style={{ width: `${redeemProgress}%` }} />
+                        </div>
+                    </div>
                 </div>
             </section>
 
-            <section className="px-4 pt-5">
-                <h2 className="mb-3 text-sm font-semibold uppercase tracking-[0.12em] text-slate-500">Quick Actions</h2>
+            {/* ── Quick Actions ── */}
+            <section className="mt-5 px-4">
+                <h2 className="app-section-title">Quick Actions</h2>
                 <div className="grid grid-cols-2 gap-3">
                     <button
                         onClick={() => router.push("/qr")}
-                        className="group rounded-xl border border-emerald-700/70 bg-emerald-600 px-3 py-3 text-left shadow-[0_6px_14px_rgba(5,150,105,0.35)] transition hover:-translate-y-0.5 hover:shadow-[0_10px_18px_rgba(5,150,105,0.4)] active:translate-y-0 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-200/80"
+                        className="group flex flex-col items-center gap-2 rounded-[22px] bg-emerald-600 px-4 py-4 text-white shadow-[0_8px_20px_rgba(5,150,105,0.3)] transition-all active:scale-95 active:shadow-none"
                     >
-                        <div className="mb-2 inline-flex h-9 w-9 items-center justify-center rounded-lg border border-white/25 bg-white/20 text-white">
-                            <span className="material-symbols-outlined text-[20px]">qr_code_scanner</span>
+                        <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-white/20">
+                            <span className="material-symbols-outlined text-[24px]">qr_code_scanner</span>
                         </div>
-                        <p className="text-[13px] font-semibold leading-tight text-white">Receive Points</p>
-                        <p className="mt-0.5 text-[11px] text-emerald-100">Show personal QR</p>
+                        <div className="text-center">
+                            <p className="text-[12px] font-black">Receive Points</p>
+                            <p className="text-[9px] font-medium text-emerald-200">Show my QR</p>
+                        </div>
                     </button>
 
                     <button
                         onClick={() => router.push("/redeem")}
-                        className="group rounded-xl border border-blue-700/70 bg-blue-600 px-3 py-3 text-left shadow-[0_6px_14px_rgba(37,99,235,0.35)] transition hover:-translate-y-0.5 hover:shadow-[0_10px_18px_rgba(37,99,235,0.4)] active:translate-y-0 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-200/80"
+                        className="group flex flex-col items-center gap-2 rounded-[22px] bg-blue-600 px-4 py-4 text-white shadow-[0_8px_20px_rgba(37,99,235,0.3)] transition-all active:scale-95 active:shadow-none"
                     >
-                        <div className="mb-2 inline-flex h-9 w-9 items-center justify-center rounded-lg border border-white/25 bg-white/20 text-white">
-                            <span className="material-symbols-outlined text-[20px]">local_drink</span>
+                        <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-white/20">
+                            <span className="material-symbols-outlined text-[24px]">local_drink</span>
                         </div>
-                        <p className="text-[13px] font-semibold leading-tight text-white">Redeem Water</p>
-                        <p className="mt-0.5 text-[11px] text-blue-100">Use points instantly</p>
+                        <div className="text-center">
+                            <p className="text-[12px] font-black">Redeem Water</p>
+                            <p className="text-[9px] font-medium text-blue-200">Use your points</p>
+                        </div>
                     </button>
                 </div>
             </section>
 
-            <section className="px-4 pt-5">
+            {/* ── Recent Activity ── */}
+            <section className="mt-6 px-4">
                 <div className="mb-3 flex items-center justify-between">
-                    <h2 className="text-sm font-semibold uppercase tracking-[0.12em] text-slate-500">Recent Activity</h2>
-                    <Link href="/history" className="text-sm font-medium text-primary">View all</Link>
+                    <h2 className="app-section-title mb-0">Recent Activity</h2>
+                    <Link href="/history" className="text-[12px] font-bold text-emerald-600">View all</Link>
                 </div>
 
-                <div className="space-y-2.5">
+                <div className="app-card p-0 overflow-hidden">
                     {!data ? (
-                        Array.from({ length: 3 }).map((_, i) => (
-                            <div key={i} className="h-16 animate-pulse rounded-xl bg-slate-200/60 dark:bg-zinc-800" />
-                        ))
-                    ) : data.recentTransactions.length > 0 ? (
-                        data.recentTransactions.map((tx) => (
-                            <article key={tx.id} className="flex items-center justify-between rounded-xl border border-slate-200/80 bg-white/90 p-3.5 shadow-sm backdrop-blur dark:border-zinc-800 dark:bg-zinc-900/80">
-                                <div className="flex items-center gap-3">
-                                    <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${tx.type === "EARN" ? "bg-emerald-500/15 text-emerald-600" : "bg-blue-500/15 text-blue-600"}`}>
-                                        <span className="material-symbols-outlined text-[20px]">
-                                            {tx.type === "EARN" ? "recycling" : "water_drop"}
-                                        </span>
-                                    </div>
-                                    <div>
-                                        <p className="text-sm font-medium text-slate-900 dark:text-white">
-                                            {tx.type === "EARN" ? `Recycled ${tx.count || 1} ${tx.materialType || "items"}` : `Water refill (${tx.amount * 100}ml)`}
-                                        </p>
-                                        <p className="text-xs text-slate-500">{formatTime(tx.createdAt)}</p>
+                        <div className="divide-y divide-slate-100">
+                            {Array.from({ length: 3 }).map((_, i) => (
+                                <div key={i} className="flex items-center gap-3 px-4 py-3.5">
+                                    <div className="shimmer h-10 w-10 rounded-xl" />
+                                    <div className="flex-1 space-y-2">
+                                        <div className="shimmer h-3 w-3/4 rounded" />
+                                        <div className="shimmer h-2.5 w-1/2 rounded" />
                                     </div>
                                 </div>
-                                <p className={`text-sm font-semibold ${tx.type === "EARN" ? "text-emerald-600" : "text-rose-500"}`}>
-                                    {tx.type === "EARN" ? "+" : "-"}{tx.amount} pts
-                                </p>
-                            </article>
-                        ))
+                            ))}
+                        </div>
+                    ) : data.recentTransactions.length > 0 ? (
+                        <div className="divide-y divide-slate-100">
+                            {data.recentTransactions.map((tx) => (
+                                <div key={tx.id} className="flex items-center justify-between px-4 py-3.5 transition-colors active:bg-slate-50">
+                                    <div className="flex items-center gap-3">
+                                        <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${tx.type === "EARN" ? "bg-emerald-50 text-emerald-600" : "bg-blue-50 text-blue-600"}`}>
+                                            <span className="material-symbols-outlined text-[20px]">
+                                                {tx.type === "EARN" ? "recycling" : "water_drop"}
+                                            </span>
+                                        </div>
+                                        <div>
+                                            <p className="text-sm font-semibold text-slate-800">
+                                                {tx.type === "EARN"
+                                                    ? `Recycled ${tx.count || 1} ${tx.materialType || "item(s)"}`
+                                                    : `Water refill – ${tx.amount * 100}ml`}
+                                            </p>
+                                            <p className="mt-0.5 text-[11px] text-slate-400">{formatTime(tx.createdAt)}</p>
+                                        </div>
+                                    </div>
+                                    <span className={`text-sm font-black ${tx.type === "EARN" ? "text-emerald-600" : "text-rose-500"}`}>
+                                        {tx.type === "EARN" ? "+" : "-"}{tx.amount}
+                                        <span className="ml-0.5 text-[10px] font-semibold">pts</span>
+                                    </span>
+                                </div>
+                            ))}
+                        </div>
                     ) : (
-                        <div className="rounded-xl border border-dashed border-slate-300 bg-white/80 px-4 py-6 text-center text-sm text-slate-500 dark:border-zinc-700 dark:bg-zinc-900/80">
-                            No transactions yet. Start recycling to earn points.
+                        <div className="px-4 py-8 text-center">
+                            <span className="material-symbols-outlined text-4xl text-slate-300">inbox</span>
+                            <p className="mt-2 text-sm text-slate-400">No transactions yet. Start recycling!</p>
                         </div>
                     )}
                 </div>

@@ -56,70 +56,91 @@ export default function HistoryPage() {
     }
 
     return (
-        <div className="flex-1 overflow-y-auto bg-transparent pb-8">
-            <header className="sticky top-0 z-10 border-b border-slate-200/70 bg-white/92 px-5 py-4 backdrop-blur-md dark:border-zinc-800 dark:bg-zinc-900/92">
-                <h1 className="text-xl font-semibold text-slate-900 dark:text-white">Transaction History</h1>
-                <p className="text-sm text-slate-500">Track recycle and redeem activity</p>
-            </header>
+        <div className="flex-1 overflow-y-auto pb-32">
+            {/* Page Header */}
+            <div className="px-4 pb-4 pt-[calc(var(--safe-top)+56px)]">
+                <h1 className="text-2xl font-black text-slate-900">History</h1>
+                <p className="mt-0.5 text-sm text-slate-400">Your recycling &amp; redeem activity</p>
+            </div>
 
-            <main className="space-y-5 px-4 py-5">
-                <section className="rounded-3xl bg-gradient-to-br from-primary to-emerald-700 p-5 text-white shadow-[0_20px_40px_rgba(47,127,51,0.35)]">
-                    <p className="text-xs uppercase tracking-[0.14em] text-emerald-100">Current Balance</p>
-                    <p className="mt-2 text-4xl font-bold leading-none">{balance} <span className="text-lg font-medium text-emerald-100">pts</span></p>
-                    <div className="mt-5 grid grid-cols-2 gap-4 border-t border-white/20 pt-4">
-                        <div>
-                            <p className="text-xs text-emerald-100">Recycled</p>
-                            <p className="mt-1 text-lg font-semibold">{totalRecycled} items</p>
-                        </div>
-                        <div>
-                            <p className="text-xs text-emerald-100">Water Used</p>
-                            <p className="mt-1 text-lg font-semibold">{totalRedeemedMl}ml</p>
-                        </div>
+            {/* Stats Hero */}
+            <div className="mx-4 mb-5 overflow-hidden rounded-[24px] bg-gradient-to-br from-emerald-500 to-teal-700 p-5 text-white shadow-[0_12px_32px_rgba(5,150,105,0.35)]">
+                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-100/80">Current Balance</p>
+                <div className="mt-1 flex items-baseline gap-1.5">
+                    <span className="text-4xl font-black tracking-tight">{balance}</span>
+                    <span className="text-sm font-black text-emerald-200">pts</span>
+                </div>
+                <div className="mt-4 grid grid-cols-2 gap-3 border-t border-white/15 pt-4">
+                    <div>
+                        <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-200">Recycled</p>
+                        <p className="mt-1 text-lg font-black">{totalRecycled} items</p>
                     </div>
-                </section>
+                    <div>
+                        <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-200">Water Used</p>
+                        <p className="mt-1 text-lg font-black">{totalRedeemedMl} ml</p>
+                    </div>
+                </div>
+            </div>
 
+            {/* Transactions */}
+            <div className="px-4 space-y-5">
                 {loading ? (
-                    <div className="space-y-2.5">
+                    <div className="app-card p-0 overflow-hidden divide-y divide-slate-100">
                         {Array.from({ length: 4 }).map((_, i) => (
-                            <div key={i} className="h-16 animate-pulse rounded-xl bg-slate-200/60 dark:bg-zinc-800" />
+                            <div key={i} className="flex items-center gap-3 px-4 py-3.5">
+                                <div className="shimmer h-10 w-10 rounded-xl" />
+                                <div className="flex-1 space-y-2">
+                                    <div className="shimmer h-3 w-3/4 rounded" />
+                                    <div className="shimmer h-2.5 w-1/2 rounded" />
+                                </div>
+                            </div>
                         ))}
                     </div>
                 ) : Object.keys(groupedTransactions).length > 0 ? (
                     Object.entries(groupedTransactions).map(([dateLabel, txs]) => (
-                        <section key={dateLabel} className="space-y-2.5">
-                            <h2 className="px-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">{dateLabel}</h2>
-                            {txs.map((tx) => (
-                                <article key={tx.id} className="flex items-center justify-between rounded-xl border border-slate-200/80 bg-white/90 p-3.5 shadow-sm backdrop-blur dark:border-zinc-800 dark:bg-zinc-900/85">
-                                    <div className="flex items-center gap-3">
-                                        <div className={`flex h-11 w-11 items-center justify-center rounded-xl ${tx.type === "EARN" ? "bg-emerald-500/15 text-emerald-600" : "bg-blue-500/15 text-blue-600"}`}>
-                                            <span className="material-symbols-outlined">{tx.type === "EARN" ? "recycling" : "local_drink"}</span>
+                        <section key={dateLabel}>
+                            <h2 className="app-section-title">{dateLabel}</h2>
+                            <div className="app-card p-0 overflow-hidden divide-y divide-slate-100">
+                                {txs.map((tx) => (
+                                    <div key={tx.id} className="flex items-center justify-between px-4 py-3.5 active:bg-slate-50 transition-colors">
+                                        <div className="flex items-center gap-3">
+                                            <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${tx.type === "EARN" ? "bg-emerald-50 text-emerald-600" : "bg-blue-50 text-blue-600"}`}>
+                                                <span className="material-symbols-outlined text-[20px]">
+                                                    {tx.type === "EARN" ? "recycling" : "local_drink"}
+                                                </span>
+                                            </div>
+                                            <div>
+                                                <p className="text-sm font-semibold text-slate-800">
+                                                    {tx.type === "EARN" ? `${tx.materialType || "Deposit"} recycle` : "Water withdrawal"}
+                                                </p>
+                                                <p className="mt-0.5 text-[11px] text-slate-400">
+                                                    {formatTime(tx.createdAt)}
+                                                    {tx.count ? ` · ${tx.count} items` : ""}
+                                                </p>
+                                            </div>
                                         </div>
-                                        <div>
-                                            <p className="text-sm font-medium text-slate-900 dark:text-white">
-                                                {tx.type === "EARN" ? `${tx.materialType || "Deposit"} recycle` : "Water withdrawal"}
+                                        <div className="text-right">
+                                            <p className={`text-sm font-black ${tx.type === "EARN" ? "text-emerald-600" : "text-rose-500"}`}>
+                                                {tx.type === "EARN" ? "+" : "-"}{tx.amount}
+                                                <span className="ml-0.5 text-[10px] font-semibold">pts</span>
                                             </p>
-                                            <p className="text-xs text-slate-500">
-                                                {formatTime(tx.createdAt)}
-                                                {tx.count ? ` • ${tx.count} items` : ""}
-                                            </p>
+                                            {tx.type === "REDEEM" && (
+                                                <p className="text-[11px] text-slate-400">{tx.amount * 100}ml</p>
+                                            )}
                                         </div>
                                     </div>
-                                    <div className="text-right">
-                                        <p className={`text-sm font-semibold ${tx.type === "EARN" ? "text-emerald-600" : "text-rose-500"}`}>
-                                            {tx.type === "EARN" ? "+" : "-"}{tx.amount} pts
-                                        </p>
-                                        {tx.type === "REDEEM" && <p className="text-[11px] text-slate-500">{tx.amount * 100}ml</p>}
-                                    </div>
-                                </article>
-                            ))}
+                                ))}
+                            </div>
                         </section>
                     ))
                 ) : (
-                    <div className="rounded-xl border border-dashed border-slate-300 bg-white/80 px-4 py-8 text-center text-sm text-slate-500 dark:border-zinc-700 dark:bg-zinc-900/80">
-                        No transactions yet. Start recycling to see activity here.
+                    <div className="app-card flex flex-col items-center py-10 text-center">
+                        <span className="material-symbols-outlined text-5xl text-slate-200">inbox</span>
+                        <p className="mt-3 text-sm font-semibold text-slate-400">No transactions yet</p>
+                        <p className="mt-1 text-xs text-slate-300">Start recycling to see activity here.</p>
                     </div>
                 )}
-            </main>
+            </div>
         </div>
     );
 }

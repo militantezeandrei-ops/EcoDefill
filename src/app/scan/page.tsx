@@ -42,10 +42,10 @@ export default function ScanPage() {
         isInitializing.current = true;
 
         await stopScanner();
-        
+
         try {
             const { Html5Qrcode, Html5QrcodeSupportedFormats } = await import("html5-qrcode");
-            
+
             const element = document.getElementById("qr-reader");
             if (!element) {
                 isInitializing.current = false;
@@ -91,7 +91,7 @@ export default function ScanPage() {
                         try {
                             const payload = JSON.parse(decodedText);
                             if (payload.token) tokenToVerify = payload.token;
-                        } catch (e) {}
+                        } catch (e) { }
 
                         const data = await apiClient<{
                             userName?: string;
@@ -124,7 +124,7 @@ export default function ScanPage() {
                         setVerifying(false);
                     }
                 },
-                () => {} // silent failure
+                () => { } // silent failure
             );
             setCameraReady(true);
         } catch (err) {

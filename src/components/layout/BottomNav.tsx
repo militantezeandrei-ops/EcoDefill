@@ -15,38 +15,37 @@ export function BottomNav() {
     ];
 
     return (
-        <div className="fixed inset-x-0 bottom-0 z-50 px-4 pb-[calc(var(--safe-bottom)+8px)]">
-            <nav className="mx-auto w-full rounded-full border border-slate-200/70 bg-white/88 px-1.5 py-0.5 shadow-[0_12px_30px_rgba(15,23,42,0.2)] backdrop-blur-xl dark:border-zinc-700/70 dark:bg-zinc-900/88">
-                <div className="flex items-center justify-between gap-1">
-                {navItems.map((item) => {
-                    const isActive = pathname === item.path;
-                    const Icon = item.icon;
-                    return (
-                        <Link
-                            key={item.path}
-                            href={item.path}
-                            className={`group relative flex flex-col items-center justify-center outline-none flex-1 rounded-full border px-2 py-1 transition-all active:scale-95 ${isActive ? "border-[#7dcfff] bg-[#8FD8FF]/35 shadow-[0_6px_16px_rgba(143,216,255,0.3)]" : "border-transparent bg-white/40 hover:border-slate-300 hover:bg-white/75 dark:bg-zinc-800/30 dark:hover:border-zinc-600 dark:hover:bg-zinc-800/70"}`}
-                            aria-label={item.label}
-                        >
-                            <div
-                                className={`flex size-7 items-center justify-center rounded-full transition-all duration-300 ${isActive
-                                    ? 'text-[#36B5F0]'
-                                    : 'text-slate-500 hover:text-slate-700 dark:text-zinc-400 dark:hover:text-zinc-200'
-                                    }`}
+        <div className="fixed inset-x-0 bottom-2 z-50 px-4 pb-[var(--safe-bottom)]">
+            <nav className="mx-auto w-full max-w-sm overflow-hidden rounded-full border border-white/60 bg-white/80 shadow-[0_12px_32px_rgba(0,0,0,0.12)] backdrop-blur-xl dark:border-zinc-700/60 dark:bg-zinc-900/80">
+                <div className="flex items-center justify-around h-16 px-1">
+                    {navItems.map((item) => {
+                        const isActive = pathname === item.path;
+                        const Icon = item.icon;
+                        return (
+                            <Link
+                                key={item.path}
+                                href={item.path}
+                                className={`group relative flex flex-col items-center justify-center transition-all duration-300 active:scale-95 ${isActive ? "px-5" : "px-3"}`}
+                                aria-label={item.label}
                             >
-                                <Icon
-                                    size={18}
-                                    strokeWidth={2.5}
-                                    className="transition-all duration-300"
-                                />
-                            </div>
-                            <span className={`mt-0.5 text-[9px] font-semibold leading-none transition-all duration-300 ${isActive ? 'text-[#36B5F0]' : 'text-slate-500 dark:text-zinc-500'
-                                }`}>
-                                {item.label}
-                            </span>
-                        </Link>
-                    );
-                })}
+                                {isActive && (
+                                    <div className="absolute inset-0 rounded-full bg-emerald-600/10 transition-all duration-300" />
+                                )}
+                                <div className="relative z-10 flex flex-col items-center gap-0.5 py-1.5 px-1">
+                                    <Icon
+                                        size={18}
+                                        strokeWidth={isActive ? 2.5 : 2}
+                                        className={`transition-all ${isActive ? "text-emerald-600" : "text-slate-400 group-hover:text-slate-600"}`}
+                                    />
+                                    <span
+                                        className={`text-[9px] font-black uppercase tracking-widest transition-all ${isActive ? "text-emerald-600" : "text-slate-400 opacity-80"}`}
+                                    >
+                                        {item.label}
+                                    </span>
+                                </div>
+                            </Link>
+                        );
+                    })}
                 </div>
             </nav>
         </div>
