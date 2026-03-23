@@ -2,7 +2,7 @@ import { Suspense } from "react";
 import { Recycle } from "lucide-react";
 import DashboardContent from "./DashboardContent";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 15;
 
 // Skeleton that renders INSTANTLY while DB queries run
 function DashboardSkeleton() {

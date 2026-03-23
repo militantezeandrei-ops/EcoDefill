@@ -86,36 +86,40 @@ export default async function DashboardContent() {
             value: totalUsers.toLocaleString(),
             sub: "Registered students",
             icon: Users,
-            gradient: "from-blue-500/10 to-indigo-500/5",
-            iconBg: "bg-blue-500/10",
-            iconColor: "text-blue-500",
+            border: "border-l-[#111827]",
+            valueColor: "text-[#111827]",
+            iconBg: "bg-gray-100",
+            iconColor: "text-gray-600",
         },
         {
             title: "Today's Points",
             value: todaysPoints.toLocaleString(),
             sub: `Avg: ${totalUsers > 0 ? (todaysPoints / totalUsers).toFixed(1) : 0} / user`,
             icon: Target,
-            gradient: "from-emerald-500/10 to-green-500/5",
-            iconBg: "bg-emerald-500/10",
-            iconColor: "text-emerald-500",
+            border: "border-l-[#F4C430]", // Gold for points
+            valueColor: "text-[#F4C430]",
+            iconBg: "bg-yellow-50",
+            iconColor: "text-yellow-600",
         },
         {
             title: "Water Dispensed",
             value: `${waterDispensedMl.toLocaleString()} ml`,
             sub: `${totalRedeemed.toLocaleString()} pts redeemed`,
             icon: Droplet,
-            gradient: "from-cyan-500/10 to-sky-500/5",
-            iconBg: "bg-cyan-500/10",
-            iconColor: "text-cyan-500",
+            border: "border-l-[#3B82F6]", // Blue for water
+            valueColor: "text-[#3B82F6]",
+            iconBg: "bg-blue-50",
+            iconColor: "text-blue-600",
         },
         {
             title: "Machine Health",
             value: `${machineHealth}%`,
             sub: `${healthyMachines}/${allMachines} online`,
             icon: Activity,
-            gradient: "from-rose-500/10 to-pink-500/5",
-            iconBg: "bg-rose-500/10",
-            iconColor: "text-rose-500",
+            border: machineHealth > 80 ? "border-l-[#16A34A]" : "border-l-[#DC2626]",
+            valueColor: machineHealth > 80 ? "text-[#16A34A]" : "text-[#DC2626]",
+            iconBg: machineHealth > 80 ? "bg-green-50" : "bg-red-50",
+            iconColor: machineHealth > 80 ? "text-green-600" : "text-red-600",
         },
     ];
 
@@ -126,71 +130,67 @@ export default async function DashboardContent() {
             value: bottles.toLocaleString(),
             sub: "collected",
             icon: "🍾",
-            gradient: "from-green-500/15 to-emerald-500/5",
-            border: "border-green-200",
-            valueColor: "text-green-700",
-            iconBg: "bg-green-100",
+            border: "border-l-[#16A34A]", // Green
+            valueColor: "text-[#16A34A]",
+            iconBg: "bg-green-50",
         },
         {
             title: "Plastic Cups",
             value: cups.toLocaleString(),
             sub: "collected",
             icon: "🥤",
-            gradient: "from-amber-500/15 to-orange-500/5",
-            border: "border-amber-200",
-            valueColor: "text-amber-700",
-            iconBg: "bg-amber-100",
+            border: "border-l-[#F59E0B]", // Orange
+            valueColor: "text-[#F59E0B]",
+            iconBg: "bg-orange-50",
         },
         {
             title: "Module Paper",
             value: paper.toLocaleString(),
             sub: "collected",
             icon: "📄",
-            gradient: "from-blue-500/15 to-sky-500/5",
-            border: "border-blue-200",
-            valueColor: "text-blue-700",
-            iconBg: "bg-blue-100",
+            border: "border-l-[#3B82F6]", // Blue
+            valueColor: "text-[#3B82F6]",
+            iconBg: "bg-blue-50",
         },
     ];
 
     const medalStyles = [
-        "bg-gradient-to-br from-yellow-400 to-amber-500 text-white shadow-yellow-400/30",
-        "bg-gradient-to-br from-gray-300 to-gray-400 text-white shadow-gray-400/30",
-        "bg-gradient-to-br from-amber-600 to-amber-700 text-white shadow-amber-600/30",
-        "bg-gray-100 text-gray-500",
-        "bg-gray-100 text-gray-500",
+        "bg-[#F4C430] text-amber-900 border border-yellow-500", // Gold
+        "bg-gray-300 text-gray-800 border border-gray-400", // Silver
+        "bg-amber-600 text-amber-100 border border-amber-700", // Bronze
+        "bg-gray-100 text-gray-500 border border-gray-200",
+        "bg-gray-100 text-gray-500 border border-gray-200",
     ];
 
     const totalItems = bottles + cups + paper;
 
     return (
-        <div className="space-y-8">
+        <div className="space-y-6">
             {/* Header */}
             <div>
-                <h2 className="text-2xl font-bold text-gray-900">Dashboard Overview</h2>
-                <p className="mt-1 text-sm text-gray-400">
-                    Monitor your recycling system performance at a glance.
+                <h2 className="text-xl font-bold text-[#111827]">Dashboard Overview</h2>
+                <p className="text-[11px] text-[#6B7280]">
+                    Monitor recycling performance at a glance.
                 </p>
             </div>
 
-            {/* Stats Grid — 4 columns */}
-            <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+            {/* Stats Grid — 4 columns (More Compact) */}
+            <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
                 {statCards.map((card, i) => {
                     const Icon = card.icon;
                     return (
                         <div
                             key={i}
-                            className={`group relative overflow-hidden rounded-2xl border border-gray-100 bg-gradient-to-br ${card.gradient} p-5 transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5`}
+                            className={`group relative overflow-hidden rounded-xl border border-gray-200 border-l-4 ${card.border} bg-white p-4 shadow-sm transition-all duration-300 hover:shadow-md`}
                         >
-                            <div className="absolute -right-6 -top-6 h-24 w-24 rounded-full bg-gray-200/10 transition-transform duration-500 group-hover:scale-125" />
-                            <div className="relative flex items-start justify-between">
+                            <div className="relative flex items-center justify-between">
                                 <div>
-                                    <p className="text-[11px] font-bold uppercase tracking-wider text-gray-400">{card.title}</p>
-                                    <p className="mt-2 text-2xl font-black text-gray-900">{card.value}</p>
-                                    <p className="mt-1 text-[11px] font-medium text-gray-400">{card.sub}</p>
+                                    <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400">{card.title}</p>
+                                    <p className={`mt-1 text-xl font-black ${card.valueColor}`}>{card.value}</p>
+                                    <p className="text-[10px] font-medium text-gray-400">{card.sub}</p>
                                 </div>
-                                <div className={`rounded-xl p-2.5 ${card.iconBg} transition-transform duration-300 group-hover:scale-110`}>
-                                    <Icon className={`h-5 w-5 ${card.iconColor}`} />
+                                <div className={`rounded-xl p-2 ${card.iconBg}`}>
+                                    <Icon className={`h-4 w-4 ${card.iconColor}`} />
                                 </div>
                             </div>
                         </div>
@@ -198,33 +198,28 @@ export default async function DashboardContent() {
                 })}
             </div>
 
-            {/* Waste Materials — Separate Section */}
-            <div>
-                <div className="flex items-center justify-between mb-4">
+            {/* Waste Materials — Horizontal & Integrated */}
+            <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+                <div className="flex items-center justify-between mb-4 border-b border-gray-50 pb-4">
                     <div className="flex items-center gap-2.5">
-                        <div className="rounded-lg bg-green-500/10 p-2">
-                            <Recycle className="h-4 w-4 text-green-600" />
+                        <div className="rounded-lg bg-[#7A1E1E]/10 p-1.5">
+                            <Recycle className="h-3.5 w-3.5 text-[#7A1E1E]" />
                         </div>
                         <div>
-                            <h3 className="text-base font-bold text-gray-900">Waste Materials Collected</h3>
-                            <p className="text-[11px] text-gray-400">{totalItems.toLocaleString()} total items recycled</p>
+                            <h3 className="text-sm font-bold text-[#111827]">Materials Collected</h3>
+                            <p className="text-[10px] text-[#6B7280]">{totalItems.toLocaleString()} total items recycled</p>
                         </div>
                     </div>
                 </div>
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                <div className="grid grid-cols-3 gap-4">
                     {wasteCards.map((card, i) => (
-                        <div
-                            key={i}
-                            className={`group relative overflow-hidden rounded-2xl border ${card.border} bg-gradient-to-br ${card.gradient} p-5 transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5`}
-                        >
-                            <div className="absolute -right-4 -top-4 h-20 w-20 rounded-full bg-white/20 transition-transform duration-500 group-hover:scale-150" />
-                            <div className="relative">
-                                <div className={`inline-flex items-center justify-center rounded-xl ${card.iconBg} p-3 text-2xl mb-3 transition-transform duration-300 group-hover:scale-110`}>
-                                    {card.icon}
-                                </div>
-                                <p className={`text-3xl font-black ${card.valueColor}`}>{card.value}</p>
-                                <p className="mt-1 text-xs font-semibold text-gray-500 uppercase tracking-wider">{card.title}</p>
-                                <p className="text-[11px] font-medium text-gray-400 mt-0.5">{card.sub}</p>
+                        <div key={i} className="flex items-center gap-3">
+                            <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${card.iconBg} text-xl shadow-sm border border-gray-100`}>
+                                {card.icon}
+                            </div>
+                            <div className="min-w-0">
+                                <p className={`text-lg font-black leading-none ${card.valueColor}`}>{card.value}</p>
+                                <p className="mt-1 text-[10px] font-bold text-gray-500 uppercase truncate tracking-tighter">{card.title}</p>
                             </div>
                         </div>
                     ))}
@@ -234,15 +229,15 @@ export default async function DashboardContent() {
             {/* Chart + Leaderboard Row */}
             <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
                 {/* Chart */}
-                <div className="col-span-2 overflow-hidden rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
+                <div className="col-span-2 overflow-hidden rounded-xl border border-gray-200 border-l-4 border-l-[#7A1E1E] bg-white p-6 shadow-sm">
                     <div className="mb-1 flex items-center justify-between">
                         <div className="flex items-center gap-3">
-                            <div className="rounded-lg bg-emerald-500/10 p-2">
-                                <TrendingUp className="h-4 w-4 text-emerald-500" />
+                            <div className="rounded-lg bg-[#7A1E1E]/10 p-2">
+                                <TrendingUp className="h-4 w-4 text-[#7A1E1E]" />
                             </div>
-                            <h3 className="text-base font-bold text-gray-900">Daily Point Generation</h3>
+                            <h3 className="text-base font-bold text-[#111827]">Daily Point Generation</h3>
                         </div>
-                        <span className="rounded-full bg-emerald-50 px-3 py-1 text-[11px] font-semibold text-emerald-600 border border-emerald-100">
+                        <span className="rounded-full bg-gray-100 px-3 py-1 text-[11px] font-semibold text-gray-600 border border-gray-200">
                             Last 7 days
                         </span>
                     </div>
@@ -250,27 +245,27 @@ export default async function DashboardContent() {
                 </div>
 
                 {/* Leaderboard */}
-                <div className="overflow-hidden rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
-                    <h3 className="text-base font-bold text-gray-900">Top Courses</h3>
-                    <p className="mb-5 text-[11px] text-gray-400">Ranked by recycling points</p>
+                <div className="overflow-hidden rounded-xl border border-gray-200 border-l-4 border-l-[#F4C430] bg-white p-6 shadow-sm">
+                    <h3 className="text-base font-bold text-[#111827]">Top Courses</h3>
+                    <p className="mb-5 text-[11px] text-[#6B7280]">Ranked by recycling points</p>
                     <div className="space-y-3">
                         {leaderboard.map((course, idx: number) => (
-                            <div key={course.course} className="group flex items-center gap-3 rounded-xl bg-gray-50/80 px-4 py-3 transition-all hover:bg-gray-100/80 hover:shadow-sm">
-                                <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-xs font-black shadow-sm ${medalStyles[idx] || "bg-gray-100 text-gray-500"}`}>
+                            <div key={course.course} className="flex items-center gap-3 rounded-lg bg-gray-50 px-4 py-3 border border-gray-100">
+                                <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-xs font-black shadow-sm ${medalStyles[idx] || "bg-gray-100 text-gray-500 border-gray-200"}`}>
                                     {idx + 1}
                                 </div>
                                 <div className="flex-1 min-w-0">
-                                    <p className="text-sm font-bold text-gray-800 truncate">{course.course}</p>
-                                    <div className="mt-1.5 h-1.5 w-full rounded-full bg-gray-200/80 overflow-hidden">
+                                    <p className="text-sm font-bold text-[#111827] truncate">{course.course}</p>
+                                    <div className="mt-1.5 h-1.5 w-full rounded-full bg-gray-200 overflow-hidden">
                                         <div
-                                            className="h-full rounded-full bg-gradient-to-r from-emerald-400 to-emerald-500 transition-all duration-500"
+                                            className="h-full rounded-full bg-[#7A1E1E] transition-all duration-500"
                                             style={{ width: `${(course.points / maxPoints) * 100}%` }}
                                         />
                                     </div>
                                 </div>
                                 <div className="text-right shrink-0">
-                                    <p className="text-sm font-black text-emerald-500">{course.points}</p>
-                                    <p className="text-[10px] font-medium text-gray-400">{course.items} items</p>
+                                    <p className="text-sm font-black text-[#7A1E1E]">{course.points}</p>
+                                    <p className="text-[10px] font-medium text-[#6B7280]">{course.items} items</p>
                                 </div>
                             </div>
                         ))}

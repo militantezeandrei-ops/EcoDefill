@@ -155,7 +155,7 @@ export default function QRScanner() {
 
     return (
         <div className="flex-1 overflow-y-auto w-full h-full pb-8 flex flex-col items-center">
-            <AdminTopBar title="QR Scanner" />
+            <AdminTopBar />
 
             <div className="px-4 py-6 w-full flex flex-col items-center max-w-lg">
                 {/* Simulation Banner */}

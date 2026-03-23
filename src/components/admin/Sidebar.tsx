@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import {
     LayoutDashboard,
@@ -10,7 +11,6 @@ import {
     BarChart3,
     Settings,
     LogOut,
-    Leaf,
 } from "lucide-react";
 
 const navGroups = [
@@ -48,16 +48,21 @@ export default function Sidebar() {
     };
 
     return (
-        <aside className="flex h-screen w-[272px] shrink-0 flex-col bg-gradient-to-b from-[#0f1117] via-[#13151d] to-[#1a1d25] text-white">
+        <aside className="flex h-screen w-[272px] shrink-0 flex-col bg-zinc-950 text-white shadow-2xl z-40">
             {/* Brand */}
-            <div className="flex items-center gap-4 px-7 pt-8 pb-8">
-                <div className="relative flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-400 to-emerald-600 shadow-lg shadow-emerald-500/20">
-                    <Leaf className="h-5 w-5 text-white" />
-                    <div className="absolute -inset-1 rounded-2xl bg-emerald-500/20 blur-md" />
+            <div className="flex items-center gap-3 px-6 pt-8 pb-8">
+                <div className="relative flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-white p-1.5 shadow-md">
+                    <Image 
+                        src="/images/pdm-logo.png" 
+                        alt="PDM Logo" 
+                        width={40} 
+                        height={40} 
+                        className="object-contain"
+                    />
                 </div>
                 <div>
-                    <h1 className="text-lg font-bold tracking-tight text-white">EcoDefill</h1>
-                    <p className="text-[11px] font-medium text-gray-500">Admin Console</p>
+                    <h1 className="text-lg font-bold tracking-tight text-white leading-tight">EcoDefill</h1>
+                    <p className="text-[11px] font-semibold text-zinc-400 uppercase tracking-widest">Admin Console</p>
                 </div>
             </div>
 
@@ -65,7 +70,7 @@ export default function Sidebar() {
             <nav className="flex-1 space-y-6 px-4 mt-1 overflow-y-auto">
                 {navGroups.map((group) => (
                     <div key={group.label}>
-                        <p className="mb-2 px-3 text-[10px] font-bold uppercase tracking-[0.15em] text-gray-600">
+                        <p className="mb-2 px-3 text-[10px] font-bold uppercase tracking-[0.15em] text-zinc-500">
                             {group.label}
                         </p>
                         <div className="space-y-1">
@@ -77,17 +82,17 @@ export default function Sidebar() {
                                         key={item.href}
                                         href={item.href}
                                         prefetch={true}
-                                        className={`group relative flex items-center gap-3 rounded-xl px-4 py-2.5 text-[13px] font-medium transition-all duration-200 ${
+                                        className={`group relative flex items-center gap-3 rounded-xl px-4 py-2.5 text-[13px] font-semibold transition-all duration-200 ${
                                             isActive
-                                                ? "bg-emerald-500/12 text-emerald-400 shadow-sm shadow-emerald-500/5"
-                                                : "text-gray-400 hover:bg-white/[0.04] hover:text-gray-200"
+                                                ? "bg-zinc-900 text-[#F4C430]"
+                                                : "text-zinc-400 hover:bg-zinc-900/50 hover:text-zinc-200"
                                         }`}
                                     >
                                         {/* Active indicator bar */}
                                         {isActive && (
-                                            <div className="absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-r-full bg-emerald-400 shadow-sm shadow-emerald-400/50" />
+                                            <div className="absolute left-0 top-1/2 h-5 w-[4px] -translate-y-1/2 rounded-r-full bg-[#F4C430] shadow-[0_0_10px_rgba(244,196,48,0.5)]" />
                                         )}
-                                        <Icon className={`h-[18px] w-[18px] transition-colors ${isActive ? "text-emerald-400" : "text-gray-500 group-hover:text-gray-300"}`} />
+                                        <Icon className={`h-[18px] w-[18px] transition-colors ${isActive ? "text-[#F4C430]" : "text-zinc-500 group-hover:text-zinc-300"}`} />
                                         {item.label}
                                     </Link>
                                 );
@@ -98,22 +103,22 @@ export default function Sidebar() {
             </nav>
 
             {/* Profile & Logout */}
-            <div className="border-t border-white/[0.06] px-5 py-5">
+            <div className="border-t border-zinc-900 px-5 py-5 bg-zinc-950">
                 <div className="mb-3 flex items-center gap-3 px-1">
                     <div className="relative">
-                        <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-emerald-400/20 to-emerald-600/20 text-sm font-bold text-emerald-400 ring-2 ring-emerald-500/20">
+                        <div className="flex h-9 w-9 items-center justify-center rounded-full bg-zinc-900 text-sm font-bold text-white ring-2 ring-zinc-800">
                             A
                         </div>
-                        <div className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-[#13151d] bg-emerald-400" />
+                        <div className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-zinc-950 bg-[#16A34A]" />
                     </div>
                     <div>
-                        <p className="text-sm font-semibold text-gray-200">Admin</p>
-                        <p className="text-[11px] text-gray-500">System Manager</p>
+                        <p className="text-sm font-bold text-white">System Admin</p>
+                        <p className="text-[11px] font-medium text-zinc-500">Marilao Command</p>
                     </div>
                 </div>
                 <button
                     onClick={handleLogout}
-                    className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] font-medium text-red-400/80 transition-all hover:bg-red-500/8 hover:text-red-400"
+                    className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] font-bold text-red-400/80 transition-all hover:bg-red-500/10 hover:text-red-400"
                 >
                     <LogOut className="h-4 w-4" />
                     Logout

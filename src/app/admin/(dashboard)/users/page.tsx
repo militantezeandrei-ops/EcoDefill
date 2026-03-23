@@ -2,7 +2,7 @@ import prisma from "@/lib/prisma";
 import { Search } from "lucide-react";
 import UsersAccordion from "@/components/admin/UsersAccordion";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 15;
 
 export default async function UsersPage() {
     const users = await prisma.user.findMany({
@@ -16,14 +16,25 @@ export default async function UsersPage() {
         },
     });
 
-    // Grouping users by Course -> Year Level -> Section
+    // Defining the official course list to ENSURE they appear even if empty
+    const OFFICIAL_COURSES = ["BSIT", "BSCS", "BSHM", "BSTM", "BECED", "BTLED", "BSOAD"];
     const coursesMap = new Map<string, any>();
+
+    // Pre-populate with empty state objects
+    OFFICIAL_COURSES.forEach(courseName => {
+        coursesMap.set(courseName, {
+            course: courseName,
+            totalPoints: 0,
+            totalItems: 0,
+            yearsMap: new Map<string, any>()
+        });
+    });
 
     users.forEach(u => {
         const courseName = u.course || "Others";
         const yearLevelName = u.yearLevel ? `${u.yearLevel} Year` : "Unknown Year";
         const sectionName = u.section || "N/A";
-
+        
         // 1. Get or Create Course Node
         if (!coursesMap.has(courseName)) {
             coursesMap.set(courseName, {
@@ -33,7 +44,7 @@ export default async function UsersPage() {
                 yearsMap: new Map<string, any>()
             });
         }
-        const courseNode = coursesMap.get(courseName);
+        const courseNode = coursesMap.get(courseName)!;
 
         // 2. Get or Create Year Node
         if (!courseNode.yearsMap.has(yearLevelName)) {
@@ -97,13 +108,22 @@ export default async function UsersPage() {
         course: course.course,
         totalPoints: course.totalPoints,
         totalItems: course.totalItems,
-        years: Array.from(course.yearsMap.values()).map((year: any) => ({
-            yearLevel: year.yearLevel,
-            sections: Array.from(year.sectionsMap.values()).map((sec: any) => ({
-                section: sec.section,
-                users: sec.users
+        years: Array.from(course.yearsMap.values())
+            .sort((a: any, b: any) => {
+                // Extract number from "1 Year", "2 Year" etc.
+                const numA = parseInt(a.yearLevel) || 0;
+                const numB = parseInt(b.yearLevel) || 0;
+                return numA - numB;
+            })
+            .map((year: any) => ({
+                yearLevel: year.yearLevel,
+                sections: Array.from(year.sectionsMap.values())
+                    .sort((a: any, b: any) => String(a.section).localeCompare(String(b.section)))
+                    .map((sec: any) => ({
+                        section: sec.section,
+                        users: sec.users
+                    }))
             }))
-        }))
     }));
 
     return (
