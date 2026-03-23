@@ -1,6 +1,31 @@
 import type { CapacitorConfig } from '@capacitor/cli';
+import fs from 'node:fs';
+import path from 'node:path';
 
-const serverUrl = process.env.CAP_SERVER_URL;
+const readCapServerUrl = (): string | undefined => {
+  if (process.env.CAP_SERVER_URL?.trim()) {
+    return process.env.CAP_SERVER_URL.trim();
+  }
+
+  try {
+    const envPath = path.resolve(__dirname, '.env');
+    const envContent = fs.readFileSync(envPath, 'utf8');
+    const line = envContent
+      .split(/\r?\n/)
+      .find((entry) => entry.trimStart().startsWith('CAP_SERVER_URL='));
+
+    if (!line) {
+      return undefined;
+    }
+
+    const value = line.split('=').slice(1).join('=').trim();
+    return value.replace(/^['\"]|['\"]$/g, '').trim() || undefined;
+  } catch {
+    return undefined;
+  }
+};
+
+const serverUrl = readCapServerUrl();
 
 const config: CapacitorConfig = {
   appId: 'com.ecodefill.app',
@@ -11,6 +36,7 @@ const config: CapacitorConfig = {
         server: {
           url: serverUrl,
           cleartext: serverUrl.startsWith('http://'),
+          errorPath: 'offline.html',
         },
       }
     : {}),

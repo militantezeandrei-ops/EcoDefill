@@ -19,6 +19,8 @@ interface FormErrors {
     form?: string;
 }
 
+const OFFLINE_LOGIN_MESSAGE = "No internet connection. Turn on Wi-Fi or mobile data, then try again.";
+
 export default function Login() {
     const { login } = useAuth();
     const [email, setEmail] = useState("");
@@ -58,8 +60,11 @@ export default function Login() {
             await login(data.token, data.user);
             await showToast({ text: "You have logged in successfully.", type: "success" });
         } catch (err: unknown) {
+            const rawMessage = err instanceof Error ? err.message : "Failed to log in";
             setErrors({
-                form: err instanceof Error ? err.message : "Failed to log in",
+                form: rawMessage === "No internet connection. Please reconnect and try again."
+                    ? OFFLINE_LOGIN_MESSAGE
+                    : rawMessage,
             });
         } finally {
             setLoading(false);
@@ -67,7 +72,7 @@ export default function Login() {
     };
 
     useEffect(() => {
-        document.body.style.backgroundImage = "linear-gradient(to bottom, rgba(0,0,0,0.7), rgba(0,0,0,0.5), rgba(0,0,0,0.8)), url('/images/pdm-building.jpg')";
+        document.body.style.backgroundImage = "linear-gradient(to bottom, rgba(0,0,0,0.4), rgba(0,0,0,0.2), rgba(0,0,0,0.5)), url('/images/pdm-building.jpg')";
         document.body.style.backgroundSize = "cover";
         document.body.style.backgroundPosition = "center";
         document.body.style.backgroundAttachment = "fixed";
@@ -84,7 +89,7 @@ export default function Login() {
 
     return (
         <div className="relative flex h-[100dvh] w-full items-center justify-center overflow-hidden bg-transparent font-display">
-            <div className="relative mx-4 w-full max-w-[420px] overflow-hidden rounded-3xl border border-white/10 bg-zinc-900/60 p-6 shadow-[0_8px_32px_rgba(0,0,0,0.5)] backdrop-blur-2xl sm:p-8">
+            <div className="relative mx-4 w-full max-w-[420px] overflow-hidden rounded-3xl border border-white/10 bg-zinc-900/40 p-6 shadow-[0_8px_32px_rgba(0,0,0,0.5)] backdrop-blur-md sm:p-8">
                 <div className="absolute left-0 top-0 h-1.5 w-full bg-gradient-to-r from-emerald-400 via-emerald-500 to-green-600" />
 
                 <div className="mb-6 mt-0 flex flex-col items-center text-center">

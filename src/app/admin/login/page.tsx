@@ -6,6 +6,8 @@ import Image from "next/image";
 import { apiClient } from "@/lib/api";
 import { showToast } from "@/lib/toast";
 
+const OFFLINE_LOGIN_MESSAGE = "No internet connection. Turn on Wi-Fi or mobile data, then try again.";
+
 export default function AdminLogin() {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
@@ -43,7 +45,12 @@ export default function AdminLogin() {
             await showToast({ text: "Login successful.", type: "success" });
             router.push("/admin/dashboard");
         } catch (err: unknown) {
-            setFormError(err instanceof Error ? err.message : "Something went wrong");
+            const rawMessage = err instanceof Error ? err.message : "Something went wrong";
+            setFormError(
+                rawMessage === "No internet connection. Please reconnect and try again."
+                    ? OFFLINE_LOGIN_MESSAGE
+                    : rawMessage
+            );
         } finally {
             setLoading(false);
         }

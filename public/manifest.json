@@ -1,0 +1,21 @@
+{
+  "name": "EcoDefill",
+  "short_name": "EcoDefill",
+  "description": "Sustainability meets convenience. Empty your bottles and earn points for fresh refills.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#101010",
+  "theme_color": "#10b981",
+  "icons": [
+    {
+      "src": "/images/pdm-logo.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/images/pdm-logo.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

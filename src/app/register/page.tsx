@@ -38,7 +38,7 @@ export default function Register() {
     const [loading, setLoading] = useState(false);
 
     useEffect(() => {
-        document.body.style.backgroundImage = `linear-gradient(to bottom, rgba(0,0,0,0.7), rgba(0,0,0,0.5), rgba(0,0,0,0.8)), url('/images/pdm-building.jpg')`;
+        document.body.style.backgroundImage = `linear-gradient(to bottom, rgba(0,0,0,0.4), rgba(0,0,0,0.2), rgba(0,0,0,0.5)), url('/images/pdm-building.jpg')`;
         document.body.style.backgroundSize = 'cover';
         document.body.style.backgroundPosition = 'center';
         document.body.style.backgroundAttachment = 'fixed';
@@ -100,7 +100,7 @@ export default function Register() {
 
     return (
         <div className="flex min-h-[100dvh] w-full items-center justify-center bg-transparent py-8 font-display overflow-y-auto">
-            <div className="relative w-full max-w-[480px] mx-4 rounded-3xl bg-zinc-900/60 backdrop-blur-2xl p-8 shadow-[0_8px_32px_rgba(0,0,0,0.5)] border border-white/10 overflow-hidden my-4">
+            <div className="relative w-full max-w-[480px] mx-4 rounded-3xl bg-zinc-900/40 backdrop-blur-md p-8 shadow-[0_8px_32px_rgba(0,0,0,0.5)] border border-white/10 overflow-hidden my-4">
                 {/* Gradient accent top border */}
                 <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-emerald-400 via-emerald-500 to-green-600"></div>
 

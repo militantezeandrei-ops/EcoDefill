@@ -90,24 +90,24 @@ export default function Dashboard() {
                 <div className="grid grid-cols-2 gap-3">
                     <button
                         onClick={() => router.push("/qr")}
-                        className="group rounded-2xl bg-emerald-600 p-4 text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-md active:scale-[0.98]"
+                        className="group rounded-xl border border-emerald-700/70 bg-emerald-600 px-3 py-3 text-left shadow-[0_6px_14px_rgba(5,150,105,0.35)] transition hover:-translate-y-0.5 hover:shadow-[0_10px_18px_rgba(5,150,105,0.4)] active:translate-y-0 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-200/80"
                     >
-                        <div className="mb-3 inline-flex h-11 w-11 items-center justify-center rounded-xl bg-white/20 text-white">
-                            <span className="material-symbols-outlined">qr_code_scanner</span>
+                        <div className="mb-2 inline-flex h-9 w-9 items-center justify-center rounded-lg border border-white/25 bg-white/20 text-white">
+                            <span className="material-symbols-outlined text-[20px]">qr_code_scanner</span>
                         </div>
-                        <p className="text-sm font-semibold text-white">Receive Points</p>
-                        <p className="mt-1 text-xs text-emerald-100">Show personal QR</p>
+                        <p className="text-[13px] font-semibold leading-tight text-white">Receive Points</p>
+                        <p className="mt-0.5 text-[11px] text-emerald-100">Show personal QR</p>
                     </button>
 
                     <button
                         onClick={() => router.push("/redeem")}
-                        className="group rounded-2xl bg-blue-600 p-4 text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-md active:scale-[0.98]"
+                        className="group rounded-xl border border-blue-700/70 bg-blue-600 px-3 py-3 text-left shadow-[0_6px_14px_rgba(37,99,235,0.35)] transition hover:-translate-y-0.5 hover:shadow-[0_10px_18px_rgba(37,99,235,0.4)] active:translate-y-0 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-200/80"
                     >
-                        <div className="mb-3 inline-flex h-11 w-11 items-center justify-center rounded-xl bg-white/20 text-white">
-                            <span className="material-symbols-outlined">local_drink</span>
+                        <div className="mb-2 inline-flex h-9 w-9 items-center justify-center rounded-lg border border-white/25 bg-white/20 text-white">
+                            <span className="material-symbols-outlined text-[20px]">local_drink</span>
                         </div>
-                        <p className="text-sm font-semibold text-white">Redeem Water</p>
-                        <p className="mt-1 text-xs text-blue-100">Use points instantly</p>
+                        <p className="text-[13px] font-semibold leading-tight text-white">Redeem Water</p>
+                        <p className="mt-0.5 text-[11px] text-blue-100">Use points instantly</p>
                     </button>
                 </div>
             </section>
