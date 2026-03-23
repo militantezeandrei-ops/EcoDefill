@@ -11,6 +11,8 @@ import { z } from "zod";
 const registerSchema = z.object({
     fullName: z.string().min(2, "Full Name is required"),
     email: z.string().email("Invalid email address"),
+    phoneNumber: z.string().regex(/^\+?[0-9]{10,15}$/, "Enter a valid phone number"),
+    verificationCode: z.string().length(6, "Verification code must be 6 digits"),
     course: z.string().min(1, "Please select a course"),
     yearLevel: z.string().min(1, "Please select an year level"),
     section: z.string().min(1, "Section is required"),
@@ -27,6 +29,8 @@ export default function Register() {
     const [formData, setFormData] = useState({
         fullName: "",
         email: "",
+        phoneNumber: "",
+        verificationCode: "",
         course: "",
         yearLevel: "",
         section: "",
@@ -36,6 +40,8 @@ export default function Register() {
     });
     const [errors, setErrors] = useState<Record<string, string>>({});
     const [loading, setLoading] = useState(false);
+    const [sendingCode, setSendingCode] = useState(false);
+    const [codeHint, setCodeHint] = useState("");
 
     useEffect(() => {
         document.body.style.backgroundImage = `linear-gradient(to bottom, rgba(0,0,0,0.4), rgba(0,0,0,0.2), rgba(0,0,0,0.5)), url('/images/pdm-building.jpg')`;
@@ -79,9 +85,12 @@ export default function Register() {
                 method: "POST",
                 body: JSON.stringify({
                     email: formData.email,
+                    verificationCode: formData.verificationCode,
+                    phoneNumber: formData.phoneNumber,
                     password: formData.password,
                     fullName: formData.fullName,
                     course: formData.course,
+                    yearLevel: formData.yearLevel,
                     section: formData.section,
                 })
             });
@@ -95,6 +104,41 @@ export default function Register() {
             setErrors({ form: errorMessage });
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleSendCode = async () => {
+        setErrors((prev) => {
+            const next = { ...prev };
+            delete next.email;
+            delete next.verificationCode;
+            delete next.form;
+            return next;
+        });
+
+        const emailCheck = z.string().email().safeParse(formData.email);
+        if (!emailCheck.success) {
+            setErrors((prev) => ({ ...prev, email: "Enter a valid email before requesting a code" }));
+            return;
+        }
+
+        setSendingCode(true);
+        setCodeHint("");
+        try {
+            const response = await apiClient<{ message: string }>("/api/auth/request-verification-code", {
+                method: "POST",
+                body: JSON.stringify({ email: formData.email, purpose: "register" }),
+                skipAuthRedirect: true,
+            });
+
+            setCodeHint("Verification code sent to your email.");
+            await showToast({ text: response.message, type: "success" });
+        } catch (err) {
+            const errorMessage = err instanceof Error ? err.message : "Failed to send code";
+            setErrors((prev) => ({ ...prev, form: errorMessage }));
+            await showToast({ text: errorMessage, type: "error" });
+        } finally {
+            setSendingCode(false);
         }
     };
 
@@ -120,9 +164,10 @@ export default function Register() {
 
                 <form onSubmit={handleSubmit} className="space-y-4">
                     <div>
-                        <label className="block text-[12px] font-semibold text-emerald-50/80 uppercase tracking-wider mb-1.5 ml-1">Full Name</label>
+                        <label htmlFor="register-full-name" className="block text-[12px] font-semibold text-emerald-50/80 uppercase tracking-wider mb-1.5 ml-1">Full Name</label>
                         <div className="relative group">
                             <input
+                                id="register-full-name"
                                 name="fullName"
                                 type="text"
                                 className="block w-full rounded-xl border border-white/10 bg-black/40 px-4 py-3 pl-11 shadow-inner focus:border-emerald-500/50 focus:bg-black/60 focus:outline-none focus:ring-1 focus:ring-emerald-500/50 text-white placeholder-white/30 transition-all font-medium text-sm"
@@ -136,9 +181,10 @@ export default function Register() {
                     </div>
 
                     <div>
-                        <label className="block text-[12px] font-semibold text-emerald-50/80 uppercase tracking-wider mb-1.5 ml-1">Email Address</label>
+                        <label htmlFor="register-email" className="block text-[12px] font-semibold text-emerald-50/80 uppercase tracking-wider mb-1.5 ml-1">Email Address</label>
                         <div className="relative group">
                             <input
+                                id="register-email"
                                 name="email"
                                 type="email"
                                 className="block w-full rounded-xl border border-white/10 bg-black/40 px-4 py-3 pl-11 shadow-inner focus:border-emerald-500/50 focus:bg-black/60 focus:outline-none focus:ring-1 focus:ring-emerald-500/50 text-white placeholder-white/30 transition-all font-medium text-sm"
@@ -151,11 +197,57 @@ export default function Register() {
                         {errors.email && <span className="text-red-400 text-xs ml-1 font-medium mt-1 block">{errors.email}</span>}
                     </div>
 
+                    <div className="grid grid-cols-[1fr_auto] gap-2">
+                        <div>
+                            <label htmlFor="register-verification-code" className="block text-[12px] font-semibold text-emerald-50/80 uppercase tracking-wider mb-1.5 ml-1">Email Verification Code</label>
+                            <input
+                                id="register-verification-code"
+                                name="verificationCode"
+                                inputMode="numeric"
+                                maxLength={6}
+                                className="block w-full rounded-xl border border-white/10 bg-black/40 px-4 py-3 shadow-inner focus:border-emerald-500/50 focus:bg-black/60 focus:outline-none focus:ring-1 focus:ring-emerald-500/50 text-white placeholder-white/30 transition-all font-medium text-sm"
+                                placeholder="6-digit code"
+                                value={formData.verificationCode}
+                                onChange={handleChange}
+                            />
+                            {errors.verificationCode && <span className="text-red-400 text-xs ml-1 font-medium mt-1 block">{errors.verificationCode}</span>}
+                            {codeHint && <span className="text-emerald-300 text-xs ml-1 font-medium mt-1 block">{codeHint}</span>}
+                        </div>
+                        <div className="flex items-end">
+                            <button
+                                type="button"
+                                onClick={handleSendCode}
+                                disabled={sendingCode}
+                                className="h-[46px] rounded-xl border border-emerald-400/40 bg-emerald-500/20 px-3 text-xs font-semibold text-emerald-100 transition hover:bg-emerald-500/30 disabled:opacity-60"
+                            >
+                                {sendingCode ? "Sending..." : "Send Code"}
+                            </button>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label htmlFor="register-phone-number" className="block text-[12px] font-semibold text-emerald-50/80 uppercase tracking-wider mb-1.5 ml-1">Phone Number</label>
+                        <div className="relative group">
+                            <input
+                                id="register-phone-number"
+                                name="phoneNumber"
+                                type="tel"
+                                className="block w-full rounded-xl border border-white/10 bg-black/40 px-4 py-3 pl-11 shadow-inner focus:border-emerald-500/50 focus:bg-black/60 focus:outline-none focus:ring-1 focus:ring-emerald-500/50 text-white placeholder-white/30 transition-all font-medium text-sm"
+                                placeholder="09123456789"
+                                value={formData.phoneNumber}
+                                onChange={handleChange}
+                            />
+                            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40 group-focus-within:text-emerald-400 material-symbols-outlined text-[20px] pointer-events-none transition-colors">call</span>
+                        </div>
+                        {errors.phoneNumber && <span className="text-red-400 text-xs ml-1 font-medium mt-1 block">{errors.phoneNumber}</span>}
+                    </div>
+
                     <div className="grid grid-cols-3 gap-3">
                         <div className="flex flex-col w-full">
-                            <label className="block text-[12px] font-semibold text-emerald-50/80 uppercase tracking-wider mb-1.5 ml-1">Course</label>
+                            <label htmlFor="register-course" className="block text-[12px] font-semibold text-emerald-50/80 uppercase tracking-wider mb-1.5 ml-1">Course</label>
                             <div className="relative group">
                                 <select
+                                    id="register-course"
                                     name="course"
                                     value={formData.course}
                                     onChange={handleChange}
@@ -176,9 +268,10 @@ export default function Register() {
                         </div>
 
                         <div className="flex flex-col w-full">
-                            <label className="block text-[12px] font-semibold text-emerald-50/80 uppercase tracking-wider mb-1.5 ml-1">Year</label>
+                            <label htmlFor="register-year-level" className="block text-[12px] font-semibold text-emerald-50/80 uppercase tracking-wider mb-1.5 ml-1">Year</label>
                             <div className="relative group">
                                 <select
+                                    id="register-year-level"
                                     name="yearLevel"
                                     value={formData.yearLevel}
                                     onChange={handleChange}
@@ -196,9 +289,10 @@ export default function Register() {
                         </div>
 
                         <div className="flex flex-col w-full">
-                            <label className="block text-[12px] font-semibold text-emerald-50/80 uppercase tracking-wider mb-1.5 ml-1">Section</label>
+                            <label htmlFor="register-section" className="block text-[12px] font-semibold text-emerald-50/80 uppercase tracking-wider mb-1.5 ml-1">Section</label>
                             <div className="relative group">
                                 <select
+                                    id="register-section"
                                     name="section"
                                     value={formData.section}
                                     onChange={handleChange}
@@ -217,9 +311,10 @@ export default function Register() {
                     </div>
 
                     <div>
-                        <label className="block text-[12px] font-semibold text-emerald-50/80 uppercase tracking-wider mb-1.5 ml-1">Password</label>
+                        <label htmlFor="register-password" className="block text-[12px] font-semibold text-emerald-50/80 uppercase tracking-wider mb-1.5 ml-1">Password</label>
                         <div className="relative group">
                             <input
+                                id="register-password"
                                 name="password"
                                 type="password"
                                 className="block w-full rounded-xl border border-white/10 bg-black/40 px-4 py-3 pl-11 shadow-inner focus:border-emerald-500/50 focus:bg-black/60 focus:outline-none focus:ring-1 focus:ring-emerald-500/50 text-white placeholder-white/30 transition-all font-medium text-sm"
@@ -233,9 +328,10 @@ export default function Register() {
                     </div>
 
                     <div>
-                        <label className="block text-[12px] font-semibold text-emerald-50/80 uppercase tracking-wider mb-1.5 ml-1">Confirm Password</label>
+                        <label htmlFor="register-confirm-password" className="block text-[12px] font-semibold text-emerald-50/80 uppercase tracking-wider mb-1.5 ml-1">Confirm Password</label>
                         <div className="relative group">
                             <input
+                                id="register-confirm-password"
                                 name="confirmPassword"
                                 type="password"
                                 className="block w-full rounded-xl border border-white/10 bg-black/40 px-4 py-3 pl-11 shadow-inner focus:border-emerald-500/50 focus:bg-black/60 focus:outline-none focus:ring-1 focus:ring-emerald-500/50 text-white placeholder-white/30 transition-all font-medium text-sm"
@@ -251,6 +347,7 @@ export default function Register() {
                     <div className="flex items-start gap-3 mt-4 px-1">
                         <div className="relative flex items-center pt-0.5">
                             <input
+                                id="register-agree-terms"
                                 name="agreeTerms"
                                 checked={formData.agreeTerms}
                                 onChange={handleChange}
@@ -260,14 +357,19 @@ export default function Register() {
                             <span className="material-symbols-outlined absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-white opacity-0 peer-checked:opacity-100 text-[14px] pointer-events-none">check</span>
                         </div>
                         <div className="flex flex-col">
-                            <p className="text-white/60 text-xs leading-snug">
+                            <label htmlFor="register-agree-terms" className="text-white/60 text-xs leading-snug cursor-pointer">
                                 I agree to the <a className="text-emerald-400 font-semibold hover:text-emerald-300 transition-colors" href="#">Terms of Service</a> and <a className="text-emerald-400 font-semibold hover:text-emerald-300 transition-colors" href="#">Privacy Policy</a>.
-                            </p>
+                            </label>
                             {errors.agreeTerms && <span className="text-red-400 text-xs font-medium mt-1 block">{errors.agreeTerms}</span>}
                         </div>
                     </div>
 
                     <div className="pt-4">
+                        {errors.form && (
+                            <div className="mb-3 rounded-xl border border-red-500/40 bg-red-500/10 px-3 py-2 text-sm font-medium text-red-300">
+                                {errors.form}
+                            </div>
+                        )}
                         <button
                             type="submit"
                             disabled={loading}
@@ -283,7 +385,7 @@ export default function Register() {
                     </div>
                 </form>
 
-                <div className="mt-5 text-center">
+                <div className="mt-8 text-center text-[13px]">
                     <p className="text-white/60 text-sm">
                         Already have an account? 
                         <Link href="/login" className="text-emerald-400 font-bold hover:text-emerald-300 ml-2 transition-colors">

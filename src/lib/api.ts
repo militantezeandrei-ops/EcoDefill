@@ -1,5 +1,5 @@
 import { Capacitor } from "@capacitor/core";
-import { clearStoredAuth, getCachedToken } from "@/lib/auth-storage";
+import { clearStoredAuth, getCachedToken, hydrateStoredAuth } from "@/lib/auth-storage";
 
 const BASE_URL = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/+$/, "");
 const NATIVE_FALLBACK_BASE_URL = "https://eco-defill.vercel.app";
@@ -36,10 +36,15 @@ function resolveUrl(endpoint: string) {
 
 export async function apiClient<T>(
     endpoint: string,
-    options: RequestInit = {}
+    options: RequestInit & { skipAuthRedirect?: boolean } = {}
 ): Promise<T> {
+    const { skipAuthRedirect, ...requestOptions } = options;
     const url = resolveUrl(endpoint);
-    const token = getCachedToken();
+    let token = getCachedToken();
+    if (!token) {
+        const hydrated = await hydrateStoredAuth();
+        token = hydrated.token;
+    }
 
     const headers = new Headers(options.headers || {});
     if (!headers.has("Content-Type")) {
@@ -53,7 +58,7 @@ export async function apiClient<T>(
     let response: Response;
     try {
         response = await fetch(url, {
-            ...options,
+            ...requestOptions,
             headers,
         });
     } catch (error) {
@@ -78,7 +83,11 @@ export async function apiClient<T>(
 
     if (!response.ok) {
         // If 401, clear stale auth and redirect to login
-        if (response.status === 401 && typeof window !== "undefined") {
+        if (
+            response.status === 401 &&
+            typeof window !== "undefined" &&
+            !skipAuthRedirect
+        ) {
             await clearStoredAuth();
             window.location.href = "/login";
         }

@@ -61,7 +61,7 @@ export default function Dashboard() {
                 <div className="overflow-hidden rounded-[2rem] bg-gradient-to-br from-emerald-500 to-emerald-700 p-5 text-white shadow-[0_20px_40px_rgba(16,185,129,0.35)]">
                     <p className="text-xs font-medium uppercase tracking-[0.14em] text-emerald-100">{fullName} Available Points</p>
                     <p className="mt-3 text-5xl font-bold leading-none tracking-tight">{balance}</p>
-                    <p className="mt-3 text-sm text-emerald-50">{balance * .1}L water</p>
+                    <p className="mt-3 text-sm text-emerald-50">{(balance * 0.1).toFixed(2)}L water</p>
                 </div>
             </section>
 

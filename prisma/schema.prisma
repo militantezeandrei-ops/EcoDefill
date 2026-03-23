@@ -26,6 +26,8 @@ model User {
   email        String        @unique
   fullName     String?       // E.g. "Juan Dela Cruz"
   passwordHash String
+  phoneNumber  String?
+  emailVerified Boolean      @default(false)
 
   role         Role          @default(STUDENT)
   balance      Float         @default(0) // total stored points (1 point = 100ml)
@@ -41,6 +43,19 @@ model User {
   recyclingLogs   RecyclingLog[]
 
   @@index([email])
+}
+
+model VerificationCode {
+  id         String   @id @default(uuid())
+  email      String
+  codeHash   String
+  purpose    String   // REGISTER | RESET_PASSWORD
+  expiresAt  DateTime
+  used       Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  usedAt     DateTime?
+
+  @@index([email, purpose, expiresAt])
 }
 
 /// Records all point-related events (EARN from recycling, REDEEM for water).

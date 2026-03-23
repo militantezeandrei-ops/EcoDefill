@@ -40,6 +40,7 @@ export default function AdminLogin() {
             await apiClient("/api/admin/login", {
                 method: "POST",
                 body: JSON.stringify({ email, password }),
+                skipAuthRedirect: true,
             });
 
             await showToast({ text: "Login successful.", type: "success" });
@@ -77,9 +78,11 @@ export default function AdminLogin() {
 
                 <form onSubmit={handleLogin} className="space-y-5">
                     <div>
-                        <label className="ml-1 mb-2 block text-[13px] font-semibold uppercase tracking-wider text-emerald-50/80">Email Address</label>
+                        <label htmlFor="admin-login-email" className="ml-1 mb-2 block text-[13px] font-semibold uppercase tracking-wider text-emerald-50/80">Email Address</label>
                         <div className="group relative">
                             <input
+                                id="admin-login-email"
+                                name="email"
                                 type="email"
                                 required
                                 className="block w-full rounded-xl border border-white/10 bg-black/40 px-4 py-3.5 pl-11 font-medium text-white placeholder-white/30 shadow-inner transition-all focus:border-emerald-500/50 focus:bg-black/60 focus:outline-none focus:ring-1 focus:ring-emerald-500/50"
@@ -95,9 +98,11 @@ export default function AdminLogin() {
                     </div>
 
                     <div>
-                        <label className="ml-1 mb-2 block text-[13px] font-semibold uppercase tracking-wider text-emerald-50/80">Password</label>
+                        <label htmlFor="admin-login-password" className="ml-1 mb-2 block text-[13px] font-semibold uppercase tracking-wider text-emerald-50/80">Password</label>
                         <div className="group relative">
                             <input
+                                id="admin-login-password"
+                                name="password"
                                 type="password"
                                 required
                                 className="block w-full rounded-xl border border-white/10 bg-black/40 px-4 py-3.5 pl-11 font-medium text-white placeholder-white/30 shadow-inner transition-all focus:border-emerald-500/50 focus:bg-black/60 focus:outline-none focus:ring-1 focus:ring-emerald-500/50"

@@ -50,6 +50,7 @@ export default function Login() {
             const data = await apiClient<{ token: string; user: { id: string; email: string; role: "STUDENT" | "ADMIN"; balance: number } }>("/api/auth/login", {
                 method: "POST",
                 body: JSON.stringify({ email, password }),
+                skipAuthRedirect: true,
             });
 
             if (data.user.role === "ADMIN") {
@@ -108,9 +109,11 @@ export default function Login() {
 
                 <form onSubmit={handleSubmit} className="space-y-4">
                     <div>
-                        <label className="ml-1 mb-2 block text-[12px] font-semibold uppercase tracking-wider text-emerald-50/80">Email Address</label>
+                        <label htmlFor="login-email" className="ml-1 mb-2 block text-[12px] font-semibold uppercase tracking-wider text-emerald-50/80">Email Address</label>
                         <div className="group relative">
                             <input
+                                id="login-email"
+                                name="email"
                                 type="email"
                                 required
                                 className={`block w-full rounded-xl border bg-black/40 px-4 py-3 pl-11 text-sm font-medium text-white placeholder-white/30 shadow-inner transition-all focus:bg-black/60 focus:outline-none focus:ring-1 ${errors.email ? "border-red-500/70 focus:ring-red-500/60" : "border-white/10 focus:border-emerald-500/50 focus:ring-emerald-500/50"}`}
@@ -127,9 +130,11 @@ export default function Login() {
                     </div>
 
                     <div>
-                        <label className="ml-1 mb-2 block text-[12px] font-semibold uppercase tracking-wider text-emerald-50/80">Password</label>
+                        <label htmlFor="login-password" className="ml-1 mb-2 block text-[12px] font-semibold uppercase tracking-wider text-emerald-50/80">Password</label>
                         <div className="group relative">
                             <input
+                                id="login-password"
+                                name="password"
                                 type="password"
                                 required
                                 className={`block w-full rounded-xl border bg-black/40 px-4 py-3 pl-11 text-sm font-medium text-white placeholder-white/30 shadow-inner transition-all focus:bg-black/60 focus:outline-none focus:ring-1 ${errors.password ? "border-red-500/70 focus:ring-red-500/60" : "border-white/10 focus:border-emerald-500/50 focus:ring-emerald-500/50"}`}
@@ -143,6 +148,11 @@ export default function Login() {
                             <span className="material-symbols-outlined pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[18px] text-white/40 transition-colors group-focus-within:text-emerald-400">lock</span>
                         </div>
                         {errors.password && <p className="ml-1 mt-1 text-xs font-medium text-red-400">{errors.password}</p>}
+                        <div className="mt-2 text-right">
+                            <Link href="/forgot-password" title="Forgot Password" className="text-[11px] font-semibold text-emerald-300/80 transition-colors hover:text-emerald-200">
+                                Forgot password?
+                            </Link>
+                        </div>
                     </div>
 
                     {errors.form && (
@@ -167,13 +177,11 @@ export default function Login() {
                     </div>
                 </form>
 
-                <div className="mt-6 text-center">
-                    <p className="text-sm text-white/60">
-                        Don&apos;t have an account?
-                        <Link href="/register" className="ml-2 font-bold text-emerald-400 transition-colors hover:text-emerald-300">
-                            Create Account
-                        </Link>
-                    </p>
+                <div className="mt-8 text-center text-[13px]">
+                    <span className="text-white/50">Don&apos;t have an account?</span>
+                    <Link href="/register" className="ml-2 font-bold text-emerald-400 transition-all hover:text-emerald-300 hover:underline hover:underline-offset-4">
+                        Create Account
+                    </Link>
                 </div>
             </div>
 
