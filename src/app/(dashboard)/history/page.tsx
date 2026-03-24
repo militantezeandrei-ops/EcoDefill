@@ -43,6 +43,14 @@ export default function HistoryPage() {
         return date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
     };
 
+    const formatWater = (ml: number) => {
+        if (ml >= 1000) {
+            const liters = ml / 1000;
+            return `${Number.isInteger(liters) ? liters : liters.toFixed(1)}L`;
+        }
+        return `${ml}ml`;
+    };
+
     const formatTime = (dateStr: string) =>
         new Date(dateStr).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true });
 
@@ -77,7 +85,7 @@ export default function HistoryPage() {
                     </div>
                     <div>
                         <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-200">Water Used</p>
-                        <p className="mt-1 text-lg font-black">{totalRedeemedMl} ml</p>
+                        <p className="mt-1 text-lg font-black">{formatWater(totalRedeemedMl)}</p>
                     </div>
                 </div>
             </div>
@@ -125,7 +133,7 @@ export default function HistoryPage() {
                                                 <span className="ml-0.5 text-[10px] font-semibold">pts</span>
                                             </p>
                                             {tx.type === "REDEEM" && (
-                                                <p className="text-[11px] text-slate-400">{tx.amount * 100}ml</p>
+                                                <p className="text-[11px] text-slate-400">{formatWater(tx.amount * 100)}</p>
                                             )}
                                         </div>
                                     </div>

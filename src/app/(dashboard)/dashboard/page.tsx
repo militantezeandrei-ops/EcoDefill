@@ -44,6 +44,14 @@ export default function Dashboard() {
     const earnProgress = Math.min((dailyEarned / MAX_DAILY_EARN) * 100, 100);
     const redeemProgress = Math.min((dailyRedeemed / MAX_DAILY_REDEEM) * 100, 100);
 
+    const formatWater = (ml: number) => {
+        if (ml >= 1000) {
+            const liters = ml / 1000;
+            return `${Number.isInteger(liters) ? liters : liters.toFixed(1)}L`;
+        }
+        return `${ml}ml`;
+    };
+
     const formatTime = (dateStr: string) => {
         const date = new Date(dateStr);
         const now = new Date();
@@ -54,7 +62,7 @@ export default function Dashboard() {
     };
 
     return (
-        <div className="relative flex-1 overflow-y-auto scroll-pb-32 pb-32">
+        <div className="relative min-h-full">
             {/* Ambient gradient */}
             <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-56 bg-gradient-to-b from-emerald-100/60 to-transparent" />
 
@@ -95,10 +103,10 @@ export default function Dashboard() {
                     <div className="app-card flex flex-col gap-2 p-3">
                         <div className="flex items-center justify-between">
                             <div className="flex items-center gap-1.5">
-                                <span className="material-symbols-outlined text-[16px] text-emerald-600">recycling</span>
+                                <span className="material-symbols-outlined text-[18px] text-emerald-600">recycling</span>
                                 <span className="text-[11px] font-black text-slate-700 uppercase tracking-tight">Earned</span>
                             </div>
-                            <span className="text-[11px] font-black text-emerald-600">{dailyEarned}<span className="text-[9px] text-slate-400">/{MAX_DAILY_EARN}</span></span>
+                            <span className="text-base font-black text-emerald-600">{dailyEarned}<span className="text-xs text-slate-400">/{MAX_DAILY_EARN}</span></span>
                         </div>
                         <div className="h-1.5 w-full rounded-full bg-slate-100 overflow-hidden">
                             <div className="h-full bg-emerald-500 rounded-full transition-all duration-700" style={{ width: `${earnProgress}%` }} />
@@ -109,10 +117,10 @@ export default function Dashboard() {
                     <div className="app-card flex flex-col gap-2 p-3">
                         <div className="flex items-center justify-between">
                             <div className="flex items-center gap-1.5">
-                                <span className="material-symbols-outlined text-[16px] text-blue-600">water_drop</span>
+                                <span className="material-symbols-outlined text-[18px] text-blue-600">water_drop</span>
                                 <span className="text-[11px] font-black text-slate-700 uppercase tracking-tight">Used</span>
                             </div>
-                            <span className="text-[11px] font-black text-blue-600">{dailyRedeemed}<span className="text-[9px] text-slate-400">/{MAX_DAILY_REDEEM}</span></span>
+                            <span className="text-base font-black text-blue-600">{dailyRedeemed}<span className="text-xs text-slate-400">/{MAX_DAILY_REDEEM}</span></span>
                         </div>
                         <div className="h-1.5 w-full rounded-full bg-slate-100 overflow-hidden">
                             <div className="h-full bg-blue-500 rounded-full transition-all duration-700" style={{ width: `${redeemProgress}%` }} />
@@ -157,7 +165,16 @@ export default function Dashboard() {
             <section className="mt-6 px-4">
                 <div className="mb-3 flex items-center justify-between">
                     <h2 className="app-section-title mb-0">Recent Activity</h2>
-                    <Link href="/history" className="text-[12px] font-bold text-emerald-600">View all</Link>
+                    <div className="flex items-center gap-4">
+                        <button 
+                            onClick={() => window.dispatchEvent(new CustomEvent("show-onboarding"))}
+                            className="flex items-center gap-1 text-[11px] font-bold text-slate-400 active:text-emerald-600 transition-colors"
+                        >
+                            <span className="material-symbols-outlined text-[15px]">help</span>
+                            Guide
+                        </button>
+                        <Link href="/history" className="text-[12px] font-bold text-emerald-600">View all</Link>
+                    </div>
                 </div>
 
                 <div className="app-card p-0 overflow-hidden">
@@ -187,7 +204,7 @@ export default function Dashboard() {
                                             <p className="text-sm font-semibold text-slate-800">
                                                 {tx.type === "EARN"
                                                     ? `Recycled ${tx.count || 1} ${tx.materialType || "item(s)"}`
-                                                    : `Water refill – ${tx.amount * 100}ml`}
+                                                    : `Water refill – ${formatWater(tx.amount * 100)}`}
                                             </p>
                                             <p className="mt-0.5 text-[11px] text-slate-400">{formatTime(tx.createdAt)}</p>
                                         </div>

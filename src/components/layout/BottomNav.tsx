@@ -15,8 +15,8 @@ export function BottomNav() {
     ];
 
     return (
-        <div className="fixed inset-x-0 bottom-2 z-50 px-4 pb-[var(--safe-bottom)]">
-            <nav className="mx-auto w-full max-w-sm overflow-hidden rounded-full border border-white/60 bg-white/80 shadow-[0_12px_32px_rgba(0,0,0,0.12)] backdrop-blur-xl dark:border-zinc-700/60 dark:bg-zinc-900/80">
+        <div className="fixed inset-x-0 bottom-0 z-50 px-3 pb-[calc(var(--safe-bottom)+4px)]">
+            <nav className="mx-auto w-full max-w-sm overflow-hidden rounded-[24px] bg-white shadow-[0_-8px_24px_rgba(0,0,0,0.06),0_12px_32px_rgba(0,0,0,0.12)] backdrop-blur-xl dark:bg-zinc-900">
                 <div className="flex items-center justify-around h-16 px-1">
                     {navItems.map((item) => {
                         const isActive = pathname === item.path;

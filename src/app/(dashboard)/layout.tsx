@@ -2,6 +2,7 @@
 
 import { ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { BottomNav } from "@/components/layout/BottomNav";
+import { OnboardingGuide } from "@/components/layout/OnboardingGuide";
 import { useAuth } from "@/hooks/useAuth";
 import { usePathname, useRouter } from "next/navigation";
 
@@ -45,13 +46,14 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     if (isLoading || !isAuthenticated) return null;
 
     return (
-        <div className="relative h-[100dvh] w-full overflow-x-hidden bg-transparent font-display">
-            <main className="relative flex h-[100dvh] min-h-0 flex-col overflow-x-hidden pb-[calc(110px+var(--safe-bottom))]">
-                <div key={transitionKey} className={`${transitionClass} flex min-h-0 flex-1 flex-col`}>
+        <div className="relative h-[100dvh] w-full overflow-hidden bg-[#f6f6f6] font-display">
+            <main className="h-full w-full overflow-y-auto pb-[calc(110px+var(--safe-bottom))]">
+                <div key={transitionKey} className={`${transitionClass} min-h-full flex flex-col`}>
                     {children}
                 </div>
             </main>
             <BottomNav />
+            <OnboardingGuide />
         </div>
     );
 }

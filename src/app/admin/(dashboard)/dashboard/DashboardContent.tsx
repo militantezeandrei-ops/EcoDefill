@@ -103,7 +103,7 @@ export default async function DashboardContent() {
         },
         {
             title: "Water Dispensed",
-            value: `${waterDispensedMl.toLocaleString()} ml`,
+            value: waterDispensedMl >= 1000 ? `${(waterDispensedMl / 1000).toLocaleString()} L` : `${waterDispensedMl.toLocaleString()} ml`,
             sub: `${totalRedeemed.toLocaleString()} pts redeemed`,
             icon: Droplet,
             border: "border-l-[#3B82F6]", // Blue for water

@@ -23,6 +23,14 @@ export default function RedeemWater() {
     const [fetching, setFetching] = useState(true);
     const [error, setError] = useState("");
 
+    const formatWater = (ml: number) => {
+        if (ml >= 1000) {
+            const liters = ml / 1000;
+            return `${Number.isInteger(liters) ? liters : liters.toFixed(1)}L`;
+        }
+        return `${ml}ml`;
+    };
+
     const MAX_DAILY_REDEEM = 5;
 
     useEffect(() => {
@@ -146,7 +154,7 @@ export default function RedeemWater() {
                             <p className="text-xs uppercase tracking-[0.14em] text-blue-100">Current Balance</p>
                             <p className="mt-2 text-4xl font-bold leading-none">{balance} <span className="text-lg font-medium text-blue-100">pts</span></p>
                             <div className="mt-5 flex items-center justify-between border-t border-white/20 pt-4 text-sm">
-                                <span>{balance * 100}ml available</span>
+                                <span>{formatWater(balance * 100)} available</span>
                                 <span>{dailyRedeemed}/{MAX_DAILY_REDEEM} used today</span>
                             </div>
                         </section>
@@ -167,7 +175,7 @@ export default function RedeemWater() {
                                 </button>
                                 <div className="text-center">
                                     <p className="text-3xl font-bold text-slate-900 dark:text-white">{pointsToRedeem}</p>
-                                    <p className="text-xs text-slate-500">{isValidInput ? parsedPoints * 100 : 0}ml</p>
+                                    <p className="text-xs text-slate-500">{isValidInput ? formatWater(parsedPoints * 100) : "0ml"}</p>
                                 </div>
                                 <button
                                     onClick={() => {
