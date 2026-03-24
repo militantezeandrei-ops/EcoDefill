@@ -102,31 +102,35 @@ export default function UsersAccordion({ courses }: { courses: CourseGroup[] }) 
     const displaySection = selectedSection || currentSectionData?.section;
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-4">
             {/* 1. Horizontal Course Tabs */}
-            <div className="flex w-full items-center gap-2 overflow-x-auto pb-2 scrollbar-hide">
+            <div className="flex w-full items-center gap-2 overflow-x-auto pb-1 scrollbar-hide">
                 {courses.map((courseGroup) => {
                     const isSelected = selectedCourse === courseGroup.course;
                     const ca = getCourseAccent(courseGroup.course);
+                    const courseStudentCount = courseGroup.years.reduce((acc, y) => acc + y.sections.reduce((sAcc, s) => sAcc + s.users.length, 0), 0);
                     return (
                         <button
                             key={courseGroup.course}
                             onClick={() => handleCourseSelect(courseGroup.course)}
-                            className={`flex items-center gap-2 rounded-xl px-4 py-2.5 text-[14px] font-bold transition-all whitespace-nowrap ${
+                            className={`flex items-center gap-2 rounded-xl px-3.5 py-2 text-[13px] font-bold transition-all whitespace-nowrap ${
                                 isSelected
-                                    ? `${ca.bg} ring-1 ring-inset ${ca.border} ${ca.text} shadow-sm`
-                                    : "bg-white border border-gray-100 text-gray-400 hover:bg-gray-50"
+                                    ? `${ca.bg} ${ca.text} shadow-sm`
+                                    : "bg-white border border-gray-200 text-gray-500 hover:bg-gray-50"
                             }`}
                         >
-                            <School className={`h-4 w-4 ${isSelected ? ca.text : "text-gray-300"}`} />
+                            <School className={`h-3.5 w-3.5 ${isSelected ? ca.text : "text-gray-400"}`} />
                             {courseGroup.course}
+                            <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-black ${isSelected ? "bg-white/20" : "bg-gray-100"}`}>
+                                {courseStudentCount}
+                            </span>
                         </button>
                     );
                 })}
             </div>
 
             {/* Main Selection Area */}
-            <div className={`overflow-hidden rounded-2xl border ${accent.border} bg-white shadow-sm transition-all`}>
+            <div className={`overflow-hidden rounded-xl border ${accent.border} bg-white shadow-sm transition-all`}>
                 {/* Active Course Header Banner */}
                 <div className={`flex w-full items-center justify-between px-6 py-4 ${accent.bg} border-b ${accent.border}`}>
                     <div className="flex items-center gap-4">
@@ -204,8 +208,8 @@ export default function UsersAccordion({ courses }: { courses: CourseGroup[] }) 
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-gray-50">
-                                    {currentSectionData.users.map((u) => (
-                                        <tr key={u.id} className="transition-colors hover:bg-gray-50/50">
+                        {currentSectionData.users.map((u, rowIdx) => (
+                                        <tr key={u.id} className={`transition-colors hover:bg-blue-50/20 ${rowIdx % 2 === 0 ? "bg-white" : "bg-gray-50/50"}`}>
                                             <td className="px-5 py-3">
                                                 <div className="flex items-center gap-3">
                                                     <div className={`flex h-7 w-7 items-center justify-center rounded-lg ${accent.bg} ${accent.text} text-[12px] font-black`}>

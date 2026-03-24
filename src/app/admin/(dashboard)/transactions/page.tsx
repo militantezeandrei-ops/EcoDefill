@@ -62,13 +62,17 @@ export default async function TransactionsPage() {
     }));
 
     return (
-        <div className="space-y-8">
+        <div className="space-y-5">
             {/* Header */}
-            <div>
-                <h2 className="text-3xl font-bold text-gray-900">Transaction Logs</h2>
-                <p className="mt-1 text-base text-gray-400">
-                    Review recent ecological contributions and rewards. Click a date to expand.
-                </p>
+            <div className="flex items-center justify-between">
+                <div>
+                    <h2 className="text-2xl font-bold text-gray-900">Transaction Logs</h2>
+                    <p className="mt-0.5 text-[13px] text-gray-400">Ecological contributions &amp; rewards — click a date to expand.</p>
+                </div>
+                <div className="flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-2 shadow-sm">
+                    <span className="text-[12px] font-bold text-gray-500 uppercase tracking-wider">Total</span>
+                    <span className="text-[15px] font-black text-gray-900">{transactions.length.toLocaleString()}</span>
+                </div>
             </div>
 
             {/* Quick Summary */}

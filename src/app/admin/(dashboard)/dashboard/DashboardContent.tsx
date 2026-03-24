@@ -176,32 +176,52 @@ export default async function DashboardContent() {
     const totalItems = bottles + cups + paper;
 
     return (
-        <div className="space-y-6">
-            {/* Header */}
-            <div>
-                <h2 className="text-2xl font-bold text-[#111827]">Dashboard Overview</h2>
-                <p className="text-[13px] text-[#6B7280]">
-                    Monitor recycling performance at a glance.
-                </p>
+        <div className="space-y-5">
+            {/* Header + Quick Insights */}
+            <div className="flex items-center justify-between">
+                <div>
+                    <h2 className="text-2xl font-bold text-[#111827]">Dashboard Overview</h2>
+                    <p className="text-[13px] text-[#6B7280]">Monitor recycling performance at a glance.</p>
+                </div>
+                {/* Quick Insights Strip */}
+                <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-2 shadow-sm">
+                        <div className="h-2 w-2 rounded-full bg-[#F4C430]" />
+                        <span className="text-[12px] font-bold text-gray-500 uppercase tracking-wider">Avg pts/user</span>
+                        <span className="text-[15px] font-black text-[#111827]">
+                            {totalUsers > 0 ? (todaysPoints / totalUsers).toFixed(1) : "0"}
+                        </span>
+                    </div>
+                    <div className="flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-2 shadow-sm">
+                        <div className="h-2 w-2 rounded-full bg-[#16A34A]" />
+                        <span className="text-[12px] font-bold text-gray-500 uppercase tracking-wider">Total Recycled</span>
+                        <span className="text-[15px] font-black text-[#111827]">{(bottles + cups + paper).toLocaleString()}</span>
+                    </div>
+                    <div className="flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-2 shadow-sm">
+                        <div className={`h-2 w-2 rounded-full ${machineHealth > 80 ? "bg-[#16A34A]" : "bg-[#DC2626]"}`} />
+                        <span className="text-[12px] font-bold text-gray-500 uppercase tracking-wider">Machine Uptime</span>
+                        <span className={`text-[15px] font-black ${machineHealth > 80 ? "text-[#16A34A]" : "text-[#DC2626]"}`}>{machineHealth}%</span>
+                    </div>
+                </div>
             </div>
 
-            {/* Stats Grid — 4 columns (More Compact) */}
+            {/* Stats Grid — 4 columns */}
             <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
                 {statCards.map((card, i) => {
                     const Icon = card.icon;
                     return (
                         <div
                             key={i}
-                            className={`group relative overflow-hidden rounded-xl border-none ${card.bg} p-4 shadow-md transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5`}
+                            className={`group relative overflow-hidden rounded-xl ${card.bg} p-4 shadow-md transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5`}
                         >
                             <div className="relative flex items-center justify-between">
                                 <div>
-                                    <p className={`text-[12px] font-bold uppercase tracking-widest ${card.titleColor}`}>{card.title}</p>
-                                    <p className={`mt-1 text-2xl font-black ${card.valueColor}`}>{card.value}</p>
-                                    <p className={`text-[12px] font-medium ${card.subColor}`}>{card.sub}</p>
+                                    <p className={`text-[11px] font-bold uppercase tracking-widest ${card.titleColor}`}>{card.title}</p>
+                                    <p className={`mt-1 text-[22px] font-black leading-none ${card.valueColor}`}>{card.value}</p>
+                                    <p className={`mt-1 text-[11px] font-medium ${card.subColor}`}>{card.sub}</p>
                                 </div>
                                 <div className={`rounded-xl p-2.5 ${card.iconBg} backdrop-blur-sm`}>
-                                    <Icon className={`h-4 w-4 ${card.iconColor}`} />
+                                    <Icon className={`h-5 w-5 ${card.iconColor}`} />
                                 </div>
                             </div>
                         </div>
@@ -209,28 +229,43 @@ export default async function DashboardContent() {
                 })}
             </div>
 
-            {/* Waste Materials — Horizontal & Integrated */}
-            <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-                <div className="flex items-center justify-between mb-4 border-b border-gray-50 pb-4">
+            {/* Waste Materials — Integrated horizontal ticker */}
+            <div className="rounded-2xl border border-gray-200 bg-white px-5 py-4 shadow-sm">
+                <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-2.5">
                         <div className="rounded-lg bg-[#7A1E1E]/10 p-1.5">
                             <Recycle className="h-3.5 w-3.5 text-[#7A1E1E]" />
                         </div>
-                        <div>
-                            <h3 className="text-base font-bold text-[#111827]">Materials Collected</h3>
-                            <p className="text-[12px] text-[#6B7280]">{totalItems.toLocaleString()} total items recycled</p>
-                        </div>
+                        <h3 className="text-sm font-bold text-[#111827]">Materials Collected</h3>
+                        <span className="rounded-full bg-gray-100 px-2.5 py-0.5 text-[11px] font-bold text-gray-500">{totalItems.toLocaleString()} items total</span>
                     </div>
+                    {/* Progress bar showing material breakdown */}
+                    {totalItems > 0 && (
+                        <div className="flex items-center gap-3 text-[11px] font-bold text-gray-500">
+                            <span className="flex items-center gap-1"><span className="inline-block h-2 w-2 rounded-full bg-[#16A34A]" />Bottles {Math.round((bottles / totalItems) * 100)}%</span>
+                            <span className="flex items-center gap-1"><span className="inline-block h-2 w-2 rounded-full bg-[#F59E0B]" />Cups {Math.round((cups / totalItems) * 100)}%</span>
+                            <span className="flex items-center gap-1"><span className="inline-block h-2 w-2 rounded-full bg-[#3B82F6]" />Paper {Math.round((paper / totalItems) * 100)}%</span>
+                        </div>
+                    )}
                 </div>
-                <div className="grid grid-cols-3 gap-4">
+                <div className="flex items-center gap-3 mb-3">
+                    {totalItems > 0 && (
+                        <div className="flex h-2 w-full overflow-hidden rounded-full bg-gray-100">
+                            <div className="h-full bg-[#16A34A] transition-all" style={{ width: `${(bottles / totalItems) * 100}%` }} />
+                            <div className="h-full bg-[#F59E0B] transition-all" style={{ width: `${(cups / totalItems) * 100}%` }} />
+                            <div className="h-full bg-[#3B82F6] transition-all" style={{ width: `${(paper / totalItems) * 100}%` }} />
+                        </div>
+                    )}
+                </div>
+                <div className="grid grid-cols-3 gap-3">
                     {wasteCards.map((card, i) => (
-                        <div key={i} className={`flex items-center gap-3 p-4 rounded-xl ${card.bg} shadow-sm transition-all hover:shadow-md`}>
-                            <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${card.iconBg} text-xl shadow-sm border border-white/10`}>
+                        <div key={i} className={`flex items-center gap-3 p-3 rounded-xl ${card.bg} shadow-sm`}>
+                            <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${card.iconBg} text-lg`}>
                                 {card.icon}
                             </div>
                             <div className="min-w-0">
-                                <p className={`text-xl font-black leading-none ${card.valueColor}`}>{card.value}</p>
-                                <p className={`mt-1 text-[12px] font-bold ${card.titleColor} uppercase truncate tracking-tighter`}>{card.title}</p>
+                                <p className={`text-[20px] font-black leading-none ${card.valueColor}`}>{card.value}</p>
+                                <p className={`mt-0.5 text-[11px] font-bold ${card.titleColor} uppercase truncate`}>{card.title}</p>
                             </div>
                         </div>
                     ))}
@@ -238,17 +273,17 @@ export default async function DashboardContent() {
             </div>
 
             {/* Chart + Leaderboard Row */}
-            <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+            <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
                 {/* Chart */}
-                <div className="col-span-2 overflow-hidden rounded-xl border border-gray-200 border-l-4 border-l-[#7A1E1E] bg-white p-6 shadow-sm">
+                <div className="col-span-2 overflow-hidden rounded-xl border border-gray-200 border-l-4 border-l-[#7A1E1E] bg-white p-5 shadow-sm">
                     <div className="mb-1 flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                            <div className="rounded-lg bg-[#7A1E1E]/10 p-2">
+                        <div className="flex items-center gap-2">
+                            <div className="rounded-lg bg-[#7A1E1E]/10 p-1.5">
                                 <TrendingUp className="h-4 w-4 text-[#7A1E1E]" />
                             </div>
-                            <h3 className="text-lg font-bold text-[#111827]">Daily Point Generation</h3>
+                            <h3 className="text-base font-bold text-[#111827]">Daily Point Generation</h3>
                         </div>
-                        <span className="rounded-full bg-gray-100 px-3 py-1 text-[13px] font-semibold text-gray-600 border border-gray-200">
+                        <span className="rounded-full bg-gray-100 px-3 py-1 text-[12px] font-semibold text-gray-600 border border-gray-200">
                             Last 7 days
                         </span>
                     </div>
@@ -256,18 +291,18 @@ export default async function DashboardContent() {
                 </div>
 
                 {/* Leaderboard */}
-                <div className="overflow-hidden rounded-xl border border-gray-200 border-l-4 border-l-[#F4C430] bg-white p-6 shadow-sm">
-                    <h3 className="text-lg font-bold text-[#111827]">Top Courses</h3>
-                    <p className="mb-5 text-[13px] text-[#6B7280]">Ranked by recycling points</p>
-                    <div className="space-y-3">
+                <div className="overflow-hidden rounded-xl border border-gray-200 border-l-4 border-l-[#F4C430] bg-white p-5 shadow-sm">
+                    <h3 className="text-base font-bold text-[#111827]">Top Courses</h3>
+                    <p className="mb-4 text-[12px] text-[#6B7280]">Ranked by recycling points</p>
+                    <div className="space-y-2">
                         {leaderboard.map((course, idx: number) => (
-                            <div key={course.course} className="flex items-center gap-3 rounded-lg bg-gray-50 px-4 py-3 border border-gray-100">
-                                <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-xs font-black shadow-sm ${medalStyles[idx] || "bg-gray-100 text-gray-500 border-gray-200"}`}>
+                            <div key={course.course} className="flex items-center gap-2.5 rounded-lg bg-gray-50 px-3 py-2.5 border border-gray-100">
+                                <div className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-[11px] font-black shadow-sm ${medalStyles[idx] || "bg-gray-100 text-gray-500 border-gray-200"}`}>
                                     {idx + 1}
                                 </div>
                                 <div className="flex-1 min-w-0">
-                                    <p className="text-base font-bold text-[#111827] truncate">{course.course}</p>
-                                    <div className="mt-1.5 h-1.5 w-full rounded-full bg-gray-200 overflow-hidden">
+                                    <p className="text-[13px] font-bold text-[#111827] truncate">{course.course}</p>
+                                    <div className="mt-1 h-1.5 w-full rounded-full bg-gray-200 overflow-hidden">
                                         <div
                                             className="h-full rounded-full bg-[#7A1E1E] transition-all duration-500"
                                             style={{ width: `${(course.points / maxPoints) * 100}%` }}
@@ -275,8 +310,8 @@ export default async function DashboardContent() {
                                     </div>
                                 </div>
                                 <div className="text-right shrink-0">
-                                    <p className="text-base font-black text-[#7A1E1E]">{course.points}</p>
-                                    <p className="text-[12px] font-medium text-[#6B7280]">{course.items} items</p>
+                                    <p className="text-[13px] font-black text-[#7A1E1E]">{course.points}</p>
+                                    <p className="text-[11px] font-medium text-[#6B7280]">{course.items} items</p>
                                 </div>
                             </div>
                         ))}
@@ -289,3 +324,4 @@ export default async function DashboardContent() {
         </div>
     );
 }
+

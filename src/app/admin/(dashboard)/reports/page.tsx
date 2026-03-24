@@ -123,11 +123,18 @@ export default async function ReportsPage() {
     ];
 
     return (
-        <div className="space-y-8">
+        <div className="space-y-5">
             {/* Header */}
-            <div>
-                <h2 className="text-3xl font-bold text-gray-900">Environmental Reports</h2>
-                <p className="mt-1 text-base text-gray-400">Generate, analyze, and export your sustainability performance data.</p>
+            <div className="flex items-center justify-between">
+                <div>
+                    <h2 className="text-2xl font-bold text-gray-900">Environmental Reports</h2>
+                    <p className="mt-0.5 text-[13px] text-gray-400">Generate, analyze, and export sustainability performance data.</p>
+                </div>
+                <div className="flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-2 shadow-sm">
+                    <span className="text-[12px] font-bold text-gray-500 uppercase tracking-wider">Last Generated</span>
+                    <span className="text-[13px] font-black text-gray-900">Live</span>
+                    <div className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                </div>
             </div>
 
             {/* Summary */}
@@ -135,15 +142,15 @@ export default async function ReportsPage() {
                 {summaryCards.map((card) => {
                     const Icon = card.icon;
                     return (
-                        <div key={card.title} className={`group relative overflow-hidden rounded-2xl ${card.bg} p-5 shadow-md transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5`}>
+                        <div key={card.title} className={`group relative overflow-hidden rounded-xl ${card.bg} p-4 shadow-md transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5`}>
                             <div className="absolute -right-6 -top-6 h-24 w-24 rounded-full bg-white/10 transition-transform duration-500 group-hover:scale-125" />
                             <div className="relative flex items-start justify-between">
                                 <div>
-                                    <p className={`text-[13px] font-bold uppercase tracking-wider ${card.titleColor}`}>{card.title}</p>
-                                    <p className={`mt-2 text-3xl font-black ${card.valueColor}`}>{card.value}</p>
-                                    <p className={`mt-1 text-[13px] font-medium ${card.subColor}`}>{card.sub}</p>
+                                    <p className={`text-[11px] font-bold uppercase tracking-wider ${card.titleColor}`}>{card.title}</p>
+                                    <p className={`mt-1 text-[22px] font-black ${card.valueColor}`}>{card.value}</p>
+                                    <p className={`mt-0.5 text-[11px] font-medium ${card.subColor}`}>{card.sub}</p>
                                 </div>
-                                <div className={`rounded-xl p-2.5 ${card.iconBg} backdrop-blur-sm transition-transform duration-300 group-hover:scale-110`}>
+                                <div className={`rounded-xl p-2.5 ${card.iconBg} backdrop-blur-sm`}>
                                     <Icon className={`h-5 w-5 ${card.iconColor}`} />
                                 </div>
                             </div>
