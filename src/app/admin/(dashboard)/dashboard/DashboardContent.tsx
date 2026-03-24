@@ -86,40 +86,48 @@ export default async function DashboardContent() {
             value: totalUsers.toLocaleString(),
             sub: "Registered students",
             icon: Users,
-            border: "border-l-[#111827]",
-            valueColor: "text-[#111827]",
-            iconBg: "bg-gray-100",
-            iconColor: "text-gray-600",
+            bg: "bg-[#111827]",
+            valueColor: "text-white",
+            titleColor: "text-gray-300",
+            subColor: "text-gray-400",
+            iconBg: "bg-white/10",
+            iconColor: "text-white",
         },
         {
             title: "Today's Points",
             value: todaysPoints.toLocaleString(),
             sub: `Avg: ${totalUsers > 0 ? (todaysPoints / totalUsers).toFixed(1) : 0} / user`,
             icon: Target,
-            border: "border-l-[#F4C430]", // Gold for points
-            valueColor: "text-[#F4C430]",
-            iconBg: "bg-yellow-50",
-            iconColor: "text-yellow-600",
+            bg: "bg-[#F4C430]",
+            valueColor: "text-[#7A1E1E]",
+            titleColor: "text-[#7A1E1E]/80",
+            subColor: "text-[#7A1E1E]/70",
+            iconBg: "bg-[#7A1E1E]/10",
+            iconColor: "text-[#7A1E1E]",
         },
         {
             title: "Water Dispensed",
             value: waterDispensedMl >= 1000 ? `${(waterDispensedMl / 1000).toLocaleString()} L` : `${waterDispensedMl.toLocaleString()} ml`,
             sub: `${totalRedeemed.toLocaleString()} pts redeemed`,
             icon: Droplet,
-            border: "border-l-[#3B82F6]", // Blue for water
-            valueColor: "text-[#3B82F6]",
-            iconBg: "bg-blue-50",
-            iconColor: "text-blue-600",
+            bg: "bg-[#3B82F6]",
+            valueColor: "text-white",
+            titleColor: "text-white/80",
+            subColor: "text-white/70",
+            iconBg: "bg-white/20",
+            iconColor: "text-white",
         },
         {
             title: "Machine Health",
             value: `${machineHealth}%`,
             sub: `${healthyMachines}/${allMachines} online`,
             icon: Activity,
-            border: machineHealth > 80 ? "border-l-[#16A34A]" : "border-l-[#DC2626]",
-            valueColor: machineHealth > 80 ? "text-[#16A34A]" : "text-[#DC2626]",
-            iconBg: machineHealth > 80 ? "bg-green-50" : "bg-red-50",
-            iconColor: machineHealth > 80 ? "text-green-600" : "text-red-600",
+            bg: machineHealth > 80 ? "bg-[#16A34A]" : "bg-[#DC2626]",
+            valueColor: "text-white",
+            titleColor: "text-white/80",
+            subColor: "text-white/70",
+            iconBg: "bg-white/20",
+            iconColor: "text-white",
         },
     ];
 
@@ -130,27 +138,30 @@ export default async function DashboardContent() {
             value: bottles.toLocaleString(),
             sub: "collected",
             icon: "🍾",
-            border: "border-l-[#16A34A]", // Green
-            valueColor: "text-[#16A34A]",
-            iconBg: "bg-green-50",
+            bg: "bg-[#16A34A]",
+            valueColor: "text-white",
+            titleColor: "text-white/90",
+            iconBg: "bg-white/20",
         },
         {
             title: "Plastic Cups",
             value: cups.toLocaleString(),
             sub: "collected",
             icon: "🥤",
-            border: "border-l-[#F59E0B]", // Orange
-            valueColor: "text-[#F59E0B]",
-            iconBg: "bg-orange-50",
+            bg: "bg-[#F59E0B]",
+            valueColor: "text-white",
+            titleColor: "text-white/90",
+            iconBg: "bg-white/20",
         },
         {
             title: "Module Paper",
             value: paper.toLocaleString(),
             sub: "collected",
             icon: "📄",
-            border: "border-l-[#3B82F6]", // Blue
-            valueColor: "text-[#3B82F6]",
-            iconBg: "bg-blue-50",
+            bg: "bg-[#3B82F6]",
+            valueColor: "text-white",
+            titleColor: "text-white/90",
+            iconBg: "bg-white/20",
         },
     ];
 
@@ -168,8 +179,8 @@ export default async function DashboardContent() {
         <div className="space-y-6">
             {/* Header */}
             <div>
-                <h2 className="text-xl font-bold text-[#111827]">Dashboard Overview</h2>
-                <p className="text-[11px] text-[#6B7280]">
+                <h2 className="text-2xl font-bold text-[#111827]">Dashboard Overview</h2>
+                <p className="text-[13px] text-[#6B7280]">
                     Monitor recycling performance at a glance.
                 </p>
             </div>
@@ -181,15 +192,15 @@ export default async function DashboardContent() {
                     return (
                         <div
                             key={i}
-                            className={`group relative overflow-hidden rounded-xl border border-gray-200 border-l-4 ${card.border} bg-white p-4 shadow-sm transition-all duration-300 hover:shadow-md`}
+                            className={`group relative overflow-hidden rounded-xl border-none ${card.bg} p-4 shadow-md transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5`}
                         >
                             <div className="relative flex items-center justify-between">
                                 <div>
-                                    <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400">{card.title}</p>
-                                    <p className={`mt-1 text-xl font-black ${card.valueColor}`}>{card.value}</p>
-                                    <p className="text-[10px] font-medium text-gray-400">{card.sub}</p>
+                                    <p className={`text-[12px] font-bold uppercase tracking-widest ${card.titleColor}`}>{card.title}</p>
+                                    <p className={`mt-1 text-2xl font-black ${card.valueColor}`}>{card.value}</p>
+                                    <p className={`text-[12px] font-medium ${card.subColor}`}>{card.sub}</p>
                                 </div>
-                                <div className={`rounded-xl p-2 ${card.iconBg}`}>
+                                <div className={`rounded-xl p-2.5 ${card.iconBg} backdrop-blur-sm`}>
                                     <Icon className={`h-4 w-4 ${card.iconColor}`} />
                                 </div>
                             </div>
@@ -206,20 +217,20 @@ export default async function DashboardContent() {
                             <Recycle className="h-3.5 w-3.5 text-[#7A1E1E]" />
                         </div>
                         <div>
-                            <h3 className="text-sm font-bold text-[#111827]">Materials Collected</h3>
-                            <p className="text-[10px] text-[#6B7280]">{totalItems.toLocaleString()} total items recycled</p>
+                            <h3 className="text-base font-bold text-[#111827]">Materials Collected</h3>
+                            <p className="text-[12px] text-[#6B7280]">{totalItems.toLocaleString()} total items recycled</p>
                         </div>
                     </div>
                 </div>
                 <div className="grid grid-cols-3 gap-4">
                     {wasteCards.map((card, i) => (
-                        <div key={i} className="flex items-center gap-3">
-                            <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${card.iconBg} text-xl shadow-sm border border-gray-100`}>
+                        <div key={i} className={`flex items-center gap-3 p-4 rounded-xl ${card.bg} shadow-sm transition-all hover:shadow-md`}>
+                            <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${card.iconBg} text-xl shadow-sm border border-white/10`}>
                                 {card.icon}
                             </div>
                             <div className="min-w-0">
-                                <p className={`text-lg font-black leading-none ${card.valueColor}`}>{card.value}</p>
-                                <p className="mt-1 text-[10px] font-bold text-gray-500 uppercase truncate tracking-tighter">{card.title}</p>
+                                <p className={`text-xl font-black leading-none ${card.valueColor}`}>{card.value}</p>
+                                <p className={`mt-1 text-[12px] font-bold ${card.titleColor} uppercase truncate tracking-tighter`}>{card.title}</p>
                             </div>
                         </div>
                     ))}
@@ -235,9 +246,9 @@ export default async function DashboardContent() {
                             <div className="rounded-lg bg-[#7A1E1E]/10 p-2">
                                 <TrendingUp className="h-4 w-4 text-[#7A1E1E]" />
                             </div>
-                            <h3 className="text-base font-bold text-[#111827]">Daily Point Generation</h3>
+                            <h3 className="text-lg font-bold text-[#111827]">Daily Point Generation</h3>
                         </div>
-                        <span className="rounded-full bg-gray-100 px-3 py-1 text-[11px] font-semibold text-gray-600 border border-gray-200">
+                        <span className="rounded-full bg-gray-100 px-3 py-1 text-[13px] font-semibold text-gray-600 border border-gray-200">
                             Last 7 days
                         </span>
                     </div>
@@ -246,8 +257,8 @@ export default async function DashboardContent() {
 
                 {/* Leaderboard */}
                 <div className="overflow-hidden rounded-xl border border-gray-200 border-l-4 border-l-[#F4C430] bg-white p-6 shadow-sm">
-                    <h3 className="text-base font-bold text-[#111827]">Top Courses</h3>
-                    <p className="mb-5 text-[11px] text-[#6B7280]">Ranked by recycling points</p>
+                    <h3 className="text-lg font-bold text-[#111827]">Top Courses</h3>
+                    <p className="mb-5 text-[13px] text-[#6B7280]">Ranked by recycling points</p>
                     <div className="space-y-3">
                         {leaderboard.map((course, idx: number) => (
                             <div key={course.course} className="flex items-center gap-3 rounded-lg bg-gray-50 px-4 py-3 border border-gray-100">
@@ -255,7 +266,7 @@ export default async function DashboardContent() {
                                     {idx + 1}
                                 </div>
                                 <div className="flex-1 min-w-0">
-                                    <p className="text-sm font-bold text-[#111827] truncate">{course.course}</p>
+                                    <p className="text-base font-bold text-[#111827] truncate">{course.course}</p>
                                     <div className="mt-1.5 h-1.5 w-full rounded-full bg-gray-200 overflow-hidden">
                                         <div
                                             className="h-full rounded-full bg-[#7A1E1E] transition-all duration-500"
@@ -264,8 +275,8 @@ export default async function DashboardContent() {
                                     </div>
                                 </div>
                                 <div className="text-right shrink-0">
-                                    <p className="text-sm font-black text-[#7A1E1E]">{course.points}</p>
-                                    <p className="text-[10px] font-medium text-[#6B7280]">{course.items} items</p>
+                                    <p className="text-base font-black text-[#7A1E1E]">{course.points}</p>
+                                    <p className="text-[12px] font-medium text-[#6B7280]">{course.items} items</p>
                                 </div>
                             </div>
                         ))}

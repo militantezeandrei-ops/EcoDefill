@@ -65,48 +65,48 @@ export default async function TransactionsPage() {
         <div className="space-y-8">
             {/* Header */}
             <div>
-                <h2 className="text-2xl font-bold text-gray-900">Transaction Logs</h2>
-                <p className="mt-1 text-sm text-gray-400">
+                <h2 className="text-3xl font-bold text-gray-900">Transaction Logs</h2>
+                <p className="mt-1 text-base text-gray-400">
                     Review recent ecological contributions and rewards. Click a date to expand.
                 </p>
             </div>
 
             {/* Quick Summary */}
             <div className="grid grid-cols-2 gap-4">
-                <div className="group relative overflow-hidden rounded-2xl border border-gray-100 bg-gradient-to-br from-emerald-500/10 to-green-500/5 p-5 transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5">
-                    <div className="absolute -right-6 -top-6 h-24 w-24 rounded-full bg-gray-200/10 transition-transform duration-500 group-hover:scale-125" />
+                <div className="group relative overflow-hidden rounded-2xl bg-[#16A34A] p-5 shadow-md transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5">
+                    <div className="absolute -right-6 -top-6 h-24 w-24 rounded-full bg-white/10 transition-transform duration-500 group-hover:scale-125" />
                     <div className="relative flex items-start justify-between">
                         <div>
-                            <p className="text-[11px] font-bold uppercase tracking-wider text-gray-400">Total Earned</p>
-                            <p className="mt-2 text-2xl font-black text-gray-900">{totalEarned} <span className="text-sm font-bold text-emerald-500">pts</span></p>
-                            <p className="mt-1 text-[11px] font-medium text-gray-400">From recycling activities</p>
+                            <p className="text-[13px] font-bold uppercase tracking-wider text-white/80">Total Earned</p>
+                            <p className="mt-2 text-3xl font-black text-white">{totalEarned} <span className="text-base font-bold text-white/70">pts</span></p>
+                            <p className="mt-1 text-[13px] font-medium text-white/60">From recycling activities</p>
                         </div>
-                        <div className="rounded-xl bg-emerald-500/10 p-2.5 transition-transform duration-300 group-hover:scale-110">
-                            <TrendingUp className="h-5 w-5 text-emerald-500" />
+                        <div className="rounded-xl bg-white/20 p-2.5 backdrop-blur-sm transition-transform duration-300 group-hover:scale-110">
+                            <TrendingUp className="h-5 w-5 text-white" />
                         </div>
                     </div>
                 </div>
-                <div className="group relative overflow-hidden rounded-2xl border border-gray-100 bg-gradient-to-br from-cyan-500/10 to-sky-500/5 p-5 transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5">
-                    <div className="absolute -right-6 -top-6 h-24 w-24 rounded-full bg-gray-200/10 transition-transform duration-500 group-hover:scale-125" />
+                <div className="group relative overflow-hidden rounded-2xl bg-[#3B82F6] p-5 shadow-md transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5">
+                    <div className="absolute -right-6 -top-6 h-24 w-24 rounded-full bg-white/10 transition-transform duration-500 group-hover:scale-125" />
                     <div className="relative flex items-start justify-between">
                         <div>
-                            <p className="text-[11px] font-bold uppercase tracking-wider text-gray-400">Total Redeemed</p>
-                            <p className="mt-2 text-2xl font-black text-gray-900">{totalRedeemed} <span className="text-sm font-bold text-cyan-500">pts</span></p>
-                            <p className="mt-1 text-[11px] font-medium text-gray-400">{(totalRedeemed * 100).toLocaleString()} ml dispensed</p>
+                            <p className="text-[13px] font-bold uppercase tracking-wider text-white/80">Total Redeemed</p>
+                            <p className="mt-2 text-3xl font-black text-white">{totalRedeemed} <span className="text-base font-bold text-white/70">pts</span></p>
+                            <p className="mt-1 text-[13px] font-medium text-white/60">{(totalRedeemed * 100).toLocaleString()} ml dispensed</p>
                         </div>
-                        <div className="rounded-xl bg-cyan-500/10 p-2.5 transition-transform duration-300 group-hover:scale-110">
-                            <ArrowDownRight className="h-5 w-5 text-cyan-500" />
+                        <div className="rounded-xl bg-white/20 p-2.5 backdrop-blur-sm transition-transform duration-300 group-hover:scale-110">
+                            <ArrowDownRight className="h-5 w-5 text-white" />
                         </div>
                     </div>
                 </div>
             </div>
 
             {/* Eco Tip */}
-            <div className="flex items-center gap-3 rounded-2xl border border-emerald-100 bg-gradient-to-r from-emerald-50/80 to-green-50/50 px-5 py-4">
-                <div className="rounded-lg bg-emerald-500/10 p-2">
-                    <Lightbulb className="h-5 w-5 text-emerald-500" />
+            <div className="flex items-center gap-3 rounded-2xl border-none bg-[#E8F5E9] px-5 py-4 shadow-sm">
+                <div className="rounded-lg bg-[#16A34A] p-2">
+                    <Lightbulb className="h-5 w-5 text-white" />
                 </div>
-                <p className="text-sm text-emerald-700">
+                <p className="text-base text-[#1B5E20]">
                     <span className="font-bold">Eco Fact:</span> Every 500ml bottle recycled saves enough energy to light a 100-watt bulb for four hours!
                 </p>
             </div>

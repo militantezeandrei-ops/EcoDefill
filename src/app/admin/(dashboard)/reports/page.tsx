@@ -53,27 +53,36 @@ export default async function ReportsPage() {
             value: totalUsers.toLocaleString(),
             sub: "Registered students",
             icon: Users,
-            gradient: "from-blue-500/10 to-indigo-500/5",
-            iconBg: "bg-blue-500/10",
-            iconColor: "text-blue-500",
+            bg: "bg-[#3B82F6]",
+            iconBg: "bg-white/20",
+            iconColor: "text-white",
+            valueColor: "text-white",
+            titleColor: "text-white/80",
+            subColor: "text-white/60",
         },
         {
             title: "Recycling Volume",
             value: `${totalItemsRecycled.toLocaleString()}`,
             sub: "Items recycled",
             icon: Recycle,
-            gradient: "from-emerald-500/10 to-green-500/5",
-            iconBg: "bg-emerald-500/10",
-            iconColor: "text-emerald-500",
+            bg: "bg-[#16A34A]",
+            iconBg: "bg-white/20",
+            iconColor: "text-white",
+            valueColor: "text-white",
+            titleColor: "text-white/80",
+            subColor: "text-white/60",
         },
         {
             title: "Transactions",
             value: totalTransactions.toLocaleString(),
             sub: "Total recorded",
             icon: Receipt,
-            gradient: "from-purple-500/10 to-violet-500/5",
-            iconBg: "bg-purple-500/10",
-            iconColor: "text-purple-500",
+            bg: "bg-[#8B5CF6]",
+            iconBg: "bg-white/20",
+            iconColor: "text-white",
+            valueColor: "text-white",
+            titleColor: "text-white/80",
+            subColor: "text-white/60",
         },
     ];
 
@@ -81,23 +90,29 @@ export default async function ReportsPage() {
         {
             title: "User Activity Report",
             tag: "Community",
-            tagColor: "bg-blue-50 text-blue-600 border border-blue-100",
+            tagColor: "bg-white/20 text-white border border-white/30",
             desc: "Comprehensive analysis of user registrations, engagement metrics, and regional participation trends across the network.",
-            gradient: "from-blue-500/5 to-transparent",
+            bg: "bg-[#2563EB]",
+            textColor: "text-white",
+            descColor: "text-white/80",
         },
         {
             title: "Recycling Performance",
             tag: "Sustainability",
-            tagColor: "bg-emerald-50 text-emerald-600 border border-emerald-100",
+            tagColor: "bg-white/20 text-white border border-white/30",
             desc: "Detailed breakdown of collected material types and weights. Monitor progress towards environmental sustainability goals.",
-            gradient: "from-emerald-500/5 to-transparent",
+            bg: "bg-[#059669]",
+            textColor: "text-white",
+            descColor: "text-white/80",
         },
         {
             title: "Transaction History",
             tag: "Finance",
-            tagColor: "bg-purple-50 text-purple-600 border border-purple-100",
+            tagColor: "bg-white/20 text-white border border-white/30",
             desc: "Audited log of all refill station transactions, revenue generation, and reward redemption activities for the selected period.",
-            gradient: "from-purple-500/5 to-transparent",
+            bg: "bg-[#7C3AED]",
+            textColor: "text-white",
+            descColor: "text-white/80",
         },
     ];
 
@@ -111,8 +126,8 @@ export default async function ReportsPage() {
         <div className="space-y-8">
             {/* Header */}
             <div>
-                <h2 className="text-2xl font-bold text-gray-900">Environmental Reports</h2>
-                <p className="mt-1 text-sm text-gray-400">Generate, analyze, and export your sustainability performance data.</p>
+                <h2 className="text-3xl font-bold text-gray-900">Environmental Reports</h2>
+                <p className="mt-1 text-base text-gray-400">Generate, analyze, and export your sustainability performance data.</p>
             </div>
 
             {/* Summary */}
@@ -120,15 +135,15 @@ export default async function ReportsPage() {
                 {summaryCards.map((card) => {
                     const Icon = card.icon;
                     return (
-                        <div key={card.title} className={`group relative overflow-hidden rounded-2xl border border-gray-100 bg-gradient-to-br ${card.gradient} p-5 transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5`}>
-                            <div className="absolute -right-6 -top-6 h-24 w-24 rounded-full bg-gray-200/10 transition-transform duration-500 group-hover:scale-125" />
+                        <div key={card.title} className={`group relative overflow-hidden rounded-2xl ${card.bg} p-5 shadow-md transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5`}>
+                            <div className="absolute -right-6 -top-6 h-24 w-24 rounded-full bg-white/10 transition-transform duration-500 group-hover:scale-125" />
                             <div className="relative flex items-start justify-between">
                                 <div>
-                                    <p className="text-[11px] font-bold uppercase tracking-wider text-gray-400">{card.title}</p>
-                                    <p className="mt-2 text-2xl font-black text-gray-900">{card.value}</p>
-                                    <p className="mt-1 text-[11px] font-medium text-gray-400">{card.sub}</p>
+                                    <p className={`text-[13px] font-bold uppercase tracking-wider ${card.titleColor}`}>{card.title}</p>
+                                    <p className={`mt-2 text-3xl font-black ${card.valueColor}`}>{card.value}</p>
+                                    <p className={`mt-1 text-[13px] font-medium ${card.subColor}`}>{card.sub}</p>
                                 </div>
-                                <div className={`rounded-xl p-2.5 ${card.iconBg} transition-transform duration-300 group-hover:scale-110`}>
+                                <div className={`rounded-xl p-2.5 ${card.iconBg} backdrop-blur-sm transition-transform duration-300 group-hover:scale-110`}>
                                     <Icon className={`h-5 w-5 ${card.iconColor}`} />
                                 </div>
                             </div>
@@ -140,14 +155,14 @@ export default async function ReportsPage() {
             {/* Report Cards */}
             <div className="grid grid-cols-3 gap-4">
                 {reportCards.map((r) => (
-                    <div key={r.title} className={`group relative overflow-hidden rounded-2xl border border-gray-100 bg-gradient-to-b ${r.gradient} p-6 transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5`}>
-                        <div className="absolute -right-8 -bottom-8 h-32 w-32 rounded-full bg-gray-200/5 transition-transform duration-500 group-hover:scale-150" />
+                    <div key={r.title} className={`group relative overflow-hidden rounded-2xl ${r.bg} p-6 shadow-md transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5`}>
+                        <div className="absolute -right-8 -bottom-8 h-32 w-32 rounded-full bg-white/10 transition-transform duration-500 group-hover:scale-150" />
                         <div className="relative">
-                            <span className={`rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider ${r.tagColor}`}>{r.tag}</span>
-                            <h3 className="mt-3 text-base font-bold text-gray-900">{r.title}</h3>
-                            <p className="mt-2 text-sm leading-relaxed text-gray-400">{r.desc}</p>
-                            <button className="mt-4 flex items-center gap-2 text-[12px] font-bold text-gray-400 transition-colors hover:text-gray-700">
-                                <Download className="h-3.5 w-3.5" />
+                            <span className={`rounded-full px-2.5 py-1 text-[12px] font-bold uppercase tracking-wider ${r.tagColor}`}>{r.tag}</span>
+                            <h3 className={`mt-3 text-lg font-bold ${r.textColor}`}>{r.title}</h3>
+                            <p className={`mt-2 text-base leading-relaxed ${r.descColor}`}>{r.desc}</p>
+                            <button className="mt-4 flex items-center gap-2 text-sm font-bold text-white/70 transition-colors hover:text-white">
+                                <Download className="h-4 w-4" />
                                 Export Report
                             </button>
                         </div>
@@ -163,8 +178,8 @@ export default async function ReportsPage() {
                             <Trophy className="h-4 w-4 text-amber-500" />
                         </div>
                         <div>
-                            <h3 className="text-base font-bold text-gray-900">Most Active Students</h3>
-                            <p className="text-[11px] text-gray-400">Top 10 by recycling points earned</p>
+                            <h3 className="text-lg font-bold text-gray-900">Most Active Students</h3>
+                            <p className="text-[13px] text-gray-400">Top 10 by recycling points earned</p>
                         </div>
                     </div>
                 </div>
@@ -172,7 +187,7 @@ export default async function ReportsPage() {
                     {activeStudents.map((user, idx) => (
                         <div key={user.email} className="group flex items-center justify-between px-6 py-4 transition-all hover:bg-blue-50/20">
                             <div className="flex items-center gap-4">
-                                <div className={`flex h-8 w-8 items-center justify-center rounded-lg text-[11px] font-black shadow-sm ${
+                                <div className={`flex h-8 w-8 items-center justify-center rounded-lg text-[13px] font-black shadow-sm ${
                                     idx < 3 ? medalStyles[idx] : "bg-gray-100 text-gray-500"
                                 }`}>
                                     {idx + 1}
@@ -182,8 +197,8 @@ export default async function ReportsPage() {
                                         {user.fullName?.[0]?.toUpperCase() || user.email[0].toUpperCase()}
                                     </div>
                                     <div>
-                                        <p className="text-[13px] font-bold text-gray-900">{user.fullName || user.email}</p>
-                                        <p className="text-[10px] font-medium text-gray-400">{user.course} – {user.section}</p>
+                                        <p className="text-[15px] font-bold text-gray-900">{user.fullName || user.email}</p>
+                                        <p className="text-[12px] font-medium text-gray-400">{user.course} – {user.section}</p>
                                     </div>
                                 </div>
                             </div>
@@ -197,14 +212,14 @@ export default async function ReportsPage() {
                                     </div>
                                 </div>
                                 <div className="text-right min-w-[80px]">
-                                    <p className="text-sm font-black text-emerald-500">{user.totalPoints} <span className="text-[10px] font-bold text-gray-400">pts</span></p>
-                                    <p className="text-[10px] font-medium text-gray-400">{user.totalItems} items</p>
+                                    <p className="text-base font-black text-emerald-500">{user.totalPoints} <span className="text-[12px] font-bold text-gray-400">pts</span></p>
+                                    <p className="text-[12px] font-medium text-gray-400">{user.totalItems} items</p>
                                 </div>
                             </div>
                         </div>
                     ))}
                     {activeStudents.length === 0 && (
-                        <div className="px-6 py-6 text-center text-sm text-gray-400">No active students yet.</div>
+                        <div className="px-6 py-6 text-center text-base text-gray-400">No active students yet.</div>
                     )}
                 </div>
             </div>

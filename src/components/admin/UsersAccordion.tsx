@@ -40,30 +40,30 @@ const getCourseAccent = (course: string) => {
     
     // IT - Green
     if (c.includes("IT")) 
-        return { bg: "bg-emerald-50", text: "text-emerald-700", border: "border-emerald-200", iconBg: "bg-emerald-100" };
+        return { bg: "bg-[#16A34A]", text: "text-white", border: "border-[#16A34A]/20", iconBg: "bg-white/20" };
     
     // CS - Red
     if (c.includes("CS")) 
-        return { bg: "bg-red-50", text: "text-red-700", border: "border-red-200", iconBg: "bg-red-100" };
+        return { bg: "bg-[#DC2626]", text: "text-white", border: "border-[#DC2626]/20", iconBg: "bg-white/20" };
     
-    // TM - Black
+    // TM - Gold
     if (c.includes("TM")) 
-        return { bg: "bg-zinc-100", text: "text-zinc-900", border: "border-zinc-300", iconBg: "bg-zinc-200" };
+        return { bg: "bg-[#F4C430]", text: "text-[#7A1E1E]", border: "border-[#F4C430]/20", iconBg: "bg-[#7A1E1E]/10" };
     
-    // HM - Light Blue
+    // HM - Blue
     if (c.includes("HM")) 
-        return { bg: "bg-sky-50", text: "text-sky-600", border: "border-sky-200", iconBg: "bg-sky-100" };
+        return { bg: "bg-[#3B82F6]", text: "text-white", border: "border-[#3B82F6]/20", iconBg: "bg-white/20" };
     
-    // OAD - Pink
+    // OAD - Purple
     if (c.includes("OAD")) 
-        return { bg: "bg-pink-50", text: "text-pink-600", border: "border-pink-200", iconBg: "bg-pink-100" };
+        return { bg: "bg-[#8B5CF6]", text: "text-white", border: "border-[#8B5CF6]/20", iconBg: "bg-white/20" };
 
-    // Education (Maroon) fallback
+    // Education (Rose)
     if (c.includes("ED")) 
-        return { bg: "bg-rose-50", text: "text-rose-900", border: "border-rose-200", iconBg: "bg-rose-100" };
+        return { bg: "bg-[#F43F5E]", text: "text-white", border: "border-[#F43F5E]/20", iconBg: "bg-white/20" };
     
     // Default fallback
-    return { bg: "bg-gray-50", text: "text-gray-700", border: "border-gray-200", iconBg: "bg-gray-100" };
+    return { bg: "bg-gray-800", text: "text-white", border: "border-gray-700", iconBg: "bg-white/10" };
 };
 
 export default function UsersAccordion({ courses }: { courses: CourseGroup[] }) {
@@ -76,7 +76,7 @@ export default function UsersAccordion({ courses }: { courses: CourseGroup[] }) 
         return (
             <div className="rounded-2xl border border-gray-100 bg-white px-6 py-12 text-center shadow-sm">
                 <UserIcon className="mx-auto h-8 w-8 text-gray-300 mb-3" />
-                <p className="text-sm text-gray-500 font-medium">No students found.</p>
+                <p className="text-base text-gray-500 font-medium">No students found.</p>
             </div>
         );
     }
@@ -112,7 +112,7 @@ export default function UsersAccordion({ courses }: { courses: CourseGroup[] }) 
                         <button
                             key={courseGroup.course}
                             onClick={() => handleCourseSelect(courseGroup.course)}
-                            className={`flex items-center gap-2 rounded-xl px-4 py-2.5 text-[12px] font-bold transition-all whitespace-nowrap ${
+                            className={`flex items-center gap-2 rounded-xl px-4 py-2.5 text-[14px] font-bold transition-all whitespace-nowrap ${
                                 isSelected
                                     ? `${ca.bg} ring-1 ring-inset ${ca.border} ${ca.text} shadow-sm`
                                     : "bg-white border border-gray-100 text-gray-400 hover:bg-gray-50"
@@ -134,8 +134,8 @@ export default function UsersAccordion({ courses }: { courses: CourseGroup[] }) 
                             <School className={`h-5 w-5 ${accent.text}`} />
                         </div>
                         <div>
-                            <p className="text-base font-black text-gray-900">{activeCourse.course}</p>
-                            <p className="text-[10px] text-gray-500 font-bold uppercase tracking-tighter">
+                            <p className={`text-xl font-black ${accent.text}`}>{activeCourse.course}</p>
+                            <p className={`text-[13px] ${accent.text} opacity-80 font-bold uppercase tracking-tighter`}>
                                 {totalStudents} Students • {activeCourse.totalPoints} Pts • {activeCourse.totalItems} Items
                             </p>
                         </div>
@@ -144,7 +144,7 @@ export default function UsersAccordion({ courses }: { courses: CourseGroup[] }) 
 
                 {/* 2. Horizontal Year Pills */}
                 <div className="px-6 py-4 border-b border-gray-50 bg-gray-50/10">
-                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3">Select Year Level</p>
+                    <p className="text-[12px] font-black text-gray-400 uppercase tracking-widest mb-3">Select Year Level</p>
                     <div className="flex flex-wrap gap-2">
                         {yearList.map((y) => {
                             const isYearSelected = displayYear === y.yearLevel;
@@ -152,7 +152,7 @@ export default function UsersAccordion({ courses }: { courses: CourseGroup[] }) 
                                 <button
                                     key={y.yearLevel}
                                     onClick={() => { setSelectedYear(y.yearLevel); setSelectedSection(""); }}
-                                    className={`rounded-lg px-4 py-2 text-[11px] font-bold transition-all ${
+                                    className={`rounded-lg px-4 py-2 text-[13px] font-bold transition-all ${
                                         isYearSelected 
                                             ? `${accent.bg} ${accent.text} ring-1 ${accent.border}` 
                                             : "bg-white text-gray-400 border border-gray-100 hover:bg-gray-50"
@@ -168,7 +168,7 @@ export default function UsersAccordion({ courses }: { courses: CourseGroup[] }) 
                 {/* 3. Horizontal Section Pills */}
                 {displayYear && (
                     <div className="px-6 py-4 border-b border-gray-50 bg-white">
-                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3">Select Section</p>
+                        <p className="text-[12px] font-black text-gray-400 uppercase tracking-widest mb-3">Select Section</p>
                         <div className="flex flex-wrap gap-2">
                             {sectionList.map((s) => {
                                 const isSecSelected = displaySection === s.section;
@@ -176,7 +176,7 @@ export default function UsersAccordion({ courses }: { courses: CourseGroup[] }) 
                                     <button
                                         key={s.section}
                                         onClick={() => setSelectedSection(s.section)}
-                                        className={`rounded-lg px-4 py-2 text-[11px] font-bold transition-all ${
+                                        className={`rounded-lg px-4 py-2 text-[13px] font-bold transition-all ${
                                             isSecSelected 
                                                 ? "bg-gray-900 text-white shadow-sm" 
                                                 : "bg-gray-50 text-gray-400 border border-gray-100 hover:bg-gray-100"
@@ -197,10 +197,10 @@ export default function UsersAccordion({ courses }: { courses: CourseGroup[] }) 
                             <table className="min-w-full">
                                 <thead>
                                     <tr className="bg-gray-50/50 border-b border-gray-100">
-                                        <th className="px-5 py-2.5 text-left text-[9px] font-black uppercase tracking-widest text-gray-400">Student</th>
-                                        <th className="px-5 py-2.5 text-left text-[9px] font-black uppercase tracking-widest text-gray-400">Points</th>
-                                        <th className="px-5 py-2.5 text-left text-[9px] font-black uppercase tracking-widest text-gray-400">Items</th>
-                                        <th className="px-5 py-2.5 text-left text-[9px] font-black uppercase tracking-widest text-gray-400 text-right">Status</th>
+                                        <th className="px-5 py-2.5 text-left text-[11px] font-black uppercase tracking-widest text-gray-400">Student</th>
+                                        <th className="px-5 py-2.5 text-left text-[11px] font-black uppercase tracking-widest text-gray-400">Points</th>
+                                        <th className="px-5 py-2.5 text-left text-[11px] font-black uppercase tracking-widest text-gray-400">Items</th>
+                                        <th className="px-5 py-2.5 text-left text-[11px] font-black uppercase tracking-widest text-gray-400 text-right">Status</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-gray-50">
@@ -208,25 +208,25 @@ export default function UsersAccordion({ courses }: { courses: CourseGroup[] }) 
                                         <tr key={u.id} className="transition-colors hover:bg-gray-50/50">
                                             <td className="px-5 py-3">
                                                 <div className="flex items-center gap-3">
-                                                    <div className={`flex h-7 w-7 items-center justify-center rounded-lg ${accent.bg} ${accent.text} text-[10px] font-black`}>
+                                                    <div className={`flex h-7 w-7 items-center justify-center rounded-lg ${accent.bg} ${accent.text} text-[12px] font-black`}>
                                                         {u.name ? u.name[0].toUpperCase() : u.email[0].toUpperCase()}
                                                     </div>
                                                     <div className="flex flex-col">
-                                                        <span className="text-[12px] font-bold text-gray-900 truncate max-w-[150px]">{u.name || "Student"}</span>
-                                                        <span className="text-[9px] font-medium text-gray-400">{u.email}</span>
+                                                        <span className="text-[14px] font-bold text-gray-900 truncate max-w-[150px]">{u.name || "Student"}</span>
+                                                        <span className="text-[11px] font-medium text-gray-400">{u.email}</span>
                                                     </div>
                                                 </div>
                                             </td>
                                             <td className="px-5 py-3">
-                                                <span className="text-xs font-black text-emerald-600">{u.totalEarned.toLocaleString()}</span>
-                                                <span className="ml-1 text-[9px] font-bold text-gray-400 uppercase">pts</span>
+                                                <span className="text-sm font-black text-emerald-600">{u.totalEarned.toLocaleString()}</span>
+                                                <span className="ml-1 text-[11px] font-bold text-gray-400 uppercase">pts</span>
                                             </td>
-                                            <td className="px-5 py-3 text-xs font-bold text-gray-600">{u.totalItems}</td>
+                                            <td className="px-5 py-3 text-sm font-bold text-gray-600">{u.totalItems}</td>
                                             <td className="px-5 py-3 text-right">
-                                                <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[8px] font-black uppercase tracking-tighter ${
+                                                <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-black uppercase tracking-tighter ${
                                                     u.status === "ACTIVE" 
-                                                        ? "bg-emerald-50 text-emerald-600 border border-emerald-100" 
-                                                        : "bg-gray-50 text-gray-400 border border-gray-100"
+                                                        ? "bg-[#16A34A] text-white" 
+                                                        : "bg-gray-400 text-white"
                                                 }`}>
                                                     {u.status}
                                                 </span>

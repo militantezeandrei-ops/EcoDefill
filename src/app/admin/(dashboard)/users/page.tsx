@@ -130,14 +130,14 @@ export default async function UsersPage() {
         <div className="space-y-6">
             <div className="flex items-center justify-between">
                 <div>
-                    <h2 className="text-2xl font-bold text-gray-900">User List</h2>
-                    <p className="mt-1 text-sm text-gray-500">
+                    <h2 className="text-3xl font-bold text-gray-900">User List</h2>
+                    <p className="mt-1 text-base text-gray-500">
                         View student recycling participation grouped structurally by Course, Year Level, and Section.
                     </p>
                 </div>
                 <div className="flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-2 shadow-sm">
                     <Search className="h-4 w-4 text-gray-400" />
-                    <span className="text-sm text-gray-400">Search users...</span>
+                    <span className="text-base text-gray-400">Search users...</span>
                 </div>
             </div>
 

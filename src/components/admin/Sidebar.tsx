@@ -61,8 +61,8 @@ export default function Sidebar() {
                     />
                 </div>
                 <div>
-                    <h1 className="text-lg font-bold tracking-tight text-white leading-tight">EcoDefill</h1>
-                    <p className="text-[11px] font-semibold text-zinc-400 uppercase tracking-widest">Admin Console</p>
+                    <h1 className="text-xl font-bold tracking-tight text-white leading-tight">EcoDefill</h1>
+                    <p className="text-[13px] font-semibold text-zinc-400 uppercase tracking-widest">Admin Console</p>
                 </div>
             </div>
 
@@ -70,7 +70,7 @@ export default function Sidebar() {
             <nav className="flex-1 space-y-6 px-4 mt-1 overflow-y-auto">
                 {navGroups.map((group) => (
                     <div key={group.label}>
-                        <p className="mb-2 px-3 text-[10px] font-bold uppercase tracking-[0.15em] text-zinc-500">
+                        <p className="mb-2 px-3 text-[12px] font-bold uppercase tracking-[0.15em] text-zinc-500">
                             {group.label}
                         </p>
                         <div className="space-y-1">
@@ -82,7 +82,7 @@ export default function Sidebar() {
                                         key={item.href}
                                         href={item.href}
                                         prefetch={true}
-                                        className={`group relative flex items-center gap-3 rounded-xl px-4 py-2.5 text-[13px] font-semibold transition-all duration-200 ${
+                                        className={`group relative flex items-center gap-3 rounded-xl px-4 py-2.5 text-[15px] font-semibold transition-all duration-200 ${
                                             isActive
                                                 ? "bg-zinc-900 text-[#F4C430]"
                                                 : "text-zinc-400 hover:bg-zinc-900/50 hover:text-zinc-200"
@@ -106,19 +106,19 @@ export default function Sidebar() {
             <div className="border-t border-zinc-900 px-5 py-5 bg-zinc-950">
                 <div className="mb-3 flex items-center gap-3 px-1">
                     <div className="relative">
-                        <div className="flex h-9 w-9 items-center justify-center rounded-full bg-zinc-900 text-sm font-bold text-white ring-2 ring-zinc-800">
+                        <div className="flex h-9 w-9 items-center justify-center rounded-full bg-zinc-900 text-base font-bold text-white ring-2 ring-zinc-800">
                             A
                         </div>
                         <div className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-zinc-950 bg-[#16A34A]" />
                     </div>
                     <div>
-                        <p className="text-sm font-bold text-white">System Admin</p>
-                        <p className="text-[11px] font-medium text-zinc-500">Marilao Command</p>
+                        <p className="text-base font-bold text-white">System Admin</p>
+                        <p className="text-[13px] font-medium text-zinc-500">Marilao Command</p>
                     </div>
                 </div>
                 <button
                     onClick={handleLogout}
-                    className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] font-bold text-red-400/80 transition-all hover:bg-red-500/10 hover:text-red-400"
+                    className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-[15px] font-bold text-red-400/80 transition-all hover:bg-red-500/10 hover:text-red-400"
                 >
                     <LogOut className="h-4 w-4" />
                     Logout

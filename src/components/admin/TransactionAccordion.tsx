@@ -50,8 +50,8 @@ export default function TransactionAccordion({ groups }: { groups: DayGroup[] })
                                     <Calendar className={`h-5 w-5 ${isOpen ? "text-emerald-500" : "text-gray-400"}`} />
                                 </div>
                                 <div className="text-left">
-                                    <p className="text-sm font-bold text-gray-900">{group.label}</p>
-                                    <p className="text-[11px] font-medium text-gray-400">
+                                    <p className="text-base font-bold text-gray-900">{group.label}</p>
+                                    <p className="text-[13px] font-medium text-gray-400">
                                         {group.count} transaction{group.count !== 1 ? "s" : ""}
                                         {group.totalEarned > 0 && <span className="ml-2 font-bold text-emerald-500">+{group.totalEarned} earned</span>}
                                         {group.totalRedeemed > 0 && <span className="ml-2 font-bold text-cyan-500">−{group.totalRedeemed} redeemed</span>}
@@ -73,43 +73,43 @@ export default function TransactionAccordion({ groups }: { groups: DayGroup[] })
                                 <table className="min-w-full">
                                     <thead className="sticky top-0 z-10 bg-gray-50/95 backdrop-blur-sm">
                                         <tr>
-                                            <th className="px-6 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-gray-400">Time</th>
-                                            <th className="px-6 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-gray-400">User</th>
-                                            <th className="px-6 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-gray-400">Type</th>
-                                            <th className="px-6 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-gray-400">Material</th>
-                                            <th className="px-6 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-gray-400">Points</th>
-                                            <th className="px-6 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-gray-400">Status</th>
+                                            <th className="px-6 py-3 text-left text-[12px] font-bold uppercase tracking-widest text-gray-400">Time</th>
+                                            <th className="px-6 py-3 text-left text-[12px] font-bold uppercase tracking-widest text-gray-400">User</th>
+                                            <th className="px-6 py-3 text-left text-[12px] font-bold uppercase tracking-widest text-gray-400">Type</th>
+                                            <th className="px-6 py-3 text-left text-[12px] font-bold uppercase tracking-widest text-gray-400">Material</th>
+                                            <th className="px-6 py-3 text-left text-[12px] font-bold uppercase tracking-widest text-gray-400">Points</th>
+                                            <th className="px-6 py-3 text-left text-[12px] font-bold uppercase tracking-widest text-gray-400">Status</th>
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-gray-50">
                                         {group.transactions.map((tx) => (
                                             <tr key={tx.id} className="transition-colors hover:bg-blue-50/20">
-                                                <td className="px-6 py-3.5 text-[13px] font-medium text-gray-500">
+                                                <td className="px-6 py-3.5 text-[15px] font-medium text-gray-500">
                                                     {new Date(tx.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                                                 </td>
                                                 <td className="px-6 py-3.5">
                                                     <div className="flex items-center gap-2.5">
-                                                        <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-indigo-500/10 text-[10px] font-black text-indigo-600">
+                                                        <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-indigo-500/10 text-[12px] font-black text-indigo-600">
                                                             {tx.user?.email?.[0]?.toUpperCase() || "?"}
                                                         </div>
-                                                        <span className="text-[13px] font-bold text-gray-800">{tx.user?.email || "—"}</span>
+                                                        <span className="text-[15px] font-bold text-gray-800">{tx.user?.email || "—"}</span>
                                                     </div>
                                                 </td>
                                                 <td className="px-6 py-3.5">
-                                                    <span className={`rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider ${
+                                                    <span className={`rounded-full px-2.5 py-1 text-[12px] font-bold uppercase tracking-wider ${
                                                         tx.type === "EARN"
                                                             ? "bg-emerald-50 text-emerald-600 border border-emerald-100"
                                                             : "bg-cyan-50 text-cyan-600 border border-cyan-100"
                                                     }`}>{tx.type}</span>
                                                 </td>
-                                                <td className="px-6 py-3.5 text-[13px] font-medium text-gray-500">{tx.materialType || "—"}</td>
+                                                <td className="px-6 py-3.5 text-[15px] font-medium text-gray-500">{tx.materialType || "—"}</td>
                                                 <td className="px-6 py-3.5">
-                                                    <span className={`text-[13px] font-black ${tx.type === "EARN" ? "text-emerald-500" : "text-red-500"}`}>
+                                                    <span className={`text-[15px] font-black ${tx.type === "EARN" ? "text-emerald-500" : "text-red-500"}`}>
                                                         {tx.type === "EARN" ? "+" : "−"}{tx.amount}
                                                     </span>
                                                 </td>
                                                 <td className="px-6 py-3.5">
-                                                    <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[9px] font-black uppercase tracking-widest shadow-sm ${
+                                                    <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-black uppercase tracking-widest shadow-sm ${
                                                         tx.status === "SUCCESS"
                                                             ? "bg-emerald-50 text-emerald-600 border border-emerald-100"
                                                             : "bg-red-50 text-red-500 border border-red-100"
@@ -130,7 +130,7 @@ export default function TransactionAccordion({ groups }: { groups: DayGroup[] })
 
             {groups.length === 0 && (
                 <div className="rounded-2xl border border-gray-100 bg-white px-6 py-12 text-center shadow-sm">
-                    <p className="text-sm text-gray-400">No transactions found.</p>
+                    <p className="text-base text-gray-400">No transactions found.</p>
                 </div>
             )}
         </div>

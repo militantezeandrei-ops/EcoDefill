@@ -45,8 +45,8 @@ export default function SettingsPage() {
     return (
         <div className="space-y-8">
             <div>
-                <h2 className="text-2xl font-bold text-gray-900">Settings</h2>
-                <p className="mt-1 text-sm text-gray-400">Manage your admin panel preferences and system configuration.</p>
+                <h2 className="text-3xl font-bold text-gray-900">Settings</h2>
+                <p className="mt-1 text-base text-gray-400">Manage your admin panel preferences and system configuration.</p>
             </div>
 
             <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
@@ -60,15 +60,15 @@ export default function SettingsPage() {
                                         <Icon className={`h-5 w-5 ${section.iconColor}`} />
                                     </div>
                                     <div>
-                                        <h3 className="text-base font-bold text-gray-900">{section.title}</h3>
-                                        <p className="text-[11px] text-gray-400">{section.desc}</p>
+                                        <h3 className="text-lg font-bold text-gray-900">{section.title}</h3>
+                                        <p className="text-[13px] text-gray-400">{section.desc}</p>
                                     </div>
                                 </div>
                             </div>
                             <div className="divide-y divide-gray-50 px-6">
                                 {section.items.map((item) => (
                                     <div key={item.label} className="flex items-center justify-between py-4">
-                                        <span className="text-[13px] font-medium text-gray-700">{item.label}</span>
+                                        <span className="text-[15px] font-medium text-gray-700">{item.label}</span>
                                         {/* Toggle switch (cosmetic) */}
                                         <div className={`relative h-6 w-11 cursor-pointer rounded-full transition-colors ${item.enabled ? "bg-emerald-500" : "bg-gray-200"}`}>
                                             <div className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow-sm transition-transform ${item.enabled ? "translate-x-5" : "translate-x-0.5"}`} />
@@ -88,28 +88,28 @@ export default function SettingsPage() {
                         <SettingsIcon className="h-5 w-5 text-purple-500" />
                     </div>
                     <div>
-                        <h3 className="text-base font-bold text-gray-900">Admin Account</h3>
-                        <p className="text-[11px] text-gray-400">Manage your administrator profile</p>
+                        <h3 className="text-lg font-bold text-gray-900">Admin Account</h3>
+                        <p className="text-[13px] text-gray-400">Manage your administrator profile</p>
                     </div>
                 </div>
                 <div className="space-y-4 px-6 py-5">
                     <div>
-                        <label className="text-[11px] font-bold uppercase tracking-wider text-gray-400">Display Name</label>
+                        <label className="text-[13px] font-bold uppercase tracking-wider text-gray-400">Display Name</label>
                         <input
                             type="text"
                             defaultValue="Admin"
-                            className="mt-1.5 block w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm text-gray-900 transition-colors focus:border-emerald-300 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/10"
+                            className="mt-1.5 block w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-2.5 text-base text-gray-900 transition-colors focus:border-emerald-300 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/10"
                         />
                     </div>
                     <div>
-                        <label className="text-[11px] font-bold uppercase tracking-wider text-gray-400">Email Address</label>
+                        <label className="text-[13px] font-bold uppercase tracking-wider text-gray-400">Email Address</label>
                         <input
                             type="email"
                             defaultValue="admin@ecodefill.com"
-                            className="mt-1.5 block w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm text-gray-900 transition-colors focus:border-emerald-300 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/10"
+                            className="mt-1.5 block w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-2.5 text-base text-gray-900 transition-colors focus:border-emerald-300 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/10"
                         />
                     </div>
-                    <button className="mt-2 rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-600 px-5 py-2.5 text-sm font-bold text-white shadow-sm shadow-emerald-500/20 transition-all hover:shadow-md hover:-translate-y-0.5">
+                    <button className="mt-2 rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-600 px-5 py-2.5 text-base font-bold text-white shadow-sm shadow-emerald-500/20 transition-all hover:shadow-md hover:-translate-y-0.5">
                         Save Changes
                     </button>
                 </div>
