@@ -36,6 +36,7 @@ const config: CapacitorConfig = {
         server: {
           url: serverUrl,
           cleartext: serverUrl.startsWith('http://'),
+          errorPath: 'offline.html',
         },
       }
     : {}),
