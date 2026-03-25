@@ -29,7 +29,7 @@ const MAX_DAILY_REDEEM = 5;
 export default function Dashboard() {
     const { user, updateUserBalance } = useAuth();
     const router = useRouter();
-    const { data } = useCachedFetch<BalanceData>("/api/user-balance");
+    const { data, error, mutate } = useCachedFetch<BalanceData>("/api/user-balance");
 
     useEffect(() => {
         if (data?.balance !== undefined) {
@@ -61,8 +61,22 @@ export default function Dashboard() {
         return `${todayOrDate}, ${time}`;
     };
 
+    const isOffline = error?.message?.toLowerCase().includes("internet") || error?.message?.toLowerCase().includes("connection");
+
     return (
         <div className="relative min-h-full">
+            {isOffline && (
+                <div className="sticky top-[var(--safe-top)] z-50 flex items-center justify-center bg-rose-500/90 backdrop-blur-md px-4 py-2 text-[11px] font-bold text-white shadow-lg animate-in slide-in-from-top duration-300">
+                    <span className="material-symbols-outlined mr-2 text-[16px]">wifi_off</span>
+                    OFFLINE MODE &bull; 
+                    <button 
+                        onClick={() => mutate()} 
+                        className="ml-2 font-black uppercase tracking-wider underline active:opacity-50"
+                    >
+                        Retry
+                    </button>
+                </div>
+            )}
             {/* Ambient gradient */}
             <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-56 bg-gradient-to-b from-emerald-100/60 to-transparent" />
 

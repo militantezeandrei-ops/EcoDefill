@@ -49,14 +49,22 @@ export function NativeMobileShell() {
         let listenerRef: { remove: () => Promise<void> } | undefined;
 
         void App.addListener("appStateChange", ({ isActive }) => {
-            if (isActive) {
+            if (isActive && (typeof navigator === "undefined" || navigator.onLine)) {
                 router.refresh();
             }
         }).then((listener) => {
             listenerRef = listener;
         });
 
+        const handleOnline = () => {
+            console.log("App detected online status. Refreshing...");
+            router.refresh();
+        };
+
+        window.addEventListener("online", handleOnline);
+
         return () => {
+            window.removeEventListener("online", handleOnline);
             if (listenerRef) {
                 void listenerRef.remove();
             }

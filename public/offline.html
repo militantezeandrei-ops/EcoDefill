@@ -147,20 +147,44 @@
         <h1>Connection Lost</h1>
         <p>You're currently offline. Please check your internet connection and try again to access EcoDefill.</p>
         
-        <button onclick="window.location.reload()" class="btn" id="retry-btn">
+        <button class="btn" id="retry-btn">
             <div class="spinner"></div>
             <span class="btn-text">Try Reconnecting</span>
         </button>
     </div>
 
     <script>
+        // The app URL - when we navigate here, Capacitor's WebView loads the app natively
+        const APP_URL = 'https://eco-defill.vercel.app';
         const btn = document.getElementById('retry-btn');
-        btn.addEventListener('click', () => {
+        let isRetrying = false;
+
+        function tryReconnect() {
+            if (isRetrying) return;
+            isRetrying = true;
             btn.classList.add('loading');
+            
+            // Navigate to the app URL inside the WebView (not the browser)
+            // This is the key fix - reload() stays on offline.html, 
+            // but location.href goes to the app
             setTimeout(() => {
-                window.location.reload();
-            }, 1000);
+                window.location.href = APP_URL;
+            }, 500);
+        }
+
+        btn.addEventListener('click', tryReconnect);
+
+        // Auto-reconnect as soon as internet returns
+        window.addEventListener('online', () => {
+            tryReconnect();
         });
+
+        // Also check periodically (for captive portals that don't fire 'online')
+        setInterval(() => {
+            if (navigator.onLine && !isRetrying) {
+                tryReconnect();
+            }
+        }, 8000);
     </script>
 </body>
 </html>

@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { AuthProvider } from "@/hooks/useAuth";
 import { NativeMobileShell } from "@/components/native/NativeMobileShell";
+import { OfflineOverlay } from "@/components/native/OfflineOverlay";
 import { Inter } from "next/font/google";
 
 const inter = Inter({
@@ -30,6 +31,7 @@ export default function RootLayout({
             <body>
                 <AuthProvider>
                     <NativeMobileShell />
+                    <OfflineOverlay />
                     {children}
                 </AuthProvider>
             </body>
