@@ -86,7 +86,8 @@ export async function apiClient<T>(
         if (
             response.status === 401 &&
             typeof window !== "undefined" &&
-            !skipAuthRedirect
+            !skipAuthRedirect &&
+            (typeof navigator === "undefined" || navigator.onLine)
         ) {
             await clearStoredAuth();
             window.location.href = "/login";

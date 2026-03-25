@@ -23,7 +23,10 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     const transitionKey = useMemo(() => pathname, [pathname]);
 
     useEffect(() => {
-        if (!isLoading && !isAuthenticated) {
+        // Prevent redirecting to login when offline to avoid kicking users out due to transient network issues
+        const isOffline = typeof navigator !== "undefined" && !navigator.onLine;
+        
+        if (!isLoading && !isAuthenticated && !isOffline) {
             router.push("/login");
         }
     }, [isAuthenticated, isLoading, router]);

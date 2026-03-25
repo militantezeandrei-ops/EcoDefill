@@ -68,10 +68,11 @@ export default function Dashboard() {
 
             {/* ── Balance Hero Card ── */}
             <section className="px-4 pt-[calc(var(--safe-top)+56px)]">
+                <h2 className="app-section-title">Dashboard</h2>
                 <div className="relative overflow-hidden rounded-[24px] bg-gradient-to-br from-emerald-500 via-emerald-600 to-teal-700 px-5 pb-5 pt-6 text-white shadow-[0_12px_32px_rgba(5,150,105,0.3)]">
                     {/* Decorative blobs */}
                     <div className="absolute -right-8 -top-8 h-32 w-32 rounded-full bg-white/10 blur-2xl" />
-                    
+
                     {/* Username */}
                     <p className="text-[10px] font-black uppercase tracking-[0.22em] text-emerald-100/70">
                         {fullName}&apos;s Balance
@@ -166,9 +167,9 @@ export default function Dashboard() {
                 <div className="mb-3 flex items-center justify-between">
                     <h2 className="app-section-title mb-0">Recent Activity</h2>
                     <div className="flex items-center gap-4">
-                        <button 
+                        <button
                             onClick={() => window.dispatchEvent(new CustomEvent("show-onboarding"))}
-                            className="flex items-center gap-1 text-[11px] font-bold text-slate-400 active:text-emerald-600 transition-colors"
+                            className="flex items-center gap-1 text-[11px] font-bold text-blue-600 active:text-blue-700 transition-colors"
                         >
                             <span className="material-symbols-outlined text-[15px]">help</span>
                             Guide
