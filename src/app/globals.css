@@ -15,18 +15,22 @@
   * {
     -webkit-tap-highlight-color: transparent;
     -webkit-touch-callout: none;
+    -webkit-user-drag: none;
+    user-select: none;
+    -webkit-user-select: none;
     box-sizing: border-box;
   }
 
-  ::selection {
-    background: transparent;
-    color: inherit;
+  /* Allow text selection in inputs and textareas so users can edit text */
+  input,
+  textarea,
+  [contenteditable="true"] {
+    user-select: text !important;
+    -webkit-user-select: text !important;
   }
 
-  input::selection,
-  textarea::selection {
-    background: rgba(59, 130, 246, 0.25);
-    color: inherit;
+  a, img {
+    -webkit-user-drag: none;
   }
 
   html,
