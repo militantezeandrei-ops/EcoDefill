@@ -67,7 +67,7 @@ export function OnboardingGuide() {
     const onboardingSteps = [
         {
             title: "Welcome to EcoDefill!",
-            description: "Convert your recyclable waste into cold, premium water. Start your green journey today!",
+            description: "Convert your recyclable waste into purified water. Start your green journey today!",
             icon: Recycle,
             color: "text-emerald-500",
             bg: "bg-emerald-50",
@@ -98,8 +98,8 @@ export function OnboardingGuide() {
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm transition-opacity duration-500">
             <div className="relative w-full max-w-sm overflow-hidden rounded-[32px] bg-white shadow-2xl dark:bg-zinc-900 border border-white/20">
                 {/* Close btn */}
-                <button 
-                    onClick={() => void dismiss()} 
+                <button
+                    onClick={() => void dismiss()}
                     className="absolute right-4 top-4 z-10 p-2 rounded-full bg-slate-100 text-slate-500 active:scale-90 dark:bg-zinc-800 dark:text-zinc-400"
                 >
                     <X size={18} />
@@ -108,9 +108,9 @@ export function OnboardingGuide() {
                 {/* Progress bar */}
                 <div className="absolute top-0 left-0 right-0 flex gap-1 p-2 px-4">
                     {onboardingSteps.map((_, i) => (
-                        <div 
-                            key={i} 
-                            className={`h-1 flex-1 rounded-full transition-all duration-300 ${i <= step ? "bg-emerald-500" : "bg-slate-100 dark:bg-zinc-800"}`} 
+                        <div
+                            key={i}
+                            className={`h-1 flex-1 rounded-full transition-all duration-300 ${i <= step ? "bg-emerald-500" : "bg-slate-100 dark:bg-zinc-800"}`}
                         />
                     ))}
                 </div>
@@ -123,7 +123,7 @@ export function OnboardingGuide() {
                     <h2 className="text-2xl font-black tracking-tight text-slate-900 dark:text-white">
                         {currentStep.title}
                     </h2>
-                    
+
                     <p className="mt-4 text-sm leading-relaxed text-slate-500 dark:text-slate-400">
                         {currentStep.description}
                     </p>
