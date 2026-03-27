@@ -5,6 +5,8 @@ import { apiClient } from "@/lib/api";
 import { useRouter } from "next/navigation";
 import { showToast } from "@/lib/toast";
 
+import Image from "next/image";
+
 export default function QRGeneration() {
     const router = useRouter();
     const [qrData, setQrData] = useState<{ token: string; expiresAt: string } | null>(null);
@@ -82,10 +84,11 @@ export default function QRGeneration() {
                             </div>
                         ) : (
                             <div className="relative flex h-64 w-64 items-center justify-center overflow-hidden rounded-xl border-4 border-primary/20 bg-gray-50">
-                                <img
+                                <Image
                                     src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${qrData?.token}`}
                                     alt="QR Code"
-                                    className="w-full h-full object-cover"
+                                    fill
+                                    className="object-cover"
                                 />
                             </div>
                         )}

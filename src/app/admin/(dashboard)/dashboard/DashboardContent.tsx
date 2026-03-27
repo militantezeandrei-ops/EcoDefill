@@ -401,7 +401,7 @@ export default async function DashboardContent({ searchParams }: { searchParams:
                     <div className="flex items-start justify-between">
                         <div>
                             <div className="flex flex-col">
-                                <p className="text-[18px] font-black text-gray-900">Today's Cycle</p>
+                                <p className="text-[18px] font-black text-gray-900">Today&apos;s Cycle</p>
                                 <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] leading-none mt-1">Pts status</p>
                             </div>
                         </div>

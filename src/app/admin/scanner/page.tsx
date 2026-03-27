@@ -17,6 +17,7 @@ export default function QRScanner() {
     const [result, setResult] = useState<VerifyResult | null>(null);
     const [scanCount, setScanCount] = useState(0);
     const [cameraReady, setCameraReady] = useState(false);
+    const [needsReset, setNeedsReset] = useState(false);
 
     const scannerRef = useRef<any>(null);
     const processingRef = useRef(false);
@@ -111,7 +112,7 @@ export default function QRScanner() {
                         await scanner.stop();
 
                         setTimeout(() => {
-                            resetScanner();
+                            setNeedsReset(true);
                         }, 5000);
                     } catch (err: any) {
                         setStatus("error");
@@ -143,7 +144,14 @@ export default function QRScanner() {
         };
     }, [initScanner, stopScanner]);
 
-    const resetScanner = () => {
+    useEffect(() => {
+        if (needsReset) {
+            setNeedsReset(false);
+            resetScanner();
+        }
+    }, [needsReset]);
+
+    const resetScanner = useCallback(() => {
         processingRef.current = false;
         setScanResult(null);
         setStatus("idle");
@@ -151,7 +159,7 @@ export default function QRScanner() {
         setResult(null);
         // Re-initialize the scanner from scratch
         setTimeout(() => initScanner(), 100);
-    };
+    }, [initScanner]);
 
     return (
         <div className="flex-1 overflow-y-auto w-full h-full pb-8 flex flex-col items-center">
