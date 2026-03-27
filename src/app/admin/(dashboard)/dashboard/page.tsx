@@ -52,10 +52,10 @@ function DashboardSkeleton() {
     );
 }
 
-export default function DashboardPage() {
+export default function DashboardPage({ searchParams }: { searchParams: any }) {
     return (
         <Suspense fallback={<DashboardSkeleton />}>
-            <DashboardContent />
+            <DashboardContent searchParams={searchParams} />
         </Suspense>
     );
 }

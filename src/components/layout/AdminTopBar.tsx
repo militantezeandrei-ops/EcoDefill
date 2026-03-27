@@ -30,49 +30,50 @@ export function AdminTopBar() {
     };
 
     return (
-        <div className="sticky top-0 z-30 flex items-center justify-between border-b border-gray-200 bg-white px-6 py-3 shadow-sm">
+        <div className="sticky top-0 z-30 flex items-center justify-between border-b border-gray-100 bg-white/80 px-6 py-4 shadow-sm backdrop-blur-md">
             {/* Left: School Brand */}
-            <div className="flex items-center gap-5">
-                <div className="flex items-center gap-3">
-                    <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-[#7A1E1E] text-white">
-                        <span className="material-symbols-outlined text-[18px]">school</span>
+            <div className="flex items-center gap-6">
+                <div className="flex items-center gap-4">
+                    <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-blue-600 to-emerald-500 text-white shadow-lg shadow-blue-500/20">
+                        <span className="material-symbols-outlined text-[20px]">school</span>
                     </div>
                     <div className="flex flex-col">
-                        <h2 className="text-[15px] font-black tracking-tight text-gray-900 leading-none">
+                        <h2 className="text-[16px] font-black tracking-tight text-gray-900 leading-none">
                             Pambayang Dalubhasaan ng Marilao
                         </h2>
-                        <span className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#7A1E1E] mt-1 opacity-80">
+                        <span className="text-[10px] font-bold uppercase tracking-[0.25em] text-emerald-600 mt-1.5">
                             EcoDefill Admin System
                         </span>
                     </div>
                 </div>
 
-                <div className="h-7 w-px bg-gray-200" />
+                <div className="h-8 w-px bg-gray-100" />
 
                 {/* Live Clock & Date */}
-                <div className="flex items-center gap-6">
-                    <div className="flex items-center gap-2 text-gray-500">
+                <div className="flex items-center gap-8">
+                    <div className="flex items-center gap-2.5 text-gray-400">
                         <Calendar className="h-4 w-4" />
-                        <span className="text-[15px] font-semibold tracking-tight">{formatDate(time)}</span>
+                        <span className="text-[14px] font-bold tracking-tight text-gray-500">{formatDate(time)}</span>
                     </div>
-                    <div className="flex items-center gap-2 text-[#7A1E1E]">
-                        <Clock className="h-4 w-4" />
-                        <span className="text-[18px] font-black tracking-widest tabular-nums uppercase">{formatTime(time)}</span>
+                    <div className="flex items-center gap-2.5 text-blue-600">
+                        <Clock className="h-4 w-4 text-blue-500" />
+                        <span className="text-[18px] font-black tracking-[0.1em] tabular-nums">{formatTime(time)}</span>
                     </div>
                 </div>
             </div>
 
             {/* Right: System Status */}
-            <div className="flex items-center gap-3">
-                <div className="flex items-center gap-2 rounded-full border border-emerald-100 bg-emerald-50 px-3 py-1.5">
-                    <div className="h-2 w-2 animate-pulse rounded-full bg-emerald-500" />
+            <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2.5 rounded-2xl border border-emerald-100 bg-emerald-50 px-4 py-2">
+                    <div className="h-2 w-2 animate-pulse rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
                     <Wifi className="h-3.5 w-3.5 text-emerald-600" />
-                    <span className="text-[12px] font-bold text-emerald-700">System Online</span>
+                    <span className="text-[13px] font-black text-emerald-700 uppercase tracking-tight">System Online</span>
                 </div>
-                <div className="rounded-full border border-gray-200 bg-gray-50 px-3 py-1.5">
-                    <span className="text-[12px] font-bold text-gray-500">v1.0</span>
+                <div className="rounded-2xl border border-gray-100 bg-gray-50 px-4 py-2">
+                    <span className="text-[12px] font-black text-gray-400 uppercase tracking-widest">v1.0</span>
                 </div>
             </div>
         </div>
+
     );
 }

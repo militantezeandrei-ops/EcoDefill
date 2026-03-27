@@ -217,8 +217,8 @@ export default function RedeemWater() {
                         </div>
                         <h2 className="text-lg font-semibold text-slate-900 dark:text-white">Scan QR to Dispense</h2>
                         <p className="mt-1 text-sm text-slate-500">Show this code to the machine camera</p>
-                        <div className="mt-5 rounded-2xl border border-slate-200 p-4 dark:border-zinc-700">
-                            <QRCode value={qrToken} size={220} level="M" />
+                        <div className="mt-5 flex items-center justify-center rounded-2xl border border-slate-200 p-4 dark:border-zinc-700">
+                            <QRCode value={qrToken} size={220} level="M" className="mx-auto" />
                         </div>
                         <p className="mt-4 inline-flex rounded-full bg-rose-50 px-3 py-1 text-sm font-semibold text-rose-500 dark:bg-rose-900/20">
                             {timeLeft > 0 ? `Expires in ${timeLeft}s` : "Finalizing scan..."}

@@ -38,33 +38,34 @@ interface CourseGroup {
 const getCourseAccent = (course: string) => {
     const c = course.toUpperCase();
     
-    // IT - Green
+    // IT - Blue
     if (c.includes("IT")) 
-        return { bg: "bg-[#16A34A]", text: "text-white", border: "border-[#16A34A]/20", iconBg: "bg-white/20" };
+        return { bg: "bg-blue-600", text: "text-white", border: "border-blue-600/20", iconBg: "bg-white/20" };
     
-    // CS - Red
+    // CS - Emerald
     if (c.includes("CS")) 
-        return { bg: "bg-[#DC2626]", text: "text-white", border: "border-[#DC2626]/20", iconBg: "bg-white/20" };
+        return { bg: "bg-emerald-600", text: "text-white", border: "border-emerald-600/20", iconBg: "bg-white/20" };
     
-    // TM - Gold
+    // TM - Indigo
     if (c.includes("TM")) 
-        return { bg: "bg-[#F4C430]", text: "text-[#7A1E1E]", border: "border-[#F4C430]/20", iconBg: "bg-[#7A1E1E]/10" };
+        return { bg: "bg-indigo-600", text: "text-white", border: "border-indigo-600/20", iconBg: "bg-white/20" };
     
-    // HM - Blue
+    // HM - Sky
     if (c.includes("HM")) 
-        return { bg: "bg-[#3B82F6]", text: "text-white", border: "border-[#3B82F6]/20", iconBg: "bg-white/20" };
+        return { bg: "bg-sky-500", text: "text-white", border: "border-sky-500/20", iconBg: "bg-white/20" };
     
-    // OAD - Purple
+    // OAD - Teal
     if (c.includes("OAD")) 
-        return { bg: "bg-[#8B5CF6]", text: "text-white", border: "border-[#8B5CF6]/20", iconBg: "bg-white/20" };
+        return { bg: "bg-teal-600", text: "text-white", border: "border-teal-600/20", iconBg: "bg-white/20" };
 
-    // Education (Rose)
+    // Education (Cyan)
     if (c.includes("ED")) 
-        return { bg: "bg-[#F43F5E]", text: "text-white", border: "border-[#F43F5E]/20", iconBg: "bg-white/20" };
+        return { bg: "bg-cyan-600", text: "text-white", border: "border-cyan-600/20", iconBg: "bg-white/20" };
     
     // Default fallback
-    return { bg: "bg-gray-800", text: "text-white", border: "border-gray-700", iconBg: "bg-white/10" };
+    return { bg: "bg-blue-500", text: "text-white", border: "border-blue-400/20", iconBg: "bg-white/10" };
 };
+
 
 export default function UsersAccordion({ courses }: { courses: CourseGroup[] }) {
     // Nav States

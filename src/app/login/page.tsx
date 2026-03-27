@@ -73,7 +73,7 @@ export default function Login() {
     };
 
     useEffect(() => {
-        document.body.style.backgroundImage = "linear-gradient(to bottom, rgba(0,0,0,0.4), rgba(0,0,0,0.2), rgba(0,0,0,0.5)), url('/images/pdm-building.jpg')";
+        document.body.style.backgroundImage = "linear-gradient(to bottom, rgba(0,0,0,0.6), rgba(0,0,0,0.4), rgba(0,0,0,0.7)), url('/images/pdm-building.jpg')";
         document.body.style.backgroundSize = "cover";
         document.body.style.backgroundPosition = "center";
         document.body.style.backgroundAttachment = "fixed";
@@ -89,9 +89,9 @@ export default function Login() {
     }, []);
 
     return (
-        <div className="relative flex h-[100dvh] w-full items-center justify-center overflow-y-auto bg-transparent font-display -webkit-overflow-scrolling-touch px-4 py-6">
-            <div className="relative mx-4 w-full max-w-[420px] overflow-hidden rounded-3xl border border-white/10 bg-zinc-900/40 px-5 py-5 shadow-[0_8px_32px_rgba(0,0,0,0.5)] backdrop-blur-md">
-                <div className="absolute left-0 top-0 h-1.5 w-full bg-gradient-to-r from-emerald-400 via-emerald-500 to-green-600" />
+        <div className="relative flex min-h-screen w-full flex-col items-center justify-center bg-transparent px-4 py-12 font-display -webkit-overflow-scrolling-touch">
+            <div className="relative mx-4 w-full max-w-[400px] my-auto overflow-hidden rounded-[32px] border border-gray-200 bg-white/95 px-6 py-8 shadow-[0_20px_50px_rgba(0,0,0,0.3)] backdrop-blur-md">
+                <div className="absolute left-0 top-0 h-1.5 w-full bg-gradient-to-r from-blue-500 via-emerald-500 to-green-500" />
 
                 <div className="mb-4 mt-0 flex flex-col items-center text-center">
                     <div className="relative mb-3 h-16 w-16">
@@ -99,24 +99,24 @@ export default function Login() {
                             src="/images/pdm-logo.png"
                             alt="PDM Logo"
                             fill
-                            className="object-contain drop-shadow-2xl"
+                            className="object-contain drop-shadow-xl"
                             priority
                         />
                     </div>
-                    <h1 className="text-2xl font-bold tracking-tight text-white">EcoDefill</h1>
-                    <p className="mt-1 text-xs font-medium text-emerald-100/70">Log in to recycle, earn points, and redeem water refills.</p>
+                    <h1 className="text-2xl font-bold tracking-tight text-gray-900">EcoDefill</h1>
+                    <p className="mt-1 text-xs font-medium text-gray-500">Log in to recycle, earn points, and redeem water refills.</p>
                 </div>
 
                 <form onSubmit={handleSubmit} className="space-y-3">
                     <div>
-                        <label htmlFor="login-email" className="ml-1 mb-2 block text-[12px] font-semibold uppercase tracking-wider text-emerald-50/80">Email Address</label>
+                        <label htmlFor="login-email" className="ml-1 mb-2 block text-[12px] font-bold uppercase tracking-wider text-gray-400">Email Address</label>
                         <div className="group relative">
                             <input
                                 id="login-email"
                                 name="email"
                                 type="email"
                                 required
-                                className={`block w-full rounded-xl border bg-black/40 px-4 py-3 pl-11 text-sm font-medium text-white placeholder-white/30 shadow-inner transition-all focus:bg-black/60 focus:outline-none focus:ring-1 ${errors.email ? "border-red-500/70 focus:ring-red-500/60" : "border-white/10 focus:border-emerald-500/50 focus:ring-emerald-500/50"}`}
+                                className={`block w-full rounded-2xl border bg-gray-50 px-4 py-3 pl-11 text-sm font-medium text-gray-900 placeholder-gray-400 transition-all focus:bg-white focus:outline-none focus:ring-2 ${errors.email ? "border-red-500/70 focus:ring-red-500/20" : "border-gray-200 focus:border-blue-500/50 focus:ring-blue-500/20"}`}
                                 placeholder="juan@gmail.com"
                                 value={email}
                                 onChange={(e) => {
@@ -124,20 +124,20 @@ export default function Login() {
                                     setErrors((prev) => ({ ...prev, email: undefined, form: undefined }));
                                 }}
                             />
-                            <span className="material-symbols-outlined pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[18px] text-white/40 transition-colors group-focus-within:text-emerald-400">mail</span>
+                            <span className="material-symbols-outlined pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[18px] text-gray-400 transition-colors group-focus-within:text-blue-500">mail</span>
                         </div>
-                        {errors.email && <p className="ml-1 mt-1 text-xs font-medium text-red-400">{errors.email}</p>}
+                        {errors.email && <p className="ml-1 mt-1 text-xs font-medium text-red-500">{errors.email}</p>}
                     </div>
 
                     <div>
-                        <label htmlFor="login-password" className="ml-1 mb-2 block text-[12px] font-semibold uppercase tracking-wider text-emerald-50/80">Password</label>
+                        <label htmlFor="login-password" className="ml-1 mb-2 block text-[12px] font-bold uppercase tracking-wider text-gray-400">Password</label>
                         <div className="group relative">
                             <input
                                 id="login-password"
                                 name="password"
                                 type="password"
                                 required
-                                className={`block w-full rounded-xl border bg-black/40 px-4 py-3 pl-11 text-sm font-medium text-white placeholder-white/30 shadow-inner transition-all focus:bg-black/60 focus:outline-none focus:ring-1 ${errors.password ? "border-red-500/70 focus:ring-red-500/60" : "border-white/10 focus:border-emerald-500/50 focus:ring-emerald-500/50"}`}
+                                className={`block w-full rounded-xl border bg-gray-50 px-4 py-3 pl-11 text-sm font-medium text-gray-900 placeholder-gray-400 transition-all focus:bg-white focus:outline-none focus:ring-2 ${errors.password ? "border-red-500/70 focus:ring-red-500/20" : "border-gray-200 focus:border-blue-500/50 focus:ring-blue-500/20"}`}
                                 placeholder="••••••••"
                                 value={password}
                                 onChange={(e) => {
@@ -145,27 +145,27 @@ export default function Login() {
                                     setErrors((prev) => ({ ...prev, password: undefined, form: undefined }));
                                 }}
                             />
-                            <span className="material-symbols-outlined pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[18px] text-white/40 transition-colors group-focus-within:text-emerald-400">lock</span>
+                            <span className="material-symbols-outlined pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[18px] text-gray-400 transition-colors group-focus-within:text-blue-500">lock</span>
                         </div>
-                        {errors.password && <p className="ml-1 mt-1 text-xs font-medium text-red-400">{errors.password}</p>}
+                        {errors.password && <p className="ml-1 mt-1 text-xs font-medium text-red-500">{errors.password}</p>}
                         <div className="mt-2 text-right">
-                            <Link href="/forgot-password" title="Forgot Password" className="text-[11px] font-semibold text-emerald-300/80 transition-colors hover:text-emerald-200">
+                            <Link href="/forgot-password" title="Forgot Password" className="text-[11px] font-bold text-blue-600 transition-colors hover:text-blue-700">
                                 Forgot password?
                             </Link>
                         </div>
                     </div>
 
                     {errors.form && (
-                        <div className="rounded-xl border border-red-500/40 bg-red-500/10 px-3 py-2 text-sm font-medium text-red-300">
+                        <div className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm font-medium text-red-600">
                             {errors.form}
                         </div>
                     )}
 
-                    <div className="pt-2">
+                    <div className="pt-2 flex justify-center">
                         <button
                             type="submit"
                             disabled={loading}
-                            className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-emerald-600 to-green-500 px-4 py-3.5 text-[14px] font-bold text-white shadow-lg shadow-emerald-900/30 transition-all hover:from-emerald-500 hover:to-green-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 focus:ring-offset-zinc-900 disabled:opacity-50"
+                            className="flex w-full max-w-[340px] items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-blue-600 to-emerald-600 px-4 py-4 text-[14px] font-black text-white shadow-xl shadow-blue-500/25 transition-all hover:scale-[1.01] active:scale-[0.99] disabled:opacity-50"
                         >
                             {loading ? "Authenticating..." : (
                                 <>
@@ -178,18 +178,17 @@ export default function Login() {
                 </form>
 
                 <div className="mt-5 text-center text-[13px]">
-                    <span className="text-white/50">Don&apos;t have an account?</span>
-                    <Link href="/register" className="ml-2 font-bold text-emerald-400 transition-all hover:text-emerald-300 hover:underline hover:underline-offset-4">
+                    <span className="text-gray-500 font-medium">Don&apos;t have an account?</span>
+                    <Link href="/register" className="ml-2 font-bold text-emerald-600 transition-all hover:text-emerald-700 hover:underline hover:underline-offset-4">
                         Create Account
                     </Link>
                 </div>
             </div>
 
-            <p className="absolute bottom-6 left-0 w-full text-center text-[11px] font-medium tracking-wide text-white/40">
-                Pambayang Dalubhasaan ng Marilao &copy; 2026
-                <br />
-                EcoDefill v1.0
+            <p className="mt-10 text-center text-[11px] font-black uppercase tracking-[0.3em] text-white/40">
+                EcoDefill &copy; 2026 • PDM
             </p>
         </div>
+
     );
 }

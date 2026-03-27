@@ -16,46 +16,67 @@ export default async function RecyclingPage() {
     const summaryCards = [
         {
             title: "Points Earned",
-            value: `${totalPts}`,
-            sub: "Total recycling points",
+            value: totalPts.toLocaleString(),
+            sub: "Total recycling reward",
             icon: Leaf,
-            bg: "bg-[#16A34A]",
-            iconBg: "bg-white/20",
-            iconColor: "text-white",
-            valueColor: "text-white",
-            titleColor: "text-white/80",
-            subColor: "text-white/60",
+            bg: "bg-white",
+            iconBg: "bg-emerald-50",
+            iconColor: "text-emerald-600",
+            valueColor: "text-emerald-600",
+            titleColor: "text-gray-400",
+            subColor: "text-gray-500",
         },
         {
             title: "Items Collected",
             value: totalItems.toLocaleString(),
             sub: "Bottles, cups & paper",
             icon: Package,
-            bg: "bg-[#3B82F6]",
-            iconBg: "bg-white/20",
-            iconColor: "text-white",
-            valueColor: "text-white",
-            titleColor: "text-white/80",
-            subColor: "text-white/60",
+            bg: "bg-white",
+            iconBg: "bg-blue-50",
+            iconColor: "text-blue-600",
+            valueColor: "text-blue-600",
+            titleColor: "text-gray-400",
+            subColor: "text-gray-500",
         },
         {
             title: "CO₂ Impact",
             value: `${co2Saved} kg`,
-            sub: "Estimated CO₂ saved",
+            sub: "Estimated emission save",
             icon: Wind,
-            bg: "bg-[#0EA5E9]",
-            iconBg: "bg-white/20",
-            iconColor: "text-white",
-            valueColor: "text-white",
-            titleColor: "text-white/80",
-            subColor: "text-white/60",
+            bg: "bg-white",
+            iconBg: "bg-sky-50",
+            iconColor: "text-sky-600",
+            valueColor: "text-sky-600",
+            titleColor: "text-gray-400",
+            subColor: "text-gray-500",
         },
     ];
 
-    const materialStyles: Record<string, string> = {
-        BOTTLE: "bg-[#16A34A] text-white",
-        CUP: "bg-[#F59E0B] text-white",
-        PAPER: "bg-[#3B82F6] text-white",
+    const formatDateHeader = (date: Date) => {
+        const now = new Date();
+        const d = new Date(date);
+        d.setHours(0, 0, 0, 0);
+        now.setHours(0, 0, 0, 0);
+        const diff = (now.getTime() - d.getTime()) / (1000 * 60 * 60 * 24);
+        if (diff === 0) return "Today";
+        if (diff === 1) return "Yesterday";
+        return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+    };
+
+    const formatTime = (date: Date) =>
+        date.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true });
+
+    const groupedLogs = logs.reduce((acc: Record<string, typeof logs>, log) => {
+        const key = formatDateHeader(log.createdAt);
+        if (!acc[key]) acc[key] = [];
+        acc[key].push(log);
+        return acc;
+    }, {});
+
+    const materialStyles: Record<string, { icon: string; bg: string; text: string }> = {
+        BOTTLE: { icon: "🍾", bg: "bg-emerald-50", text: "text-emerald-600" },
+        CUP: { icon: "🥤", bg: "bg-blue-50", text: "text-blue-600" },
+        PAPER: { icon: "📄", bg: "bg-gray-50", text: "text-gray-600" },
     };
 
     return (
@@ -90,63 +111,50 @@ export default async function RecyclingPage() {
                 })}
             </div>
 
-            {/* Recent Collections Log */}
-            <div className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm">
-                <div className="border-b border-gray-100 px-6 py-4">
-                    <h3 className="text-lg font-bold text-gray-900">Recent Collections</h3>
-                    <p className="text-[13px] text-gray-400 mt-0.5">All recycling events from connected machines</p>
-                </div>
-                <div className="overflow-x-auto">
-                    <table className="min-w-full">
-                        <thead>
-                            <tr className="border-b border-gray-100 bg-gray-50/60">
-                                <th className="px-6 py-3.5 text-left text-[12px] font-bold uppercase tracking-widest text-gray-400">Date & Time</th>
-                                <th className="px-6 py-3.5 text-left text-[12px] font-bold uppercase tracking-widest text-gray-400">User</th>
-                                <th className="px-6 py-3.5 text-left text-[12px] font-bold uppercase tracking-widest text-gray-400">Material</th>
-                                <th className="px-6 py-3.5 text-left text-[12px] font-bold uppercase tracking-widest text-gray-400">Count</th>
-                                <th className="px-6 py-3.5 text-left text-[12px] font-bold uppercase tracking-widest text-gray-400">Points</th>
-                                <th className="px-6 py-3.5 text-left text-[12px] font-bold uppercase tracking-widest text-gray-400">Status</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-50">
-                            {logs.map((log) => (
-                                <tr key={log.id} className="transition-colors hover:bg-blue-50/20">
-                                    <td className="px-6 py-4 text-[15px] text-gray-500 font-medium">{log.createdAt.toLocaleString()}</td>
-                                    <td className="px-6 py-4">
-                                        <div className="flex items-center gap-3">
-                                            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-blue-500/10 text-[13px] font-black text-blue-600 shadow-sm">
-                                                {log.user?.fullName?.[0]?.toUpperCase() || log.user?.email?.[0]?.toUpperCase() || "?"}
-                                            </div>
-                                            <div>
-                                                <p className="text-[15px] font-bold text-gray-800">{log.user?.fullName || log.user?.email || "Unknown"}</p>
-                                                {log.user?.course && <p className="text-[12px] font-medium text-gray-400">{log.user.course}</p>}
-                                            </div>
+            {/* Grouped Logs */}
+            <div className="space-y-6">
+                {Object.entries(groupedLogs).map(([date, items]) => (
+                    <div key={date} className="space-y-3">
+                        <div className="flex items-center gap-4">
+                            <h3 className="text-[12px] font-black uppercase tracking-[0.2em] text-gray-400">{date}</h3>
+                            <div className="h-px flex-1 bg-gray-100" />
+                        </div>
+                        <div className="overflow-hidden rounded-[24px] border border-gray-100 bg-white shadow-sm divide-y divide-gray-50">
+                            {items.map((item) => (
+                                <div key={item.id} className="group flex items-center justify-between px-6 py-4 transition-all hover:bg-gray-50/50">
+                                    <div className="flex items-center gap-5">
+                                        <div className={`flex h-12 w-12 items-center justify-center rounded-2xl ${materialStyles[item.materialType]?.bg} text-2xl shadow-sm transition-transform group-hover:scale-110`}>
+                                            {materialStyles[item.materialType]?.icon}
                                         </div>
-                                    </td>
-                                    <td className="px-6 py-4">
-                                        <span className={`rounded-full px-2.5 py-1 text-[12px] font-bold uppercase tracking-wider ${materialStyles[log.materialType] || "bg-gray-50 text-gray-500"}`}>
-                                            {log.materialType}
-                                        </span>
-                                    </td>
-                                    <td className="px-6 py-4 text-[15px] font-bold text-gray-700">{log.count}</td>
-                                    <td className="px-6 py-4">
-                                        <span className="text-[15px] font-black text-emerald-500">+{log.pointsEarned}</span>
-                                    </td>
-                                    <td className="px-6 py-4">
-                                        <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-black uppercase tracking-widest shadow-sm ${
-                                            log.status === "SUCCESS"
-                                                ? "bg-[#16A34A] text-white"
-                                                : "bg-[#DC2626] text-white"
+                                        <div>
+                                            <div className="flex items-center gap-2">
+                                                <p className="text-[15px] font-black text-gray-900">{item.user?.fullName || item.user?.email || "Unknown"}</p>
+                                                <span className={`rounded-full px-2 py-0.5 text-[10px] font-black uppercase tracking-wider ${materialStyles[item.materialType]?.text} bg-white border border-current opacity-70`}>
+                                                    {item.materialType}
+                                                </span>
+                                            </div>
+                                            <p className="mt-1 text-[12px] font-bold text-gray-400">
+                                                {formatTime(item.createdAt)} • {item.count} items collected • {item.user?.course || "Student"}
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-8">
+                                        <div className="text-right">
+                                            <p className="text-[18px] font-black text-emerald-600 tracking-tight">+{item.pointsEarned}</p>
+                                            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Points earned</p>
+                                        </div>
+                                        <div className={`flex items-center gap-2 rounded-full px-3 py-1.5 text-[10px] font-black uppercase tracking-widest ${
+                                            item.status === "SUCCESS" ? "bg-emerald-50 text-emerald-600" : "bg-red-50 text-red-600"
                                         }`}>
-                                            <div className={`h-1 w-1 rounded-full ${log.status === "SUCCESS" ? "bg-emerald-500" : "bg-red-500"}`} />
-                                            {log.status}
-                                        </span>
-                                    </td>
-                                </tr>
+                                            <div className={`h-1.5 w-1.5 rounded-full ${item.status === "SUCCESS" ? "bg-emerald-500" : "bg-red-500"} animate-pulse`} />
+                                            {item.status}
+                                        </div>
+                                    </div>
+                                </div>
                             ))}
-                        </tbody>
-                    </table>
-                </div>
+                        </div>
+                    </div>
+                ))}
             </div>
         </div>
     );

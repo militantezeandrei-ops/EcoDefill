@@ -43,7 +43,6 @@
   }
 
   body {
-    overscroll-behavior-y: none;
     -webkit-overflow-scrolling: touch;
     text-rendering: optimizeLegibility;
     -webkit-font-smoothing: antialiased;

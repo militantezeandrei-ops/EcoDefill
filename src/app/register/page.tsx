@@ -44,7 +44,7 @@ export default function Register() {
     const [codeHint, setCodeHint] = useState("");
 
     useEffect(() => {
-        document.body.style.backgroundImage = `linear-gradient(to bottom, rgba(0,0,0,0.4), rgba(0,0,0,0.2), rgba(0,0,0,0.5)), url('/images/pdm-building.jpg')`;
+        document.body.style.backgroundImage = `linear-gradient(to bottom, rgba(0,0,0,0.6), rgba(0,0,0,0.4), rgba(0,0,0,0.7)), url('/images/pdm-building.jpg')`;
         document.body.style.backgroundSize = 'cover';
         document.body.style.backgroundPosition = 'center';
         document.body.style.backgroundAttachment = 'fixed';
@@ -143,264 +143,262 @@ export default function Register() {
     };
 
     return (
-        <div className="fixed inset-0 w-full overflow-y-auto bg-transparent pt-[calc(var(--safe-top)+20px)] pb-20 font-display -webkit-overflow-scrolling-touch">
-            <div className="flex min-h-full w-full flex-col items-center justify-start px-4">
-                <div className="relative w-full max-w-[480px] rounded-3xl bg-zinc-900/40 backdrop-blur-md p-8 shadow-[0_8px_32px_rgba(0,0,0,0.5)] border border-white/10 overflow-hidden mb-8">
-                {/* Gradient accent top border */}
-                <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-emerald-400 via-emerald-500 to-green-600"></div>
+        <div className="relative flex min-h-screen w-full flex-col items-center justify-center bg-transparent px-4 py-12 font-display -webkit-overflow-scrolling-touch">
+            <div className="relative w-full max-w-[420px] my-auto overflow-hidden rounded-[32px] border border-gray-100 bg-white/95 p-8 shadow-[0_20px_50px_rgba(0,0,0,0.3)] backdrop-blur-md">
+                <div className="absolute left-0 top-0 h-1.5 w-full bg-gradient-to-r from-blue-600 via-emerald-600 to-green-600" />
 
-                <div className="mb-6 mt-2 text-center flex flex-col items-center">
-                    <div className="w-20 h-20 relative mb-4">
+                <div className="mb-8 mt-2 flex flex-col items-center text-center">
+                    <div className="relative mb-4 h-16 w-16">
                         <Image
                             src="/images/pdm-logo.png"
                             alt="PDM Logo"
                             fill
-                            className="object-contain drop-shadow-2xl"
+                            className="object-contain drop-shadow-xl"
                             priority
                         />
                     </div>
-                    <h1 className="text-2xl font-bold text-white tracking-tight">Create Account</h1>
-                    <p className="mt-2 text-sm text-emerald-100/70 font-medium">Join EcoDefill for a greener campus.</p>
+                    <h1 className="text-2xl font-black tracking-tight text-gray-900 uppercase">Create Account</h1>
+                    <p className="mt-1.5 text-xs font-bold uppercase tracking-[0.2em] text-gray-400">Join the green revolution</p>
                 </div>
 
                 <form onSubmit={handleSubmit} className="space-y-4">
-                    <div>
-                        <label htmlFor="register-full-name" className="block text-[12px] font-semibold text-emerald-50/80 uppercase tracking-wider mb-1.5 ml-1">Full Name</label>
-                        <div className="relative group">
-                            <input
-                                id="register-full-name"
-                                name="fullName"
-                                type="text"
-                                className="block w-full rounded-xl border border-white/10 bg-black/40 px-4 py-3 pl-11 shadow-inner focus:border-emerald-500/50 focus:bg-black/60 focus:outline-none focus:ring-1 focus:ring-emerald-500/50 text-white placeholder-white/30 transition-all font-medium text-sm"
-                                placeholder="Juan Dela Cruz"
-                                value={formData.fullName}
-                                onChange={handleChange}
-                            />
-                            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40 group-focus-within:text-emerald-400 material-symbols-outlined text-[20px] pointer-events-none transition-colors">person</span>
-                        </div>
-                        {errors.fullName && <span className="text-red-400 text-xs ml-1 font-medium mt-1 block">{errors.fullName}</span>}
-                    </div>
-
-                    <div>
-                        <label htmlFor="register-email" className="block text-[12px] font-semibold text-emerald-50/80 uppercase tracking-wider mb-1.5 ml-1">Email Address</label>
-                        <div className="relative group">
-                            <input
-                                id="register-email"
-                                name="email"
-                                type="email"
-                                className="block w-full rounded-xl border border-white/10 bg-black/40 px-4 py-3 pl-11 shadow-inner focus:border-emerald-500/50 focus:bg-black/60 focus:outline-none focus:ring-1 focus:ring-emerald-500/50 text-white placeholder-white/30 transition-all font-medium text-sm"
-                                placeholder="Juan@gmail.com"
-                                value={formData.email}
-                                onChange={handleChange}
-                            />
-                            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40 group-focus-within:text-emerald-400 material-symbols-outlined text-[20px] pointer-events-none transition-colors">mail</span>
-                        </div>
-                        {errors.email && <span className="text-red-400 text-xs ml-1 font-medium mt-1 block">{errors.email}</span>}
-                    </div>
-
-                    <div className="grid grid-cols-[1fr_auto] gap-2">
+                    <div className="grid grid-cols-1 gap-4">
                         <div>
-                            <label htmlFor="register-verification-code" className="block text-[12px] font-semibold text-emerald-50/80 uppercase tracking-wider mb-1.5 ml-1">Email Verification Code</label>
-                            <input
-                                id="register-verification-code"
-                                name="verificationCode"
-                                inputMode="numeric"
-                                maxLength={6}
-                                className="block w-full rounded-xl border border-white/10 bg-black/40 px-4 py-3 shadow-inner focus:border-emerald-500/50 focus:bg-black/60 focus:outline-none focus:ring-1 focus:ring-emerald-500/50 text-white placeholder-white/30 transition-all font-medium text-sm"
-                                placeholder="6-digit code"
-                                value={formData.verificationCode}
-                                onChange={handleChange}
-                            />
-                            {errors.verificationCode && <span className="text-red-400 text-xs ml-1 font-medium mt-1 block">{errors.verificationCode}</span>}
-                            {codeHint && <span className="text-emerald-300 text-xs ml-1 font-medium mt-1 block">{codeHint}</span>}
+                            <label htmlFor="register-full-name" className="ml-1 mb-2 block text-[11px] font-black uppercase tracking-wider text-gray-400">Full Name</label>
+                            <div className="group relative">
+                                <input
+                                    id="register-full-name"
+                                    name="fullName"
+                                    type="text"
+                                    required
+                                    className="block w-full rounded-2xl border border-gray-50 bg-gray-50 px-4 py-3.5 pl-11 text-sm font-bold text-gray-900 placeholder-gray-400 transition-all focus:border-blue-500/50 focus:bg-white focus:outline-none focus:ring-4 focus:ring-blue-500/10"
+                                    placeholder="Juan Dela Cruz"
+                                    value={formData.fullName}
+                                    onChange={handleChange}
+                                />
+                                <span className="material-symbols-outlined pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[20px] text-gray-400 transition-colors group-focus-within:text-blue-600">person</span>
+                            </div>
+                            {errors.fullName && <p className="ml-1 mt-1 text-[11px] font-bold text-red-500">{errors.fullName}</p>}
                         </div>
-                        <div className="flex items-end">
-                            <button
-                                type="button"
-                                onClick={handleSendCode}
-                                disabled={sendingCode}
-                                className="h-[46px] rounded-xl border border-emerald-400/40 bg-emerald-500/20 px-3 text-xs font-semibold text-emerald-100 transition hover:bg-emerald-500/30 disabled:opacity-60"
-                            >
-                                {sendingCode ? "Sending..." : "Send Code"}
-                            </button>
-                        </div>
-                    </div>
 
-                    <div>
-                        <label htmlFor="register-phone-number" className="block text-[12px] font-semibold text-emerald-50/80 uppercase tracking-wider mb-1.5 ml-1">Phone Number</label>
-                        <div className="relative group">
-                            <input
-                                id="register-phone-number"
-                                name="phoneNumber"
-                                type="tel"
-                                className="block w-full rounded-xl border border-white/10 bg-black/40 px-4 py-3 pl-11 shadow-inner focus:border-emerald-500/50 focus:bg-black/60 focus:outline-none focus:ring-1 focus:ring-emerald-500/50 text-white placeholder-white/30 transition-all font-medium text-sm"
-                                placeholder="09123456789"
-                                value={formData.phoneNumber}
-                                onChange={handleChange}
-                            />
-                            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40 group-focus-within:text-emerald-400 material-symbols-outlined text-[20px] pointer-events-none transition-colors">call</span>
+                        <div>
+                            <label htmlFor="register-email" className="ml-1 mb-2 block text-[11px] font-black uppercase tracking-wider text-gray-400">Email Address</label>
+                            <div className="group relative">
+                                <input
+                                    id="register-email"
+                                    name="email"
+                                    type="email"
+                                    required
+                                    className="block w-full rounded-2xl border border-gray-50 bg-gray-50 px-4 py-3.5 pl-11 text-sm font-bold text-gray-900 placeholder-gray-400 transition-all focus:border-blue-500/50 focus:bg-white focus:outline-none focus:ring-4 focus:ring-blue-500/10"
+                                    placeholder="juan@pdm.edu.ph"
+                                    value={formData.email}
+                                    onChange={handleChange}
+                                />
+                                <span className="material-symbols-outlined pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[20px] text-gray-400 transition-colors group-focus-within:text-blue-600">mail</span>
+                            </div>
+                            {errors.email && <p className="ml-1 mt-1 text-[11px] font-bold text-red-500">{errors.email}</p>}
                         </div>
-                        {errors.phoneNumber && <span className="text-red-400 text-xs ml-1 font-medium mt-1 block">{errors.phoneNumber}</span>}
-                    </div>
 
-                    <div className="grid grid-cols-3 gap-3">
-                        <div className="flex flex-col w-full">
-                            <label htmlFor="register-course" className="block text-[12px] font-semibold text-emerald-50/80 uppercase tracking-wider mb-1.5 ml-1">Course</label>
-                            <div className="relative group">
+                        <div>
+                            <label htmlFor="register-verification-code" className="ml-1 mb-2 block text-[11px] font-black uppercase tracking-wider text-gray-400">Verification Code</label>
+                            <div className="flex gap-2">
+                                <div className="relative flex-1 group">
+                                    <input
+                                        id="register-verification-code"
+                                        name="verificationCode"
+                                        type="text"
+                                        required
+                                        maxLength={6}
+                                        className="block w-full rounded-2xl border border-gray-50 bg-gray-50 px-4 py-3.5 pl-11 text-sm font-bold text-gray-900 placeholder-gray-400 transition-all focus:border-blue-500/50 focus:bg-white focus:outline-none focus:ring-4 focus:ring-blue-500/10"
+                                        placeholder="000000"
+                                        value={formData.verificationCode}
+                                        onChange={handleChange}
+                                    />
+                                    <span className="material-symbols-outlined pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[20px] text-gray-400 transition-colors group-focus-within:text-blue-600">verified_user</span>
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={handleSendCode}
+                                    disabled={sendingCode}
+                                    className="flex h-[48px] items-center justify-center rounded-2xl bg-gradient-to-r from-blue-50 to-emerald-50 px-5 text-[12px] font-black uppercase tracking-wider text-blue-600 border border-blue-100 transition-all hover:bg-white hover:border-blue-300 disabled:opacity-50"
+                                >
+                                    {sendingCode ? "..." : "Send"}
+                                </button>
+                            </div>
+                            {errors.verificationCode && <p className="ml-1 mt-1 text-[11px] font-bold text-red-500">{errors.verificationCode}</p>}
+                            {codeHint && <p className="ml-1 mt-1 text-[11px] font-bold text-emerald-600">{codeHint}</p>}
+                        </div>
+
+                        <div>
+                            <label htmlFor="register-phone-number" className="ml-1 mb-2 block text-[11px] font-black uppercase tracking-wider text-gray-400">Phone Number</label>
+                            <div className="group relative">
+                                <input
+                                    id="register-phone-number"
+                                    name="phoneNumber"
+                                    type="tel"
+                                    required
+                                    className="block w-full rounded-2xl border border-gray-50 bg-gray-50 px-4 py-3.5 pl-11 text-sm font-bold text-gray-900 placeholder-gray-400 transition-all focus:border-blue-500/50 focus:bg-white focus:outline-none focus:ring-4 focus:ring-blue-500/10"
+                                    placeholder="09123456789"
+                                    value={formData.phoneNumber}
+                                    onChange={handleChange}
+                                />
+                                <span className="material-symbols-outlined pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[20px] text-gray-400 transition-colors group-focus-within:text-blue-600">call</span>
+                            </div>
+                            {errors.phoneNumber && <p className="ml-1 mt-1 text-[11px] font-bold text-red-500">{errors.phoneNumber}</p>}
+                        </div>
+
+                        <div className="grid grid-cols-3 gap-3">
+                            <div className="col-span-1">
+                                <label htmlFor="register-course" className="ml-1 mb-2 block text-[10px] font-black uppercase tracking-wider text-gray-400">Course</label>
                                 <select
                                     id="register-course"
                                     name="course"
+                                    required
+                                    className="block w-full rounded-2xl border border-gray-50 bg-gray-50 px-2 py-3.5 text-xs font-bold text-gray-900 transition-all focus:border-blue-500/50 focus:bg-white focus:outline-none focus:ring-4 focus:ring-blue-500/10 appearance-none text-center"
                                     value={formData.course}
                                     onChange={handleChange}
-                                    className="form-select flex w-full rounded-xl border border-white/10 bg-black/40 px-3 py-3 shadow-inner focus:border-emerald-500/50 focus:bg-black/60 focus:outline-none focus:ring-1 focus:ring-emerald-500/50 text-white transition-all font-medium text-sm appearance-none"
                                 >
-                                    <option disabled value="" className="bg-zinc-800">Select</option>
-                                    <option value="BSIT" className="bg-zinc-800">BSIT</option>
-                                    <option value="BSCS" className="bg-zinc-800">BSCS</option>
-                                    <option value="BSHM" className="bg-zinc-800">BSHM</option>
-                                    <option value="BSTM" className="bg-zinc-800">BSTM</option>
-                                    <option value="BECED" className="bg-zinc-800">BECED</option>
-                                    <option value="BTLED" className="bg-zinc-800">BTLED</option>
-                                    <option value="BSOAD" className="bg-zinc-800">BSOAD</option>
+                                    <option disabled value="">-</option>
+                                    <option value="BSIT">BSIT</option>
+                                    <option value="BSCS">BSCS</option>
+                                    <option value="BSHM">BSHM</option>
+                                    <option value="BSTM">BSTM</option>
+                                    <option value="BECED">BECED</option>
+                                    <option value="BTLED">BTLED</option>
+                                    <option value="BSOAD">BSOAD</option>
                                 </select>
-                                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-white/40 group-focus-within:text-emerald-400 material-symbols-outlined text-[18px] pointer-events-none transition-colors">school</span>
+                                {errors.course && <p className="mt-1 text-[9px] font-bold text-red-500 text-center">{errors.course}</p>}
                             </div>
-                            {errors.course && <span className="text-red-400 text-xs ml-1 font-medium mt-1 block">{errors.course}</span>}
-                        </div>
 
-                        <div className="flex flex-col w-full">
-                            <label htmlFor="register-year-level" className="block text-[12px] font-semibold text-emerald-50/80 uppercase tracking-wider mb-1.5 ml-1">Year</label>
-                            <div className="relative group">
+                            <div className="col-span-1">
+                                <label htmlFor="register-year-level" className="ml-1 mb-2 block text-[10px] font-black uppercase tracking-wider text-gray-400">Year</label>
                                 <select
                                     id="register-year-level"
                                     name="yearLevel"
+                                    required
+                                    className="block w-full rounded-2xl border border-gray-50 bg-gray-50 px-2 py-3.5 text-xs font-bold text-gray-900 transition-all focus:border-blue-500/50 focus:bg-white focus:outline-none focus:ring-4 focus:ring-blue-500/10 appearance-none text-center"
                                     value={formData.yearLevel}
                                     onChange={handleChange}
-                                    className="form-select flex w-full rounded-xl border border-white/10 bg-black/40 px-3 py-3 shadow-inner focus:border-emerald-500/50 focus:bg-black/60 focus:outline-none focus:ring-1 focus:ring-emerald-500/50 text-white transition-all font-medium text-sm appearance-none"
                                 >
-                                    <option disabled value="" className="bg-zinc-800">Select</option>
-                                    <option value="1" className="bg-zinc-800">1st</option>
-                                    <option value="2" className="bg-zinc-800">2nd</option>
-                                    <option value="3" className="bg-zinc-800">3rd</option>
-                                    <option value="4" className="bg-zinc-800">4th</option>
+                                    <option disabled value="">-</option>
+                                    <option value="1">1st</option>
+                                    <option value="2">2nd</option>
+                                    <option value="3">3rd</option>
+                                    <option value="4">4th</option>
                                 </select>
-                                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-white/40 group-focus-within:text-emerald-400 material-symbols-outlined text-[18px] pointer-events-none transition-colors">calendar_today</span>
                             </div>
-                            {errors.yearLevel && <span className="text-red-400 text-xs ml-1 font-medium mt-1 block">{errors.yearLevel}</span>}
-                        </div>
 
-                        <div className="flex flex-col w-full">
-                            <label htmlFor="register-section" className="block text-[12px] font-semibold text-emerald-50/80 uppercase tracking-wider mb-1.5 ml-1">Section</label>
-                            <div className="relative group">
+                            <div className="col-span-1">
+                                <label htmlFor="register-section" className="ml-1 mb-2 block text-[10px] font-black uppercase tracking-wider text-gray-400">Sec</label>
                                 <select
                                     id="register-section"
                                     name="section"
+                                    required
+                                    className="block w-full rounded-2xl border border-gray-50 bg-gray-50 px-2 py-3.5 text-xs font-bold text-gray-900 transition-all focus:border-blue-500/50 focus:bg-white focus:outline-none focus:ring-4 focus:ring-blue-500/10 appearance-none text-center"
                                     value={formData.section}
                                     onChange={handleChange}
-                                    className="form-select flex w-full rounded-xl border border-white/10 bg-black/40 px-3 py-3 shadow-inner focus:border-emerald-500/50 focus:bg-black/60 focus:outline-none focus:ring-1 focus:ring-emerald-500/50 text-white transition-all font-medium text-sm appearance-none"
                                 >
-                                    <option disabled value="" className="bg-zinc-800">Select</option>
-                                    <option value="A" className="bg-zinc-800">A</option>
-                                    <option value="B" className="bg-zinc-800">B</option>
-                                    <option value="C" className="bg-zinc-800">C</option>
-                                    <option value="D" className="bg-zinc-800">D</option>
+                                    <option disabled value="">-</option>
+                                    <option value="A">A</option>
+                                    <option value="B">B</option>
+                                    <option value="C">C</option>
+                                    <option value="D">D</option>
                                 </select>
-                                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-white/40 group-focus-within:text-emerald-400 material-symbols-outlined text-[18px] pointer-events-none transition-colors">class</span>
                             </div>
-                            {errors.section && <span className="text-red-400 text-xs ml-1 font-medium mt-1 block">{errors.section}</span>}
+                        </div>
+
+                        <div>
+                            <label htmlFor="register-password" className="ml-1 mb-2 block text-[11px] font-black uppercase tracking-wider text-gray-400">Password</label>
+                            <div className="group relative">
+                                <input
+                                    id="register-password"
+                                    name="password"
+                                    type="password"
+                                    required
+                                    className="block w-full rounded-2xl border border-gray-50 bg-gray-50 px-4 py-3.5 pl-11 text-sm font-bold text-gray-900 placeholder-gray-400 transition-all focus:border-blue-500/50 focus:bg-white focus:outline-none focus:ring-4 focus:ring-blue-500/10"
+                                    placeholder="••••••••"
+                                    value={formData.password}
+                                    onChange={handleChange}
+                                />
+                                <span className="material-symbols-outlined pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[20px] text-gray-400 transition-colors group-focus-within:text-blue-600">lock</span>
+                            </div>
+                            {errors.password && <p className="ml-1 mt-1 text-[11px] font-bold text-red-500">{errors.password}</p>}
+                        </div>
+
+                        <div>
+                            <label htmlFor="register-confirm-password" className="ml-1 mb-2 block text-[11px] font-black uppercase tracking-wider text-gray-400">Confirm Password</label>
+                            <div className="group relative">
+                                <input
+                                    id="register-confirm-password"
+                                    name="confirmPassword"
+                                    type="password"
+                                    required
+                                    className="block w-full rounded-2xl border border-gray-50 bg-gray-50 px-4 py-3.5 pl-11 text-sm font-bold text-gray-900 placeholder-gray-400 transition-all focus:border-blue-500/50 focus:bg-white focus:outline-none focus:ring-4 focus:ring-blue-500/10"
+                                    placeholder="••••••••"
+                                    value={formData.confirmPassword}
+                                    onChange={handleChange}
+                                />
+                                <span className="material-symbols-outlined pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[20px] text-gray-400 transition-colors group-focus-within:text-blue-600">lock_reset</span>
+                            </div>
+                            {errors.confirmPassword && <p className="ml-1 mt-1 text-[11px] font-bold text-red-500">{errors.confirmPassword}</p>}
                         </div>
                     </div>
 
-                    <div>
-                        <label htmlFor="register-password" className="block text-[12px] font-semibold text-emerald-50/80 uppercase tracking-wider mb-1.5 ml-1">Password</label>
-                        <div className="relative group">
-                            <input
-                                id="register-password"
-                                name="password"
-                                type="password"
-                                className="block w-full rounded-xl border border-white/10 bg-black/40 px-4 py-3 pl-11 shadow-inner focus:border-emerald-500/50 focus:bg-black/60 focus:outline-none focus:ring-1 focus:ring-emerald-500/50 text-white placeholder-white/30 transition-all font-medium text-sm"
-                                placeholder="Min. 8 characters"
-                                value={formData.password}
-                                onChange={handleChange}
-                            />
-                            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40 group-focus-within:text-emerald-400 material-symbols-outlined text-[20px] pointer-events-none transition-colors">lock</span>
-                        </div>
-                        {errors.password && <span className="text-red-400 text-xs ml-1 font-medium mt-1 block">{errors.password}</span>}
-                    </div>
-
-                    <div>
-                        <label htmlFor="register-confirm-password" className="block text-[12px] font-semibold text-emerald-50/80 uppercase tracking-wider mb-1.5 ml-1">Confirm Password</label>
-                        <div className="relative group">
-                            <input
-                                id="register-confirm-password"
-                                name="confirmPassword"
-                                type="password"
-                                className="block w-full rounded-xl border border-white/10 bg-black/40 px-4 py-3 pl-11 shadow-inner focus:border-emerald-500/50 focus:bg-black/60 focus:outline-none focus:ring-1 focus:ring-emerald-500/50 text-white placeholder-white/30 transition-all font-medium text-sm"
-                                placeholder="Re-enter password"
-                                value={formData.confirmPassword}
-                                onChange={handleChange}
-                            />
-                            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40 group-focus-within:text-emerald-400 material-symbols-outlined text-[20px] pointer-events-none transition-colors">lock</span>
-                        </div>
-                        {errors.confirmPassword && <span className="text-red-400 text-xs ml-1 font-medium mt-1 block">{errors.confirmPassword}</span>}
-                    </div>
-
-                    <div className="flex items-start gap-3 mt-4 px-1">
-                        <div className="relative flex items-center pt-0.5">
+                    <div className="flex items-start gap-4 py-2">
+                        <div className="relative flex items-center pt-1">
                             <input
                                 id="register-agree-terms"
                                 name="agreeTerms"
                                 checked={formData.agreeTerms}
                                 onChange={handleChange}
-                                className={`peer size-4 cursor-pointer appearance-none rounded border ${errors.agreeTerms ? "border-red-500 ring-1 ring-red-500/50 bg-red-500/10" : "border-white/20 bg-black/40"} checked:bg-emerald-500 checked:border-emerald-500 transition-all`}
+                                className={`peer size-4 cursor-pointer appearance-none rounded border-2 ${errors.agreeTerms ? "border-red-500 bg-red-50" : "border-gray-200 bg-gray-50"} checked:bg-blue-600 checked:border-blue-600 transition-all focus:outline-none`}
                                 type="checkbox"
                             />
-                            <span className="material-symbols-outlined absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-white opacity-0 peer-checked:opacity-100 text-[14px] pointer-events-none">check</span>
+                            <span className="material-symbols-outlined absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-[12px] font-black text-white opacity-0 peer-checked:opacity-100 pointer-events-none">check</span>
                         </div>
-                        <div className="flex flex-col">
-                            <label htmlFor="register-agree-terms" className="text-white/60 text-xs leading-snug cursor-pointer">
-                                I agree to the <a className="text-emerald-400 font-semibold hover:text-emerald-300 transition-colors" href="#">Terms of Service</a> and <a className="text-emerald-400 font-semibold hover:text-emerald-300 transition-colors" href="#">Privacy Policy</a>.
-                            </label>
-                            {errors.agreeTerms && <span className="text-red-400 text-xs font-medium mt-1 block">{errors.agreeTerms}</span>}
-                        </div>
+                        <label htmlFor="register-agree-terms" className="text-[12px] font-bold text-gray-500 leading-snug cursor-pointer">
+                            I agree to the <a href="#" className="text-blue-600 underline underline-offset-2 hover:text-emerald-600 transition-colors">Terms of Service</a> and <a href="#" className="text-blue-600 underline underline-offset-2 hover:text-emerald-600 transition-colors">Privacy Policy</a>.
+                        </label>
                     </div>
 
-                    <div className="pt-4">
+                    <div className="pt-2">
                         {errors.form && (
-                            <div className="mb-3 rounded-xl border border-red-500/40 bg-red-500/10 px-3 py-2 text-sm font-medium text-red-300">
+                            <div className="mb-4 rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-[13px] font-bold text-red-600">
                                 {errors.form}
                             </div>
                         )}
-                        <button
-                            type="submit"
-                            disabled={loading}
-                            className="flex w-full items-center justify-center rounded-xl bg-gradient-to-r from-emerald-600 to-green-500 py-3.5 px-4 text-[14px] font-bold text-white shadow-lg shadow-emerald-900/30 hover:from-emerald-500 hover:to-green-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 focus:ring-offset-zinc-900 disabled:opacity-50 transition-all gap-2"
-                        >
-                            {loading ? "Creating Account..." : (
-                                <>
-                                    Create Account
-                                    <span className="material-symbols-outlined text-[18px]">arrow_forward</span>
-                                </>
-                            )}
-                        </button>
+                        <div className="flex justify-center">
+                            <button
+                                type="submit"
+                                disabled={loading}
+                                className="flex w-full max-w-[340px] items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-blue-600 to-emerald-600 px-4 py-4 text-[14px] font-black text-white shadow-xl shadow-blue-500/25 transition-all hover:scale-[1.01] active:scale-[0.99] disabled:opacity-50"
+                            >
+                                {loading ? "Creating Account..." : (
+                                    <>
+                                        <span>Create My Account</span>
+                                        <span className="material-symbols-outlined text-[20px] transition-transform group-hover:translate-x-1 font-black">arrow_forward</span>
+                                    </>
+                                )}
+                            </button>
+                        </div>
                     </div>
                 </form>
 
-                <div className="mt-8 text-center text-[13px]">
-                    <p className="text-white/60 text-sm">
-                        Already have an account?
-                        <Link href="/login" className="text-emerald-400 font-bold hover:text-emerald-300 ml-2 transition-colors">
+                <div className="mt-8 text-center">
+                    <p className="text-[13px] font-bold text-gray-400">
+                        Already have an account? 
+                        <Link href="/login" className="ml-2 text-emerald-600 hover:text-blue-600 transition-all uppercase tracking-wider">
                             Sign In
                         </Link>
                     </p>
                 </div>
             </div>
 
-            {/* Footer text */}
-            <p className="fixed bottom-4 left-0 w-full text-center text-white/40 text-[11px] font-medium tracking-wide pointer-events-none hidden md:block">
-                Pambayang Dalubhasaan ng Marilao &copy; 2026
+            <p className="mt-10 text-[11px] font-black uppercase tracking-[0.3em] text-white/40">
+                EcoDefill &copy; 2026 • PDM
             </p>
-            </div>
         </div>
+
+
     );
 }
