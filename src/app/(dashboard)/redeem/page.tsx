@@ -31,7 +31,7 @@ export default function RedeemWater() {
         return `${ml}ml`;
     };
 
-    const MAX_DAILY_REDEEM = 5;
+    const MAX_TRANSACTION_LIMIT = 5;
 
     useEffect(() => {
         if (!qrToken || isSuccess) return;
@@ -109,8 +109,8 @@ export default function RedeemWater() {
             setError("Insufficient balance.");
             return;
         }
-        if (points + dailyRedeemed > MAX_DAILY_REDEEM) {
-            setError(`Daily limit reached. You can only redeem ${MAX_DAILY_REDEEM - dailyRedeemed} more points today.`);
+        if (points > MAX_TRANSACTION_LIMIT) {
+            setError(`Maximum dispense limit per transaction is ${MAX_TRANSACTION_LIMIT} points (${MAX_TRANSACTION_LIMIT * 100}ml).`);
             return;
         }
 
@@ -130,7 +130,7 @@ export default function RedeemWater() {
         }
     };
 
-    const remainingRedeemable = Math.max(0, MAX_DAILY_REDEEM - dailyRedeemed);
+    const remainingRedeemable = MAX_TRANSACTION_LIMIT;
     const parsedPoints = parseInt(pointsToRedeem, 10);
     const isValidInput = !isNaN(parsedPoints) && parsedPoints > 0 && parsedPoints <= balance && parsedPoints <= remainingRedeemable;
 
@@ -155,7 +155,7 @@ export default function RedeemWater() {
                             <p className="mt-2 text-4xl font-bold leading-none">{balance} <span className="text-lg font-medium text-blue-100">pts</span></p>
                             <div className="mt-5 flex items-center justify-between border-t border-white/20 pt-4 text-sm">
                                 <span>{formatWater(balance * 100)} available</span>
-                                <span>{dailyRedeemed}/{MAX_DAILY_REDEEM} used today</span>
+                                <span>{dailyRedeemed} pts redeemed today</span>
                             </div>
                         </section>
 
@@ -196,7 +196,7 @@ export default function RedeemWater() {
                         {!qrToken && !isSuccess && (
                             <Button
                                 onClick={handleGenerateQR}
-                                disabled={!isValidInput || loading || dailyRedeemed >= MAX_DAILY_REDEEM}
+                                disabled={!isValidInput || loading}
                                 className="h-14 w-full rounded-2xl shadow-[0_16px_35px_rgba(59,130,246,0.35)]"
                                 variant="primary"
                             >

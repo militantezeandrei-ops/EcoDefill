@@ -8,12 +8,21 @@ export default async function UsersPage() {
     const users = await prisma.user.findMany({
         where: { role: "STUDENT" },
         orderBy: [{ course: "asc" }, { section: "asc" }, { email: "asc" }],
-        include: {
+        select: {
+            id: true,
+            email: true,
+            fullName: true,
+            phoneNumber: true,
+            balance: true,
+            course: true,
+            yearLevel: true,
+            section: true,
+            createdAt: true,
             transactions: {
                 where: { type: "EARN" },
                 select: { amount: true, materialType: true, count: true },
             },
-        },
+        }
     });
 
     // Defining the official course list to ENSURE they appear even if empty
@@ -32,7 +41,20 @@ export default async function UsersPage() {
 
     users.forEach(u => {
         const courseName = u.course || "Others";
-        const yearLevelName = u.yearLevel ? `${u.yearLevel} Year` : "Unknown Year";
+        
+        let yearLevel = u.yearLevel;
+        // Inference: If yearLevel is missing (Unknown Year), try to pull it from Section
+        if (!yearLevel && u.section && courseName === "BSIT") {
+            if (u.section === "C") {
+                yearLevel = "3"; // Map Section C to 3rd Year per missing data pattern
+            } else {
+                // Try to find a digit 1-4 in the section string (e.g. "BSIT-1A", "3B", "1")
+                const match = u.section.match(/([1-4])/);
+                if (match) yearLevel = match[1];
+            }
+        }
+
+        const yearLevelName = yearLevel ? `${yearLevel} Year` : "Unknown Year";
         const sectionName = u.section || "N/A";
         
         // 1. Get or Create Course Node
@@ -88,6 +110,7 @@ export default async function UsersPage() {
             id: u.id,
             name: u.fullName || "Unregistered Name",
             email: u.email,
+            phone: u.phoneNumber || "Not Set",
             course: courseName,
             yearLevel: yearLevelName,
             section: sectionName,

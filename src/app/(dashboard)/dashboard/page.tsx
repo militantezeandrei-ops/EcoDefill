@@ -112,7 +112,7 @@ export default function Dashboard() {
 
             {/* ── Daily Progress (One horizontal row) ── */}
             <section className="mt-5 px-4">
-                <h2 className="app-section-title">Daily Limits</h2>
+                <h2 className="app-section-title">Usage Summary</h2>
                 <div className="grid grid-cols-2 gap-3">
                     {/* Earn col */}
                     <div className="app-card flex flex-col gap-2 p-3">
@@ -133,12 +133,9 @@ export default function Dashboard() {
                         <div className="flex items-center justify-between">
                             <div className="flex items-center gap-1.5">
                                 <span className="material-symbols-outlined text-[18px] text-blue-600">water_drop</span>
-                                <span className="text-[11px] font-black text-slate-700 uppercase tracking-tight">Used</span>
+                                <span className="text-[11px] font-black text-slate-700 uppercase tracking-tight">Redeemed</span>
                             </div>
-                            <span className="text-base font-black text-blue-600">{dailyRedeemed}<span className="text-xs text-slate-400">/{MAX_DAILY_REDEEM}</span></span>
-                        </div>
-                        <div className="h-1.5 w-full rounded-full bg-slate-100 overflow-hidden">
-                            <div className="h-full bg-blue-500 rounded-full transition-all duration-700" style={{ width: `${redeemProgress}%` }} />
+                            <span className="text-base font-black text-blue-600">{dailyRedeemed} <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tight">pts</span></span>
                         </div>
                     </div>
                 </div>

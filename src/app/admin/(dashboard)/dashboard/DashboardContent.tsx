@@ -77,7 +77,7 @@ export default async function DashboardContent({ searchParams }: { searchParams:
 
     // Build chart data
     const days = filter === "today" 
-    ? ["Morning", "Afternoon", "Evening", "Night"] 
+    ? ["Morning", "Noon", "Afternoon"] 
     : filter === "month" 
         ? ["W1", "W2", "W3", "W4"] 
         : ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
@@ -92,9 +92,8 @@ export default async function DashboardContent({ searchParams }: { searchParams:
         if (filter === "today") {
             const h = t.createdAt.getHours();
             if (h < 12) label = "Morning";
-            else if (h < 17) label = "Afternoon";
-            else if (h < 21) label = "Evening";
-            else label = "Night";
+            else if (h < 15) label = "Noon";
+            else label = "Afternoon";
         } else if (filter === "month") {
             const date = t.createdAt.getDate();
             if (date <= 7) label = "W1";
@@ -111,6 +110,7 @@ export default async function DashboardContent({ searchParams }: { searchParams:
         else dailyRedeems[label] += t.amount || 0;
     });
     const chartData = days.map((day) => ({ day, amount: dailyPoints[day] }));
+    const redeemData = days.map((day) => ({ day, amount: dailyRedeems[day] }));
     const comparisonData = days.map((day) => ({ day, earn: dailyPoints[day], redeem: dailyRedeems[day] }));
 
     // Build leaderboard
@@ -304,34 +304,50 @@ export default async function DashboardContent({ searchParams }: { searchParams:
 
             {/* Data Grid: Row 1 (History + Ranking) */}
             <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-                {/* Points History (2/3) */}
-                <div className="lg:col-span-2 overflow-hidden rounded-[20px] border border-gray-100 bg-white p-4 shadow-sm h-[320px]">
+                {/* Points History (1/3) */}
+                <div className="overflow-hidden rounded-[20px] border border-gray-100 bg-white p-4 shadow-sm h-[340px] flex flex-col">
                     <div className="mb-4 flex items-center justify-between">
-                        <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-2">
                             <TrendingUp className="h-4 w-4 text-emerald-600" />
-                            <h3 className="text-[13px] font-black text-gray-900 tracking-tight uppercase">Points History</h3>
+                            <h3 className="text-[11px] font-black text-gray-900 tracking-tight uppercase">Points Earned</h3>
                         </div>
-                        <div className="flex items-center gap-1.5 p-1 bg-gray-100/50 rounded-lg">
+                        <div className="flex items-center gap-1 p-1 bg-gray-100/50 rounded-lg shrink-0">
                             {["today", "week", "month"].map((f) => (
                                 <Link 
                                     key={f} 
                                     href={`/admin/dashboard?filter=${f}`}
                                     scroll={false}
-                                    className={`px-3 py-1 text-[10px] font-black uppercase tracking-widest rounded-md transition-all ${filter === f ? "bg-white text-blue-600 shadow-sm" : "text-gray-400 hover:text-gray-600"}`}
+                                    className={`px-2 py-0.5 text-[9px] font-black uppercase tracking-widest rounded-md transition-all ${filter === f ? "bg-white text-blue-600 shadow-sm" : "text-gray-400 hover:text-gray-600"}`}
                                 >
                                     {f}
                                 </Link>
                             ))}
                         </div>
                     </div>
-                    <div className="h-[240px]">
-                        <DashboardCharts chartData={chartData} />
+                    <div className="flex-1 min-h-0">
+                        <DashboardCharts chartData={chartData} color="#10b981" />
+                    </div>
+                </div>
+
+                {/* Water Redeemed (1/3) */}
+                <div className="overflow-hidden rounded-[20px] border border-gray-100 bg-white p-4 shadow-sm h-[340px] flex flex-col">
+                    <div className="mb-4 flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                            <Droplet className="h-4 w-4 text-blue-600" />
+                            <h3 className="text-[11px] font-black text-gray-900 tracking-tight uppercase">Water Redeemed</h3>
+                        </div>
+                        <div className="px-2 py-1 bg-blue-50 rounded-lg">
+                            <span className="text-[9px] font-black text-blue-600 uppercase tracking-widest">{filter}</span>
+                        </div>
+                    </div>
+                    <div className="flex-1 min-h-0">
+                        <DashboardCharts chartData={redeemData} color="#3b82f6" />
                     </div>
                 </div>
 
                 {/* Academic Ranking (1/3) */}
-                <div className="overflow-hidden rounded-[20px] border border-gray-100 bg-white p-4 shadow-sm h-[320px] flex flex-col">
-                    <h3 className="text-[12px] font-black text-gray-900 tracking-tight flex items-center gap-2 mb-3 uppercase">
+                <div className="overflow-hidden rounded-[20px] border border-gray-100 bg-white p-4 shadow-sm h-[340px] flex flex-col">
+                    <h3 className="text-[11px] font-black text-gray-900 tracking-tight flex items-center gap-2 mb-4 uppercase">
                         <Users className="h-4 w-4 text-blue-600" />
                         Academic Ranking
                     </h3>
@@ -339,9 +355,9 @@ export default async function DashboardContent({ searchParams }: { searchParams:
                         {leaderboard.map((course, idx: number) => (
                             <div key={idx} className="flex items-center gap-3 p-1 rounded-lg hover:bg-gray-50/50 transition-all">
                                 <span className="text-[10px] font-black text-gray-400 w-4">#{idx+1}</span>
-                                <div className="flex-1">
+                                <div className="flex-1 min-w-0">
                                     <div className="flex justify-between items-center mb-1">
-                                        <span className="text-[11px] font-black text-gray-700 truncate max-w-[120px]">{course.course}</span>
+                                        <span className="text-[10px] font-black text-gray-700 truncate">{course.course}</span>
                                         <span className="text-[10px] font-bold text-blue-600">{course.points} pts</span>
                                     </div>
                                     <div className="h-1 w-full bg-gray-100 rounded-full overflow-hidden">
@@ -457,3 +473,4 @@ export default async function DashboardContent({ searchParams }: { searchParams:
         </div>
     );
 }
+ 

@@ -11,7 +11,7 @@ import { z } from "zod";
 const registerSchema = z.object({
     fullName: z.string().min(2, "Full Name is required"),
     email: z.string().email("Invalid email address"),
-    phoneNumber: z.string().regex(/^\+?[0-9]{10,15}$/, "Enter a valid phone number"),
+    phoneNumber: z.string().length(11, "Phone number must be exactly 11 digits"),
     verificationCode: z.string().length(6, "Verification code must be 6 digits"),
     course: z.string().min(1, "Please select a course"),
     yearLevel: z.string().min(1, "Please select an year level"),
@@ -237,6 +237,7 @@ export default function Register() {
                                     name="phoneNumber"
                                     type="tel"
                                     required
+                                    maxLength={11}
                                     className="block w-full rounded-2xl border border-gray-50 bg-gray-50 px-4 py-3.5 pl-11 text-sm font-bold text-gray-900 placeholder-gray-400 transition-all focus:border-blue-500/50 focus:bg-white focus:outline-none focus:ring-4 focus:ring-blue-500/10"
                                     placeholder="09123456789"
                                     value={formData.phoneNumber}

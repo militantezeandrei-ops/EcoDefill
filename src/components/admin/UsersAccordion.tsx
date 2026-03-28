@@ -7,6 +7,7 @@ interface UserData {
     id: string;
     name: string;
     email: string;
+    phone: string;
     course: string;
     yearLevel: string;
     section: string;
@@ -202,33 +203,38 @@ export default function UsersAccordion({ courses }: { courses: CourseGroup[] }) 
                             <table className="min-w-full">
                                 <thead>
                                     <tr className="bg-gray-50/50 border-b border-gray-100">
-                                        <th className="px-5 py-2.5 text-left text-[11px] font-black uppercase tracking-widest text-gray-400">Student</th>
-                                        <th className="px-5 py-2.5 text-left text-[11px] font-black uppercase tracking-widest text-gray-400">Points</th>
-                                        <th className="px-5 py-2.5 text-left text-[11px] font-black uppercase tracking-widest text-gray-400">Items</th>
-                                        <th className="px-5 py-2.5 text-left text-[11px] font-black uppercase tracking-widest text-gray-400 text-right">Status</th>
+                                        <th className="px-4 py-2 text-left text-[11px] font-black uppercase tracking-widest text-gray-400">Student</th>
+                                        <th className="px-4 py-2 text-left text-[11px] font-black uppercase tracking-widest text-gray-400">Email</th>
+                                        <th className="px-4 py-2 text-left text-[11px] font-black uppercase tracking-widest text-gray-400">Phone</th>
+                                        <th className="px-4 py-2 text-left text-[11px] font-black uppercase tracking-widest text-gray-400">Points</th>
+                                        <th className="px-4 py-2 text-left text-[11px] font-black uppercase tracking-widest text-gray-400">Items</th>
+                                        <th className="px-4 py-2 text-left text-[11px] font-black uppercase tracking-widest text-gray-400 text-right">Status</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-gray-50">
                         {currentSectionData.users.map((u, rowIdx) => (
                                         <tr key={u.id} className={`transition-colors hover:bg-blue-50/20 ${rowIdx % 2 === 0 ? "bg-white" : "bg-gray-50/50"}`}>
-                                            <td className="px-5 py-3">
-                                                <div className="flex items-center gap-3">
-                                                    <div className={`flex h-7 w-7 items-center justify-center rounded-lg ${accent.bg} ${accent.text} text-[12px] font-black`}>
+                                            <td className="px-4 py-3">
+                                                <div className="flex items-center gap-2.5">
+                                                    <div className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-lg ${accent.bg} ${accent.text} text-[10px] font-black`}>
                                                         {u.name ? u.name[0].toUpperCase() : u.email[0].toUpperCase()}
                                                     </div>
-                                                    <div className="flex flex-col">
-                                                        <span className="text-[14px] font-bold text-gray-900 truncate max-w-[150px]">{u.name || "Student"}</span>
-                                                        <span className="text-[11px] font-medium text-gray-400">{u.email}</span>
-                                                    </div>
+                                                    <span className="text-[13px] font-bold text-gray-900 truncate max-w-[120px]">{u.name || "Student"}</span>
                                                 </div>
                                             </td>
-                                            <td className="px-5 py-3">
-                                                <span className="text-sm font-black text-emerald-600">{u.totalEarned.toLocaleString()}</span>
-                                                <span className="ml-1 text-[11px] font-bold text-gray-400 uppercase">pts</span>
+                                            <td className="px-4 py-3">
+                                                <span className="text-[12px] font-medium text-gray-500">{u.email}</span>
                                             </td>
-                                            <td className="px-5 py-3 text-sm font-bold text-gray-600">{u.totalItems}</td>
-                                            <td className="px-5 py-3 text-right">
-                                                <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-black uppercase tracking-tighter ${
+                                            <td className="px-4 py-3">
+                                                <span className="text-[12px] font-semibold text-gray-600 whitespace-nowrap">{u.phone}</span>
+                                            </td>
+                                            <td className="px-4 py-3">
+                                                <span className="text-sm font-black text-emerald-600">{u.totalEarned.toLocaleString()}</span>
+                                                <span className="ml-1 text-[10px] font-bold text-gray-400 uppercase">pts</span>
+                                            </td>
+                                            <td className="px-4 py-3 text-sm font-bold text-gray-600">{u.totalItems}</td>
+                                            <td className="px-4 py-3 text-right">
+                                                <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[9px] font-black uppercase tracking-tighter ${
                                                     u.status === "ACTIVE" 
                                                         ? "bg-[#16A34A] text-white" 
                                                         : "bg-gray-400 text-white"
