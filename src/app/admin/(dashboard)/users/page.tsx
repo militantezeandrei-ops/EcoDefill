@@ -55,7 +55,13 @@ export default async function UsersPage() {
         }
 
         const yearLevelName = yearLevel ? `${yearLevel} Year` : "Unknown Year";
-        const sectionName = u.section || "N/A";
+        
+        // Clean section name: If it starts with digits (e.g. "4B"), strip them if it looks like a year prefix
+        let sectionName = u.section || "N/A";
+        if (sectionName !== "N/A") {
+            // regex: remove leading digits if followed by letters
+            sectionName = sectionName.replace(/^\d+/, '').trim() || sectionName;
+        }
         
         // 1. Get or Create Course Node
         if (!coursesMap.has(courseName)) {
@@ -91,16 +97,17 @@ export default async function UsersPage() {
         let userTotalItems = 0;
 
         u.transactions.forEach((tx: any) => {
-            userTotalEarned += tx.amount;
+            const amount = Number(tx.amount);
+            userTotalEarned += amount;
             
             if (tx.materialType === "BOTTLE") {
-                userTotalItems += (tx.count || tx.amount * 1);
+                userTotalItems += (tx.count || amount * 1);
             } else if (tx.materialType === "CUP") {
-                userTotalItems += (tx.count || tx.amount * 2);
+                userTotalItems += (tx.count || amount * 2);
             } else if (tx.materialType === "PAPER") {
-                userTotalItems += (tx.count || tx.amount * 3);
+                userTotalItems += (tx.count || amount * 3);
             } else {
-                userTotalItems += (tx.count || tx.amount);
+                userTotalItems += (tx.count || amount);
             }
         });
 
@@ -114,7 +121,7 @@ export default async function UsersPage() {
             course: courseName,
             yearLevel: yearLevelName,
             section: sectionName,
-            balance: u.balance,
+            balance: Number(u.balance),
             totalEarned: userTotalEarned,
             totalItems: userTotalItems,
             status,

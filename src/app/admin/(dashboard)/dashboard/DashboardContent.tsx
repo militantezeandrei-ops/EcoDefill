@@ -66,9 +66,9 @@ export default async function DashboardContent({ searchParams }: { searchParams:
         }),
     ]);
 
-    const todaysPoints = todaysPointsAgg._sum.amount || 0;
-    const todaysRedeems = todaysRedeemsAgg?._sum.amount || 0; // Added
-    const totalRedeemed = totalRedemptionsAgg._sum.amount || 0;
+    const todaysPoints = Number(todaysPointsAgg._sum.amount || 0);
+    const todaysRedeems = Number(todaysRedeemsAgg?._sum.amount || 0); // Added
+    const totalRedeemed = Number(totalRedemptionsAgg._sum.amount || 0);
     const waterDispensedMl = totalRedeemed * 100;
     const bottles = bottlesAgg._sum.count || 0;
     const cups = cupsAgg._sum.count || 0;
@@ -106,8 +106,8 @@ export default async function DashboardContent({ searchParams }: { searchParams:
             label = days[idx];
         }
         
-        if (t.type === "EARN") dailyPoints[label] += t.amount || 0;
-        else dailyRedeems[label] += t.amount || 0;
+        if (t.type === "EARN") dailyPoints[label] += Number(t.amount || 0);
+        else dailyRedeems[label] += Number(t.amount || 0);
     });
     const chartData = days.map((day) => ({ day, amount: dailyPoints[day] }));
     const redeemData = days.map((day) => ({ day, amount: dailyRedeems[day] }));
@@ -115,25 +115,33 @@ export default async function DashboardContent({ searchParams }: { searchParams:
 
     // Build leaderboard
     // Initialize with all required courses to ensure they show even with zero points
-    const baseCourses = ["BSCS", "BSIT", "BSTM", "BSOAD", "BSBA", "BSA", "BSEEd", "BSEd"];
+    const baseCourses = ["BSIT", "BSCS", "BSHM", "BSTM", "BECED", "BTLED", "BSOAD"];
     const initialAcc = baseCourses.map(c => ({ course: c, points: 0, items: 0 }));
 
     const leaderboard = leaderboardData
         .reduce((acc: { course: string; points: number; items: number }[], u) => {
-            const course = u.course || "Unknown";
-            const pts = u.transactions.reduce((s, t) => s + t.amount, 0);
+            const courseRaw = u.course || "Unknown";
+            const course = courseRaw.trim().toUpperCase();
+            
+            const pts = u.transactions.reduce((s, t) => s + Number(t.amount), 0);
             const items = u.transactions.reduce((s, t) => {
-                if (t.materialType === "BOTTLE") return s + (t.count || t.amount * 1);
-                if (t.materialType === "CUP") return s + (t.count || t.amount * 2);
-                if (t.materialType === "PAPER") return s + (t.count || t.amount * 3);
-                return s + (t.count || t.amount);
+                const amount = Number(t.amount);
+                if (t.materialType === "BOTTLE") return s + (t.count || amount * 1);
+                if (t.materialType === "CUP") return s + (t.count || amount * 2);
+                if (t.materialType === "PAPER") return s + (t.count || amount * 3);
+                return s + (t.count || amount);
             }, 0);
-            const existing = acc.find((c) => c.course === course);
-            if (existing) { existing.points += pts; existing.items += items; }
-            else acc.push({ course, points: pts, items });
+            
+            const existing = acc.find((c) => c.course.trim().toUpperCase() === course);
+            if (existing) { 
+                existing.points += pts; 
+                existing.items += items; 
+            }
+            else if (baseCourses.includes(course)) acc.push({ course, points: pts, items });
             return acc;
         }, initialAcc)
-        .sort((a, b) => b.points - a.points);
+        .sort((a, b) => b.points - a.points)
+        .slice(0, 8);
 
     const maxPoints = leaderboard[0]?.points || 1;
 
@@ -358,7 +366,7 @@ export default async function DashboardContent({ searchParams }: { searchParams:
                                 <div className="flex-1 min-w-0">
                                     <div className="flex justify-between items-center mb-1">
                                         <span className="text-[10px] font-black text-gray-700 truncate">{course.course}</span>
-                                        <span className="text-[10px] font-bold text-blue-600">{course.points} pts</span>
+                                        <span className="text-[10px] font-bold text-blue-600">{course.points.toFixed(1).replace(/\.0$/, '')} pts</span>
                                     </div>
                                     <div className="h-1 w-full bg-gray-100 rounded-full overflow-hidden">
                                         <div className="h-full bg-blue-500 rounded-full" style={{ width: `${(course.points / maxPoints) * 100}%` }} />
@@ -405,7 +413,7 @@ export default async function DashboardContent({ searchParams }: { searchParams:
                                     {new Date(tx.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                 </span>
                                 <p className={`w-[15%] text-right text-[12px] font-black ${tx.type === "EARN" ? "text-emerald-600" : "text-blue-600"}`}>
-                                    {tx.type === "EARN" ? "+" : "-"}{tx.amount}
+                                    {tx.type === "EARN" ? "+" : "-"}{Number(tx.amount).toFixed(1).replace(/\.0$/, '')}
                                 </p>
                             </div>
                         ))}

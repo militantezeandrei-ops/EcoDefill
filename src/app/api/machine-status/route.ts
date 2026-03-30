@@ -27,7 +27,7 @@ export async function GET(req: Request) {
 
             // Calculate dispense time based on amount (e.g., 100ml = 1000ms / 1 second for a 100ml/s pump)
             const PUMP_RATE_ML_PER_MS = 0.1; // Example: pump dispenses 0.1 ml per millisecond (100ml / sec)
-            const dispenseTimeMs = Math.floor(session.amountToDispense / PUMP_RATE_ML_PER_MS);
+            const dispenseTimeMs = Math.floor(Number(session.amountToDispense) / PUMP_RATE_ML_PER_MS);
 
             // Ideally, the ESP32 hits another `/api/machine-complete` endpoint to mark as DISPENSED.
             // For simplicity in testing/MVP, we can just mark it DISPENSED immediately upon polling if the ESP32 is assumed reliable.

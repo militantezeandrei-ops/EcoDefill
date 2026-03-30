@@ -104,8 +104,8 @@ export async function POST(req: Request) {
 
                     txResult = {
                         userName: user.fullName || user.email?.split('@')[0] || 'Student',
-                        pointsDeducted: qrToken.amount,
-                        waterAmount: session.amountToDispense,
+                        pointsDeducted: Number(qrToken.amount),
+                        waterAmount: Number(session.amountToDispense),
                     };
                 }
             } else if (qrToken.type === "EARN") {
@@ -131,7 +131,7 @@ export async function POST(req: Request) {
                     }
                 });
 
-                const pointsEarned = todayEarned._sum.amount || 0;
+                const pointsEarned = Number(todayEarned._sum.amount || 0);
                 if (pointsEarned >= 10) {
                     throw new Error('Daily earning limit reached');
                 }

@@ -9,6 +9,7 @@ interface User {
     email: string;
     role: string;
     balance: number;
+    hasSeenGuide?: boolean;
 }
 
 interface AuthContextType {

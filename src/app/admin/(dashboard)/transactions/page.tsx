@@ -10,8 +10,8 @@ export default async function TransactionsPage() {
         include: { user: { select: { email: true } } },
     });
 
-    const totalEarned = transactions.filter(t => t.type === "EARN").reduce((s, t) => s + t.amount, 0);
-    const totalRedeemed = transactions.filter(t => t.type === "REDEEM").reduce((s, t) => s + t.amount, 0);
+    const totalEarned = transactions.filter(t => t.type === "EARN").reduce((s, t) => s + Number(t.amount), 0);
+    const totalRedeemed = transactions.filter(t => t.type === "REDEEM").reduce((s, t) => s + Number(t.amount), 0);
 
     // Group by date
     const groupMap = new Map<string, {
@@ -46,8 +46,8 @@ export default async function TransactionsPage() {
         const group = groupMap.get(dateKey)!;
         group.transactions.push(tx);
         group.count++;
-        if (tx.type === "EARN") group.totalEarned += tx.amount;
-        if (tx.type === "REDEEM") group.totalRedeemed += tx.amount;
+        if (tx.type === "EARN") group.totalEarned += Number(tx.amount);
+        if (tx.type === "REDEEM") group.totalRedeemed += Number(tx.amount);
     }
 
     const groups = Array.from(groupMap.values());
@@ -57,6 +57,7 @@ export default async function TransactionsPage() {
         ...g,
         transactions: g.transactions.map(tx => ({
             ...tx,
+            amount: Number(Number(tx.amount).toFixed(1).replace(/\.0$/, '')),
             createdAt: tx.createdAt.toISOString(),
         })),
     }));
@@ -82,7 +83,7 @@ export default async function TransactionsPage() {
                     <div className="relative flex items-start justify-between">
                         <div>
                             <p className="text-[13px] font-bold uppercase tracking-wider text-white/80">Total Earned</p>
-                            <p className="mt-2 text-3xl font-black text-white">{totalEarned} <span className="text-base font-bold text-white/70">pts</span></p>
+                            <p className="mt-2 text-3xl font-black text-white">{Number(totalEarned).toFixed(1).replace(/\.0$/, '')} <span className="text-base font-bold text-white/70">pts</span></p>
                             <p className="mt-1 text-[13px] font-medium text-white/60">From recycling activities</p>
                         </div>
                         <div className="rounded-xl bg-white/20 p-2.5 backdrop-blur-sm transition-transform duration-300 group-hover:scale-110">
@@ -95,8 +96,8 @@ export default async function TransactionsPage() {
                     <div className="relative flex items-start justify-between">
                         <div>
                             <p className="text-[13px] font-bold uppercase tracking-wider text-white/80">Total Redeemed</p>
-                            <p className="mt-2 text-3xl font-black text-white">{totalRedeemed} <span className="text-base font-bold text-white/70">pts</span></p>
-                            <p className="mt-1 text-[13px] font-medium text-white/60">{(totalRedeemed * 100).toLocaleString()} ml dispensed</p>
+                            <p className="mt-2 text-3xl font-black text-white">{Number(totalRedeemed).toFixed(1).replace(/\.0$/, '')} <span className="text-base font-bold text-white/70">pts</span></p>
+                            <p className="mt-1 text-[13px] font-medium text-white/60">{(Number(totalRedeemed) * 100).toLocaleString()} ml dispensed</p>
                         </div>
                         <div className="rounded-xl bg-white/20 p-2.5 backdrop-blur-sm transition-transform duration-300 group-hover:scale-110">
                             <ArrowDownRight className="h-5 w-5 text-white" />

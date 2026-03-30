@@ -26,7 +26,7 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: "User session expired. Please log in again." }, { status: 401 });
         }
 
-        if (user.balance < amount) {
+        if (Number(user.balance) < amount) {
             return NextResponse.json({ error: "Insufficient balance" }, { status: 400 });
         }
 

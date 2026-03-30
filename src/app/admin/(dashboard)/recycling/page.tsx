@@ -10,13 +10,13 @@ export default async function RecyclingPage() {
     });
 
     const totalItems = logs.reduce((s, l) => s + l.count, 0);
-    const totalPts = logs.reduce((s, l) => s + l.pointsEarned, 0);
+    const totalPts = logs.reduce((s, l) => s + Number(l.pointsEarned), 0);
     const co2Saved = (totalItems * 0.03).toFixed(1);
 
     const summaryCards = [
         {
             title: "Points Earned",
-            value: totalPts.toLocaleString(),
+            value: totalPts.toFixed(1).replace(/\.0$/, ''),
             sub: "Total recycling reward",
             icon: Leaf,
             bg: "bg-white",
@@ -140,7 +140,7 @@ export default async function RecyclingPage() {
                                     </div>
                                     <div className="flex items-center gap-8">
                                         <div className="text-right">
-                                            <p className="text-[18px] font-black text-emerald-600 tracking-tight">+{item.pointsEarned}</p>
+                                            <p className="text-[18px] font-black text-emerald-600 tracking-tight">+{Number(item.pointsEarned).toFixed(1).replace(/\.0$/, '')}</p>
                                             <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Points earned</p>
                                         </div>
                                         <div className={`flex items-center gap-2 rounded-full px-3 py-1.5 text-[10px] font-black uppercase tracking-widest ${

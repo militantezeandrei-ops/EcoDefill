@@ -34,12 +34,13 @@ export default async function ReportsPage() {
             fullName: u.fullName,
             course: u.course,
             section: u.section,
-            totalPoints: u.transactions.reduce((s, t) => s + t.amount, 0),
+            totalPoints: u.transactions.reduce((s, t) => s + Number(t.amount), 0),
             totalItems: u.transactions.reduce((s, t) => {
-                if (t.materialType === "BOTTLE") return s + (t.count || t.amount * 1);
-                if (t.materialType === "CUP") return s + (t.count || t.amount * 2);
-                if (t.materialType === "PAPER") return s + (t.count || t.amount * 3);
-                return s + (t.count || t.amount);
+                const amount = Number(t.amount);
+                if (t.materialType === "BOTTLE") return s + (t.count || amount * 1);
+                if (t.materialType === "CUP") return s + (t.count || amount * 2);
+                if (t.materialType === "PAPER") return s + (t.count || amount * 3);
+                return s + (t.count || amount);
             }, 0),
         }))
         .sort((a, b) => b.totalPoints - a.totalPoints)
@@ -219,7 +220,7 @@ export default async function ReportsPage() {
                                     </div>
                                 </div>
                                 <div className="text-right min-w-[80px]">
-                                    <p className="text-base font-black text-emerald-500">{user.totalPoints} <span className="text-[12px] font-bold text-gray-400">pts</span></p>
+                                    <p className="text-base font-black text-emerald-500">{Number(user.totalPoints).toFixed(1).replace(/\.0$/, '')} <span className="text-[12px] font-bold text-gray-400">pts</span></p>
                                     <p className="text-[12px] font-medium text-gray-400">{user.totalItems} items</p>
                                 </div>
                             </div>

@@ -23,7 +23,7 @@ export async function GET(req: NextRequest) {
         const [user, todaysRedemptions, todaysEarnings, recentTransactions] = await Promise.all([
             prisma.user.findUnique({
                 where: { id: userId },
-                select: { balance: true, fullName: true, course: true, yearLevel: true, section: true }
+                select: { balance: true, fullName: true, course: true, yearLevel: true, section: true, hasSeenGuide: true }
             }),
             prisma.transaction.aggregate({
                 where: { userId, type: "REDEEM", createdAt: { gte: today } },
@@ -55,14 +55,18 @@ export async function GET(req: NextRequest) {
         }
 
         return NextResponse.json({
-            balance: user.balance,
+            balance: Number(user.balance),
             fullName: user.fullName,
             course: user.course,
             yearLevel: user.yearLevel,
             section: user.section,
-            dailyRedeemed: todaysRedemptions._sum.amount || 0,
-            dailyEarned: todaysEarnings._sum.amount || 0,
-            recentTransactions
+            dailyRedeemed: Number(todaysRedemptions._sum.amount || 0),
+            dailyEarned: Number(todaysEarnings._sum.amount || 0),
+            hasSeenGuide: !!user.hasSeenGuide,
+            recentTransactions: recentTransactions.map(tx => ({
+                ...tx,
+                amount: Number(tx.amount)
+            }))
         });
 
     } catch (error) {

@@ -22,20 +22,19 @@ enum Role {
 /// Represents both Students and Admin accounts.
 /// Balance is stored in 'points' where 1 point typically equals 100ml.
 model User {
-  id           String        @id @default(uuid())
-  email        String        @unique
+  id           String        @id @default(uuid()) @db.Uuid
+  email        String        @unique @db.VarChar(255)
   fullName     String?       // E.g. "Juan Dela Cruz"
   passwordHash String
-  phoneNumber  String?
-  emailVerified Boolean      @default(false)
-
   role         Role          @default(STUDENT)
-  balance      Float         @default(0) // total stored points (1 point = 100ml)
-  course       String?       // E.g. "BSCS"
-  yearLevel    String?       // E.g. "1", "2", "3", "4"
-  section      String?       // E.g. "3A"
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
+  phoneNumber  String?       @db.VarChar(15)
+  balance      Decimal       @default(0) @db.Decimal(10, 2) // total stored points (1 point = 100ml)
+  course       String?       @db.VarChar(50) // E.g. "BSIT"
+  yearLevel    String?       @db.VarChar(10) // E.g. "1", "2", "3", "4"
+  section      String?       @db.VarChar(10) // E.g. "3A"
+  hasSeenGuide Boolean       @default(false)
+  createdAt    DateTime      @default(now()) @db.Timestamptz
+  updatedAt    DateTime      @updatedAt @db.Timestamptz
 
   transactions    Transaction[]
   qrTokens        QrToken[]
@@ -46,29 +45,29 @@ model User {
 }
 
 model VerificationCode {
-  id         String   @id @default(uuid())
-  email      String
+  id         String   @id @default(uuid()) @db.Uuid
+  email      String   @db.VarChar(255)
   codeHash   String
-  purpose    String   // REGISTER | RESET_PASSWORD
-  expiresAt  DateTime
+  purpose    String   @db.VarChar(30) // REGISTER | RESET_PASSWORD
+  expiresAt  DateTime @db.Timestamptz
   used       Boolean  @default(false)
-  createdAt  DateTime @default(now())
-  usedAt     DateTime?
+  createdAt  DateTime @default(now()) @db.Timestamptz
+  usedAt     DateTime? @db.Timestamptz
 
   @@index([email, purpose, expiresAt])
 }
 
 /// Records all point-related events (EARN from recycling, REDEEM for water).
 model Transaction {
-  id           String   @id @default(uuid())
-  userId       String
+  id           String   @id @default(uuid()) @db.Uuid
+  userId       String   @db.Uuid
   user         User     @relation(fields: [userId], references: [id])
-  type         String   // "EARN" or "REDEEM"
-  amount       Float    // point amount
-  materialType String?  // Optional: BOTTLE, CUP, PAPER
+  type         String   @db.VarChar(20) // "EARN" or "REDEEM"
+  amount       Decimal  @db.Decimal(10, 2) // point amount
+  materialType String?  @db.VarChar(20) // Optional: BOTTLE, CUP, PAPER
   count        Int?     // Optional: Number of items
-  status       String   @default("SUCCESS") // SUCCESS, REJECTED
-  createdAt    DateTime @default(now())
+  status       String   @default("SUCCESS") @db.VarChar(20) // SUCCESS, REJECTED
+  createdAt    DateTime @default(now()) @db.Timestamptz
 
   @@index([userId, type, createdAt])
 }
@@ -76,17 +75,17 @@ model Transaction {
 /// Short-lived tokens for QR interactions. 
 /// 'EARN' for recycling machine, 'REDEEM' for water dispenser.
 model QrToken {
-  id           String    @id @default(uuid())
-  userId       String
+  id           String    @id @default(uuid()) @db.Uuid
+  userId       String    @db.Uuid
   user         User      @relation(fields: [userId], references: [id])
   token        String    @unique // Original long token (JWT/JSON)
-  shortToken   String?   @unique // New high-density short token (e.g., ECO-A3F9B2C1)
-  type         String    @default("EARN") // "EARN" or "REDEEM"
-  amount       Float     @default(0)
-  expiresAt    DateTime
+  shortToken   String?   @unique @db.VarChar(20) // New high-density short token (e.g., ECO-A3F9B2C1)
+  type         String    @default("EARN") @db.VarChar(20) // "EARN" or "REDEEM"
+  amount       Decimal   @default(0) @db.Decimal(10, 2)
+  expiresAt    DateTime  @db.Timestamptz
   used         Boolean   @default(false)
-  usedAt       DateTime? // Timestamp when the token was successfully used
-  createdAt    DateTime  @default(now())
+  usedAt       DateTime? @db.Timestamptz // Timestamp when the token was successfully used
+  createdAt    DateTime  @default(now()) @db.Timestamptz
 
   @@index([token])
   @@index([shortToken])
@@ -96,17 +95,17 @@ model QrToken {
 /// Represents an active hardware interaction session (e.g., dispensing water).
 /// Uses JTI for replay prevention.
 model MachineSession {
-  id              String        @id @default(uuid())
-  machineId       String        // Identifier for the physical ESP32
-  userId          String
-  pointsToDeduct  Float
-  amountToDispense Float        // e.g., 300 (ml)
-  status          String        @default("INITIATED") // INITIATED, APPROVED, DISPENSED, FAILED
+  id              String        @id @default(uuid()) @db.Uuid
+  machineId       String        @db.VarChar(50) // Identifier for the physical ESP32
+  userId          String        @db.Uuid
+  pointsToDeduct  Decimal       @db.Decimal(10, 2)
+  amountToDispense Decimal      @db.Decimal(10, 2) // e.g., 300 (ml)
+  status          String        @default("INITIATED") @db.VarChar(20) // INITIATED, APPROVED, DISPENSED, FAILED
   jti             String        @unique // JWT ID for replay prevention
   
   user            User          @relation(fields: [userId], references: [id])
-  createdAt       DateTime      @default(now())
-  expiresAt       DateTime      // Set to 60s from creation
+  createdAt       DateTime      @default(now()) @db.Timestamptz
+  expiresAt       DateTime      @db.Timestamptz // Set to 60s from creation
 
   @@index([machineId, status])
   @@index([jti])
@@ -114,15 +113,15 @@ model MachineSession {
 
 /// Detailed logs for items processed by the recycling machine.
 model RecyclingLog {
-  id           String   @id @default(uuid())
-  machineId    String
-  userId       String
+  id           String   @id @default(uuid()) @db.Uuid
+  machineId    String   @db.VarChar(50)
+  userId       String   @db.Uuid
   user         User     @relation(fields: [userId], references: [id])
-  materialType String   // BOTTLE, CUP, PAPER
+  materialType String   @db.VarChar(20) // BOTTLE, CUP, PAPER
   count        Int
-  pointsEarned Float
-  status       String   @default("SUCCESS") // SUCCESS, REJECTED
-  createdAt    DateTime @default(now())
+  pointsEarned Decimal  @db.Decimal(10, 2)
+  status       String   @default("SUCCESS") @db.VarChar(20) // SUCCESS, REJECTED
+  createdAt    DateTime @default(now()) @db.Timestamptz
 
   @@index([userId, createdAt])
   @@index([machineId, createdAt])
@@ -130,13 +129,12 @@ model RecyclingLog {
 
 /// System-level logs for IoT hardware health monitoring.
 model MachineLog {
-  id           String   @id @default(uuid())
-  machineId    String
-  status       String   // ONLINE, OFFLINE, ERROR
+  id           String   @id @default(uuid()) @db.Uuid
+  machineId    String   @db.VarChar(50)
+  status       String   @db.VarChar(20) // ONLINE, OFFLINE, ERROR
   message      String?
   pingMs       Int?
-  createdAt    DateTime @default(now())
+  createdAt    DateTime @default(now()) @db.Timestamptz
 
   @@index([machineId, createdAt])
 }
-

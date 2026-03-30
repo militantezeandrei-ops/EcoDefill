@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/hooks/useAuth";
 import { useCachedFetch } from "@/hooks/useCachedFetch";
+import { useState } from "react";
+import GuideSlides from "@/components/dashboard/GuideSlides";
 
 interface Transaction {
     id: string;
@@ -20,6 +22,7 @@ interface BalanceData {
     fullName: string | null;
     dailyEarned: number;
     dailyRedeemed: number;
+    hasSeenGuide: boolean;
     recentTransactions: Transaction[];
 }
 
@@ -30,6 +33,19 @@ export default function Dashboard() {
     const { user, updateUserBalance } = useAuth();
     const router = useRouter();
     const { data, error, mutate } = useCachedFetch<BalanceData>("/api/user-balance");
+    const [showGuide, setShowGuide] = useState(false);
+
+    useEffect(() => {
+        if (data && data.hasSeenGuide === false) {
+            setShowGuide(true);
+        }
+    }, [data]);
+
+    useEffect(() => {
+        const handleShowOnboarding = () => setShowGuide(true);
+        window.addEventListener("show-onboarding", handleShowOnboarding);
+        return () => window.removeEventListener("show-onboarding", handleShowOnboarding);
+    }, []);
 
     useEffect(() => {
         if (data?.balance !== undefined) {
@@ -94,7 +110,7 @@ export default function Dashboard() {
 
                     {/* Big balance */}
                     <div className="mt-1.5 flex items-end gap-1.5">
-                        <span className="text-5xl font-black leading-none tracking-tighter">{balance}</span>
+                        <span className="text-5xl font-black leading-none tracking-tighter">{Number(balance).toFixed(1).replace(/\.0$/, '')}</span>
                         <span className="mb-0.5 text-xs font-black uppercase tracking-widest text-emerald-200">pts</span>
                     </div>
 
@@ -121,7 +137,7 @@ export default function Dashboard() {
                                 <span className="material-symbols-outlined text-[18px] text-emerald-600">recycling</span>
                                 <span className="text-[11px] font-black text-slate-700 uppercase tracking-tight">Earned</span>
                             </div>
-                            <span className="text-base font-black text-emerald-600">{dailyEarned}<span className="text-xs text-slate-400">/{MAX_DAILY_EARN}</span></span>
+                            <span className="text-base font-black text-emerald-600">{Number(dailyEarned).toFixed(1).replace(/\.0$/, '')}<span className="text-xs text-slate-400">/{MAX_DAILY_EARN}</span></span>
                         </div>
                         <div className="h-1.5 w-full rounded-full bg-slate-100 overflow-hidden">
                             <div className="h-full bg-emerald-500 rounded-full transition-all duration-700" style={{ width: `${earnProgress}%` }} />
@@ -135,7 +151,7 @@ export default function Dashboard() {
                                 <span className="material-symbols-outlined text-[18px] text-blue-600">water_drop</span>
                                 <span className="text-[11px] font-black text-slate-700 uppercase tracking-tight">Redeemed</span>
                             </div>
-                            <span className="text-base font-black text-blue-600">{dailyRedeemed} <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tight">pts</span></span>
+                            <span className="text-base font-black text-blue-600">{Number(dailyRedeemed).toFixed(1).replace(/\.0$/, '')} <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tight">pts</span></span>
                         </div>
                     </div>
                 </div>
@@ -222,7 +238,7 @@ export default function Dashboard() {
                                         </div>
                                     </div>
                                     <span className={`text-sm font-black ${tx.type === "EARN" ? "text-emerald-600" : "text-rose-500"}`}>
-                                        {tx.type === "EARN" ? "+" : "-"}{tx.amount}
+                                        {tx.type === "EARN" ? "+" : "-"}{Number(tx.amount).toFixed(1).replace(/\.0$/, '')}
                                         <span className="ml-0.5 text-[10px] font-semibold">pts</span>
                                     </span>
                                 </div>
@@ -236,6 +252,15 @@ export default function Dashboard() {
                     )}
                 </div>
             </section>
+
+            {showGuide && (
+                <GuideSlides 
+                    onFinish={() => {
+                        setShowGuide(false);
+                        mutate(); // Refresh data to update hasSeenGuide status
+                    }} 
+                />
+            )}
         </div>
     );
 }

@@ -40,7 +40,7 @@ export async function POST(req: NextRequest) {
             _sum: { amount: true }
         });
 
-        const currentEarned = todaysEarnings._sum.amount || 0;
+        const currentEarned = Number(todaysEarnings._sum.amount || 0);
 
         if (currentEarned + amount > MAX_DAILY_EARN) {
             return NextResponse.json({
@@ -68,7 +68,7 @@ export async function POST(req: NextRequest) {
 
         return NextResponse.json({
             message: "Points earned successfully",
-            balance: transaction.balance
+            balance: Number(transaction.balance)
         });
 
     } catch (error) {

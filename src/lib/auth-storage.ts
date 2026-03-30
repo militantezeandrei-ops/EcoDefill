@@ -45,6 +45,7 @@ export interface StoredUser {
   email: string;
   role: string;
   balance: number;
+  hasSeenGuide?: boolean;
 }
 
 export async function hydrateStoredAuth(): Promise<{

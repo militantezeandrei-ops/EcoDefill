@@ -2,7 +2,6 @@
 
 import { ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { BottomNav } from "@/components/layout/BottomNav";
-import { OnboardingGuide } from "@/components/layout/OnboardingGuide";
 import { StatusBarBackdrop } from "@/components/layout/StatusBarBackdrop";
 import { useAuth } from "@/hooks/useAuth";
 import { usePathname, useRouter } from "next/navigation";
@@ -57,7 +56,6 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                 </div>
             </main>
             <BottomNav />
-            <OnboardingGuide />
             <StatusBarBackdrop />
         </div>
     );

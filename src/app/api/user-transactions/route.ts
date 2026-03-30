@@ -55,11 +55,14 @@ export async function GET(req: NextRequest) {
         ]);
 
         return NextResponse.json({
-            transactions,
+            transactions: transactions.map(tx => ({
+                ...tx,
+                amount: Number(tx.amount)
+            })),
             stats: {
-                totalEarned: earnedAgg._sum.amount || 0,
-                totalRedeemed: redeemedAgg._sum.amount || 0,
-                totalRecycledItems: earnedAgg._sum.count || recyclingCount || 0,
+                totalEarned: Number(earnedAgg._sum.amount || 0),
+                totalRedeemed: Number(redeemedAgg._sum.amount || 0),
+                totalRecycledItems: Number(earnedAgg._sum.count || recyclingCount || 0),
                 earnedCount: earnedAgg._count.id,
                 redeemedCount: redeemedAgg._count.id
             }
