@@ -144,13 +144,6 @@ export default function QRScanner() {
         };
     }, [initScanner, stopScanner]);
 
-    useEffect(() => {
-        if (needsReset) {
-            setNeedsReset(false);
-            resetScanner();
-        }
-    }, [needsReset]);
-
     const resetScanner = useCallback(() => {
         processingRef.current = false;
         setScanResult(null);
@@ -160,6 +153,13 @@ export default function QRScanner() {
         // Re-initialize the scanner from scratch
         setTimeout(() => initScanner(), 100);
     }, [initScanner]);
+
+    useEffect(() => {
+        if (needsReset) {
+            setNeedsReset(false);
+            resetScanner();
+        }
+    }, [needsReset, resetScanner]);
 
     return (
         <div className="flex-1 overflow-y-auto w-full h-full pb-8 flex flex-col items-center">

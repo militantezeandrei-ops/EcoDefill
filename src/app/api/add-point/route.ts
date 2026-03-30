@@ -26,7 +26,7 @@ export async function POST(req: Request) {
             }
         });
 
-        const pointsEarned = todayEarned._sum.amount || 0;
+        const pointsEarned = Number(todayEarned._sum.amount) || 0;
         if (pointsEarned >= 10) {
             return NextResponse.json({ error: 'Daily point limit reached' }, { status: 403 });
         }

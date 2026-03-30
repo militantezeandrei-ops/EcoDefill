@@ -20,10 +20,11 @@ export default async function ReportsPage() {
 
     const totalItemsRecycled = topUsers.reduce(
         (s, u) => s + u.transactions.reduce((ss, t) => {
-            if (t.materialType === "BOTTLE") return ss + (t.count || t.amount * 1);
-            if (t.materialType === "CUP") return ss + (t.count || t.amount * 2);
-            if (t.materialType === "PAPER") return ss + (t.count || t.amount * 3);
-            return ss + (t.count || t.amount);
+            const amount = Number(t.amount);
+            if (t.materialType === "BOTTLE") return ss + (t.count || amount * 1);
+            if (t.materialType === "CUP") return ss + (t.count || amount * 2);
+            if (t.materialType === "PAPER") return ss + (t.count || amount * 3);
+            return ss + (t.count || amount);
         }, 0),
         0
     );

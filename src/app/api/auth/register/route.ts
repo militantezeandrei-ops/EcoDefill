@@ -57,7 +57,6 @@ export async function POST(req: NextRequest) {
                 passwordHash,
                 fullName: fullName || null,
                 phoneNumber,
-                emailVerified: true,
                 role: "STUDENT",
                 balance: 0,
                 course: course || null,
