@@ -1,189 +1,299 @@
+/*
+ * EcoDefill - ESP32 Main Controller
+ * ====================================
+ * Board: DOIT ESP32 DEVKIT V1
+ *
+ * ROLES:
+ *  1. Receives scanned QR tokens from the ESP32-CAM via Serial2 (GPIO 16).
+ *  2. POSTs the token to the EcoDefill server's /api/verify-qr endpoint.
+ *  3. Polls /api/machine-status every few seconds.
+ *  4. Activates the relay (water pump) when the server sends an APPROVED status.
+ *
+ * LIBRARIES REQUIRED (Install via Arduino Library Manager):
+ *  - ArduinoJson  (by Benoit Blanchon, v6.x or v7.x)
+ *
+ * WIRING:
+ *  ESP32-CAM U0TXD (GPIO1) --> ESP32 DevKit RX2 (GPIO 16)
+ *  Relay IN                 --> ESP32 DevKit GPIO 23
+ *  All GNDs connected together
+ */
+
 #include <WiFi.h>
 #include <HTTPClient.h>
 #include <ArduinoJson.h>
 
-// ---------------- WIFI ----------------
-const char* ssid = "militante";
-const char* password = "militante22";
+// ======================================================
+// CONFIGURATION — Edit these values before uploading
+// ======================================================
 
-// ---------------- API ----------------
-const char* verifyApiUrl = "http://192.168.0.104:3000/api/verify-qr";
-const char* statusApiUrl = "http://192.168.0.104:3000/api/machine-status?machineId=MACHINE_01";
+// WiFi credentials
+const char* WIFI_SSID     = "militante";
+const char* WIFI_PASSWORD = "militante22";
 
-const char* machineId = "MACHINE_01";
+// EcoDefill Server URL (use your LAN IP when running locally, e.g. http://192.168.x.x:3000)
+// For production Vercel deployment use: https://eco-defill.vercel.app
+const char* SERVER_BASE_URL = "http://192.168.0.104:3000";
 
-// ---------------- PINS ----------------
-const int RELAY_PIN = 23;         // Water pump relay
-const int LED_INDICATOR_PIN = 2;  // Built-in LED
+// Machine identifier (must match what is registered in your database)
+const char* MACHINE_ID = "MACHINE_01";
 
-// ---------------- STATE ----------------
-unsigned long lastStatusPoll = 0;
-const int POLL_INTERVAL_MS = 3000;
+// ======================================================
+// PINS
+// ======================================================
+const int RELAY_PIN        = 23;  // Relay IN signal → controls water pump
+const int LED_INDICATOR    = 2;   // Built-in LED (GPIO 2 on most DevKit boards)
 
-// ========================================================
-// SETUP
-// ========================================================
-void setup() {
+// ======================================================
+// TIMING
+// ======================================================
+const unsigned long POLL_INTERVAL_MS = 3000;       // How often to poll /machine-status
+const unsigned long WIFI_TIMEOUT_MS  = 15000;      // Max time to wait for WiFi
 
-  Serial.begin(115200);
+// ======================================================
+// STATE
+// ======================================================
+unsigned long lastPollTime   = 0;
+unsigned long lastTokenSentAt = 0;
+bool          isDispensingWater = false;
 
-  // Serial2 for ESP32-CAM communication
-  Serial2.begin(115200, SERIAL_8N1, 16, 17);
+// ======================================================
+// HELPERS
+// ======================================================
+String buildUrl(const char* path) {
+  String url = String(SERVER_BASE_URL);
+  url += path;
+  return url;
+}
 
-  pinMode(RELAY_PIN, OUTPUT);
-  digitalWrite(RELAY_PIN, LOW);
+void blinkLed(int times, int delayMs = 100) {
+  for (int i = 0; i < times; i++) {
+    digitalWrite(LED_INDICATOR, HIGH);
+    delay(delayMs);
+    digitalWrite(LED_INDICATOR, LOW);
+    delay(delayMs);
+  }
+}
 
-  pinMode(LED_INDICATOR_PIN, OUTPUT);
-  digitalWrite(LED_INDICATOR_PIN, LOW);
+// ======================================================
+// WIFI
+// ======================================================
+void connectWiFi() {
+  Serial.print("[WiFi] Connecting to: ");
+  Serial.println(WIFI_SSID);
 
-  // WiFi connect
-  Serial.print("Connecting to WiFi");
-
-  WiFi.begin(ssid, password);
+  WiFi.mode(WIFI_STA);
+  WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
   WiFi.setAutoReconnect(true);
 
-  while (WiFi.status() != WL_CONNECTED) {
+  unsigned long start = millis();
+  while (WiFi.status() != WL_CONNECTED && millis() - start < WIFI_TIMEOUT_MS) {
     delay(500);
     Serial.print(".");
   }
 
-  Serial.println();
-  Serial.println("WiFi Connected!");
-  Serial.print("IP Address: ");
-  Serial.println(WiFi.localIP());
-
-  digitalWrite(LED_INDICATOR_PIN, HIGH);
+  if (WiFi.status() == WL_CONNECTED) {
+    Serial.println();
+    Serial.println("[WiFi] Connected!");
+    Serial.print("[WiFi] IP Address: ");
+    Serial.println(WiFi.localIP());
+    // Solid LED = WiFi connected
+    digitalWrite(LED_INDICATOR, HIGH);
+  } else {
+    Serial.println();
+    Serial.println("[WiFi] FAILED to connect! Check credentials and router.");
+    // Rapid blink = error
+    blinkLed(10, 50);
+  }
 }
 
-// ========================================================
-// SEND TOKEN TO SERVER
-// ========================================================
-void sendTokenToServer(String token) {
-
+// ======================================================
+// SEND QR TOKEN TO SERVER
+// ======================================================
+void sendTokenToServer(const String& token) {
   if (WiFi.status() != WL_CONNECTED) {
-    Serial.println("WiFi not connected");
+    Serial.println("[HTTP] WiFi not connected, skipping POST.");
     return;
   }
 
   HTTPClient http;
+  String url = buildUrl("/api/verify-qr");
 
-  http.begin(verifyApiUrl);
+  Serial.print("[HTTP] POST to: ");
+  Serial.println(url);
+
+  http.begin(url);
   http.addHeader("Content-Type", "application/json");
+  http.setTimeout(8000); // 8 second timeout
 
+  // Build JSON body
   StaticJsonDocument<256> doc;
-  doc["token"] = token;
-  doc["machineId"] = machineId;
+  doc["token"]     = token;
+  doc["machineId"] = MACHINE_ID;
 
   String payload;
   serializeJson(doc, payload);
 
-  Serial.println("Sending Token:");
+  Serial.print("[HTTP] Payload: ");
   Serial.println(payload);
 
-  int httpResponseCode = http.POST(payload);
+  int responseCode = http.POST(payload);
 
-  if (httpResponseCode > 0) {
-
-    Serial.print("Server Response Code: ");
-    Serial.println(httpResponseCode);
-
+  if (responseCode > 0) {
     String response = http.getString();
+    Serial.print("[HTTP] Response (");
+    Serial.print(responseCode);
+    Serial.print("): ");
     Serial.println(response);
 
+    if (responseCode == 200) {
+      // Quick double blink = scan accepted
+      blinkLed(2, 80);
+    } else {
+      // Triple rapid blink = scan rejected/error
+      blinkLed(3, 50);
+    }
   } else {
-
-    Serial.print("HTTP Error: ");
-    Serial.println(httpResponseCode);
+    Serial.print("[HTTP] Request failed. Error: ");
+    Serial.println(http.errorToString(responseCode));
+    blinkLed(5, 30);
   }
 
   http.end();
 }
 
-// ========================================================
+// ======================================================
 // POLL SERVER FOR DISPENSE COMMAND
-// ========================================================
+// ======================================================
 void pollMachineStatus() {
-
   if (WiFi.status() != WL_CONNECTED) return;
+  if (isDispensingWater) return; // Don't poll while dispensing
 
   HTTPClient http;
+  String url = buildUrl("/api/machine-status?machineId=");
+  url += MACHINE_ID;
 
-  http.begin(statusApiUrl);
+  http.begin(url);
+  http.setTimeout(5000);
 
-  int httpResponseCode = http.GET();
+  int responseCode = http.GET();
 
-  if (httpResponseCode > 0) {
-
+  if (responseCode == 200) {
     String response = http.getString();
-    Serial.println("Machine Status Response:");
+    Serial.print("[POLL] Status: ");
     Serial.println(response);
 
     StaticJsonDocument<512> doc;
+    DeserializationError err = deserializeJson(doc, response);
 
-    DeserializationError error = deserializeJson(doc, response);
-
-    if (!error) {
-
-      bool approved = doc["approved"];
+    if (!err) {
+      bool approved = doc["approved"] | false;
 
       if (approved) {
+        int dispenseMs = doc["dispenseTimeMs"] | 3000;
 
-        int dispenseTimeMs = doc["dispenseTimeMs"];
-
-        Serial.print("Dispensing water for ");
-        Serial.print(dispenseTimeMs);
+        Serial.print("[PUMP] Dispensing water for ");
+        Serial.print(dispenseMs);
         Serial.println(" ms");
 
+        isDispensingWater = true;
+
+        // Activate relay (water flows)
         digitalWrite(RELAY_PIN, HIGH);
-        digitalWrite(LED_INDICATOR_PIN, HIGH);
+        digitalWrite(LED_INDICATOR, HIGH);
 
-        delay(dispenseTimeMs);
+        delay(dispenseMs);
 
+        // Deactivate relay
         digitalWrite(RELAY_PIN, LOW);
-        digitalWrite(LED_INDICATOR_PIN, LOW);
+        digitalWrite(LED_INDICATOR, LOW);
 
-        Serial.println("Dispense Complete");
+        isDispensingWater = false;
+
+        Serial.println("[PUMP] Dispense complete.");
+        blinkLed(3, 100); // Three blinks = done
+        digitalWrite(LED_INDICATOR, HIGH); // Restore LED to ON
       }
     }
-
+  } else if (responseCode > 0) {
+    String response = http.getString();
+    Serial.print("[POLL] Non-200 response (");
+    Serial.print(responseCode);
+    Serial.print("): ");
+    Serial.println(response);
   } else {
-
-    Serial.print("Status Request Failed: ");
-    Serial.println(httpResponseCode);
+    Serial.print("[POLL] Connection error: ");
+    Serial.println(http.errorToString(responseCode));
   }
 
   http.end();
 }
 
-// ========================================================
+// ======================================================
+// SETUP
+// ======================================================
+void setup() {
+  Serial.begin(115200);  // USB Serial (for debugging)
+  delay(500);
+  Serial.println("\n[MAIN] EcoDefill Main Controller Booting...");
+
+  // Serial2 = receives QR tokens from ESP32-CAM
+  // RX2 = GPIO 16, TX2 = GPIO 17 (TX2 unused, but configured anyway)
+  Serial2.begin(115200, SERIAL_8N1, 16, 17);
+  Serial.println("[MAIN] Serial2 (GPIO 16) listening for ESP32-CAM data...");
+
+  // Configure pins
+  pinMode(RELAY_PIN,     OUTPUT);
+  pinMode(LED_INDICATOR, OUTPUT);
+  digitalWrite(RELAY_PIN,     LOW);
+  digitalWrite(LED_INDICATOR, LOW);
+
+  // Connect to WiFi
+  connectWiFi();
+
+  Serial.println("[MAIN] Ready!");
+  Serial.print("[MAIN] Server: ");
+  Serial.println(SERVER_BASE_URL);
+  Serial.print("[MAIN] Machine ID: ");
+  Serial.println(MACHINE_ID);
+}
+
+// ======================================================
 // MAIN LOOP
-// ========================================================
+// ======================================================
 void loop() {
 
-  // 1️⃣ Receive QR token from ESP32-CAM
+  // 1. Check WiFi health — auto-reconnect if dropped
+  if (WiFi.status() != WL_CONNECTED) {
+    Serial.println("[WiFi] Connection lost. Reconnecting...");
+    digitalWrite(LED_INDICATOR, LOW);
+    connectWiFi();
+  }
+
+  // 2. Receive QR token from ESP32-CAM via Serial2
   if (Serial2.available()) {
+    String token = Serial2.readStringUntil('\n');
+    token.trim();
 
-    String scannedToken = Serial2.readStringUntil('\n');
-    scannedToken.trim();
+    if (token.length() > 0) {
+      Serial.print("[CAM→] Received token: ");
+      Serial.println(token);
 
-    if (scannedToken.length() > 0) {
-
-      Serial.print("Token Received: ");
-      Serial.println(scannedToken);
-
-      // Blink LED
-      digitalWrite(LED_INDICATOR_PIN, LOW);
+      // Blink once to acknowledge receipt
+      digitalWrite(LED_INDICATOR, LOW);
       delay(50);
-      digitalWrite(LED_INDICATOR_PIN, HIGH);
+      digitalWrite(LED_INDICATOR, HIGH);
 
-      sendTokenToServer(scannedToken);
+      // Send token to EcoDefill server
+      sendTokenToServer(token);
+      lastTokenSentAt = millis();
     }
   }
 
-  // 2️⃣ Poll server every few seconds
-  if (millis() - lastStatusPoll > POLL_INTERVAL_MS) {
-
+  // 3. Poll machine-status every POLL_INTERVAL_MS
+  if (millis() - lastPollTime >= POLL_INTERVAL_MS) {
     pollMachineStatus();
-    lastStatusPoll = millis();
+    lastPollTime = millis();
   }
+
+  delay(10);
 }

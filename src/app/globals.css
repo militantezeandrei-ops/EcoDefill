@@ -30,7 +30,8 @@
     -webkit-user-select: text !important;
   }
 
-  a, img {
+  a,
+  img {
     -webkit-user-drag: none;
   }
 
@@ -54,6 +55,7 @@
 }
 
 @layer components {
+
   /* Page wrapper — handles horizontal safe area and bottom nav clearance */
   .app-page {
     min-height: 100dvh;
@@ -104,8 +106,13 @@
   }
 
   @keyframes shimmer {
-    0% { background-position: 200% 0; }
-    100% { background-position: -200% 0; }
+    0% {
+      background-position: 200% 0;
+    }
+
+    100% {
+      background-position: -200% 0;
+    }
   }
 
   @keyframes tab-slide-left-in {

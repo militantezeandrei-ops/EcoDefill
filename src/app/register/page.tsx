@@ -387,7 +387,7 @@ export default function Register() {
 
                 <div className="mt-8 text-center">
                     <p className="text-[13px] font-bold text-gray-400">
-                        Already have an account? 
+                        Already have an account?
                         <Link href="/login" className="ml-2 text-emerald-600 hover:text-blue-600 transition-all uppercase tracking-wider">
                             Sign In
                         </Link>

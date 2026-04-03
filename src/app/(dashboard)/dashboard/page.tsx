@@ -84,9 +84,9 @@ export default function Dashboard() {
             {isOffline && (
                 <div className="sticky top-[var(--safe-top)] z-50 flex items-center justify-center bg-rose-500/90 backdrop-blur-md px-4 py-2 text-[11px] font-bold text-white shadow-lg animate-in slide-in-from-top duration-300">
                     <span className="material-symbols-outlined mr-2 text-[16px]">wifi_off</span>
-                    OFFLINE MODE &bull; 
-                    <button 
-                        onClick={() => mutate()} 
+                    OFFLINE MODE &bull;
+                    <button
+                        onClick={() => mutate()}
                         className="ml-2 font-black uppercase tracking-wider underline active:opacity-50"
                     >
                         Retry
@@ -254,11 +254,11 @@ export default function Dashboard() {
             </section>
 
             {showGuide && (
-                <GuideSlides 
+                <GuideSlides
                     onFinish={() => {
                         setShowGuide(false);
                         mutate(); // Refresh data to update hasSeenGuide status
-                    }} 
+                    }}
                 />
             )}
         </div>
