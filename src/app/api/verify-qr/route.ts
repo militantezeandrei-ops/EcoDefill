@@ -10,39 +10,28 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: 'Missing token or machineId' }, { status: 400 });
         }
 
-        // 1. Atomically claim the QR token to prevent double-scanning
-        const claimResult = await prisma.qrToken.updateMany({
-            where: { shortToken: token, used: false },
-            data: { used: true, usedAt: new Date() }
-        });
-
-        if (claimResult.count === 0) {
-            // It might not exist, or it might have already been used by a concurrent scan
-            const existing = await prisma.qrToken.findUnique({ where: { shortToken: token } });
-            if (!existing) {
-                return NextResponse.json({ error: 'Invalid or missing QR code.' }, { status: 404 });
-            }
-            return NextResponse.json({ error: 'QR code has already been used.' }, { status: 400 });
-        }
-
-        // 2. Now securely fetch the full token payload
+        // 1. Fetch the token first without claiming it
         const qrToken = await prisma.qrToken.findUnique({
             where: { shortToken: token },
             include: { user: true }
         });
 
         if (!qrToken) {
-            return NextResponse.json({ error: 'Retrieval error.' }, { status: 500 });
+            return NextResponse.json({ error: 'Invalid or missing QR code.' }, { status: 404 });
         }
 
-        // Provide a 10 second grace period for last-second scans to reach the server
-        const graceTime = new Date();
-        graceTime.setSeconds(graceTime.getSeconds() - 10);
+        if (qrToken.used) {
+            return NextResponse.json({ error: 'QR code has already been used.' }, { status: 400 });
+        }
+
+        // 2. Validate basic constraints (expiry) before claiming
+        const now = new Date();
+        const graceTime = new Date(now.getTime() - 10000); // 10s grace
         if (graceTime > qrToken.expiresAt) {
             return NextResponse.json({ error: 'QR code has expired.' }, { status: 400 });
         }
 
-        // 3. For REDEEM types, we need to handle MachineSession logic
+        // 3. For REDEEM types, handle MachineSession and final claim inside a transaction
         let decoded: any;
         if (qrToken.type === "REDEEM") {
             try {
@@ -71,7 +60,12 @@ export async function POST(req: Request) {
         let txResult: { userName: string; pointsDeducted: number; waterAmount: number } | null = null;
 
         await prisma.$transaction(async (tx) => {
-            // Token is already safely marked as used via updateMany above.
+            // Mark the QR token as used first to prevent concurrent scans during this TX
+            await tx.qrToken.update({
+                where: { id: qrToken.id },
+                data: { used: true, usedAt: new Date() }
+            });
+
             if (qrToken.type === "REDEEM") {
                 const user = await tx.user.findUnique({ where: { id: qrToken.userId } });
 
