@@ -137,7 +137,7 @@ void sendTokenToServer(const String& token) {
 
   http.begin(client, url);
   http.addHeader("Content-Type", "application/json");
-  http.setTimeout(8000); // 8 second timeout
+  http.setTimeout(20000); // 20 seconds for production connection stability
 
   // Build JSON body
   StaticJsonDocument<256> doc;
@@ -190,7 +190,7 @@ void pollMachineStatus() {
   client.setInsecure();
 
   http.begin(client, url);
-  http.setTimeout(5000);
+  http.setTimeout(15000); // 15 seconds for polling
 
   int responseCode = http.GET();
 

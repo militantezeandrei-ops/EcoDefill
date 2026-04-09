@@ -106,7 +106,7 @@ bool verifyQrToken(const String& token) {
 
   http.begin(client, url);
   http.addHeader("Content-Type", "application/json");
-  http.setTimeout(8000);
+  http.setTimeout(20000); // Increased timeout for slower Vercel responses
 
   Serial.print("[HTTP] POST ");
   Serial.println(url);
@@ -140,7 +140,7 @@ int fetchDispenseTimeMs() {
   client.setInsecure();
 
   http.begin(client, url);
-  http.setTimeout(6000);
+  http.setTimeout(15000); // 15 seconds for polling
 
   int code = http.GET();
   if (code != 200) {
