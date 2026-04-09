@@ -69,7 +69,7 @@ export async function POST(req: Request) {
             if (qrToken.type === "REDEEM") {
                 const user = await tx.user.findUnique({ where: { id: qrToken.userId } });
 
-                if (!user || user.balance < qrToken.amount) {
+                if (!user || Number(user.balance) < Number(qrToken.amount)) {
                     throw new Error('Insufficient balance');
                 }
 
