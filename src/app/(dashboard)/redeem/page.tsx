@@ -16,8 +16,6 @@ export default function RedeemWater() {
     const [dailyRedeemed, setDailyRedeemed] = useState(0);
     const [pointsToRedeem, setPointsToRedeem] = useState("1");
     const [qrToken, setQrToken] = useState("");
-    const [expiresAt, setExpiresAt] = useState<Date | null>(null);
-    const [timeLeft, setTimeLeft] = useState(0);
     const [isSuccess, setIsSuccess] = useState(false);
     const [loading, setLoading] = useState(false);
     const [fetching, setFetching] = useState(true);
@@ -42,7 +40,6 @@ export default function RedeemWater() {
                 if (data.used) {
                     setIsSuccess(true);
                     setQrToken("");
-                    setExpiresAt(null);
                     clearInterval(pollInterval);
 
                     const userData = await apiClient<{ balance: number; dailyRedeemed: number }>("/api/user-balance");
@@ -80,21 +77,7 @@ export default function RedeemWater() {
         void fetchUserData();
     }, [updateUserBalance]);
 
-    useEffect(() => {
-        if (!expiresAt) return;
 
-        const interval = setInterval(() => {
-            const now = new Date();
-            const diff = Math.max(0, Math.floor((expiresAt.getTime() - now.getTime()) / 1000));
-            setTimeLeft(diff);
-            if (now.getTime() > expiresAt.getTime() + 10000) {
-                setQrToken("");
-                setExpiresAt(null);
-                clearInterval(interval);
-            }
-        }, 1000);
-        return () => clearInterval(interval);
-    }, [expiresAt]);
 
     const handleGenerateQR = async () => {
         setError("");
@@ -121,8 +104,6 @@ export default function RedeemWater() {
                 body: JSON.stringify({ amount: points }),
             });
             setQrToken(data.token);
-            setExpiresAt(new Date(data.expiresAt));
-            setTimeLeft(30);
         } catch (err: unknown) {
             setError(err instanceof Error ? err.message : "Failed to generate QR code");
         } finally {
@@ -220,8 +201,8 @@ export default function RedeemWater() {
                         <div className="mt-5 flex items-center justify-center rounded-2xl border border-slate-200 p-4 dark:border-zinc-700">
                             <QRCode value={qrToken} size={220} level="M" className="mx-auto" />
                         </div>
-                        <p className="mt-4 inline-flex rounded-full bg-rose-50 px-3 py-1 text-sm font-semibold text-rose-500 dark:bg-rose-900/20">
-                            {timeLeft > 0 ? `Expires in ${timeLeft}s` : "Finalizing scan..."}
+                        <p className="mt-4 inline-flex rounded-full bg-blue-50 px-3 py-1 text-sm font-semibold text-blue-500 dark:bg-blue-900/20">
+                            QR Code Active
                         </p>
                     </div>
                 </div>

@@ -101,7 +101,7 @@ export default function ScanPage() {
                             method: "POST",
                             body: JSON.stringify({
                                 token: tokenToVerify,
-                                machineId: "MACHINE_001",
+                                machineId: "MACHINE_01",
                             }),
                         });
 
@@ -188,7 +188,7 @@ export default function ScanPage() {
                         <span className="material-symbols-outlined text-white text-3xl">precision_manufacturing</span>
                     </div>
                     <h1 className="text-2xl font-bold text-white tracking-tight">EcoDefill Machine</h1>
-                    <p className="text-slate-400 text-sm mt-1">Machine ID: MACHINE_001</p>
+                    <p className="text-slate-400 text-sm mt-1">Machine ID: MACHINE_01</p>
                 </div>
 
                 {/* Scanner Container */}

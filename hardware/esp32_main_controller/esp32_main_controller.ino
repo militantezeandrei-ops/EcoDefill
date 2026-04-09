@@ -21,6 +21,7 @@
 #include <WiFi.h>
 #include <HTTPClient.h>
 #include <ArduinoJson.h>
+#include <WiFiClientSecure.h>
 
 // ======================================================
 // CONFIGURATION — Edit these values before uploading
@@ -32,7 +33,7 @@ const char* WIFI_PASSWORD = "militante22";
 
 // EcoDefill Server URL (use your LAN IP when running locally, e.g. http://192.168.x.x:3000)
 // For production Vercel deployment use: https://eco-defill.vercel.app
-const char* SERVER_BASE_URL = "http://192.168.0.104:3000";
+const char* SERVER_BASE_URL = "https://eco-defill.vercel.app";
 
 // Machine identifier (must match what is registered in your database)
 const char* MACHINE_ID = "MACHINE_01";
@@ -55,6 +56,7 @@ const unsigned long WIFI_TIMEOUT_MS  = 15000;      // Max time to wait for WiFi
 unsigned long lastPollTime   = 0;
 unsigned long lastTokenSentAt = 0;
 bool          isDispensingWater = false;
+String        serial2Buffer = "";
 
 // ======================================================
 // HELPERS
@@ -72,6 +74,15 @@ void blinkLed(int times, int delayMs = 100) {
     digitalWrite(LED_INDICATOR, LOW);
     delay(delayMs);
   }
+}
+
+bool isPrintableToken(const String& token) {
+  if (token.length() < 8 || token.length() > 512) return false;
+  for (size_t i = 0; i < token.length(); i++) {
+    char c = token.charAt(i);
+    if (c < 33 || c > 126) return false;
+  }
+  return true;
 }
 
 // ======================================================
@@ -121,7 +132,10 @@ void sendTokenToServer(const String& token) {
   Serial.print("[HTTP] POST to: ");
   Serial.println(url);
 
-  http.begin(url);
+  WiFiClientSecure client;
+  client.setInsecure();
+
+  http.begin(client, url);
   http.addHeader("Content-Type", "application/json");
   http.setTimeout(8000); // 8 second timeout
 
@@ -172,7 +186,10 @@ void pollMachineStatus() {
   String url = buildUrl("/api/machine-status?machineId=");
   url += MACHINE_ID;
 
-  http.begin(url);
+  WiFiClientSecure client;
+  client.setInsecure();
+
+  http.begin(client, url);
   http.setTimeout(5000);
 
   int responseCode = http.GET();
@@ -239,6 +256,7 @@ void setup() {
   // Serial2 = receives QR tokens from ESP32-CAM
   // RX2 = GPIO 16, TX2 = GPIO 17 (TX2 unused, but configured anyway)
   Serial2.begin(115200, SERIAL_8N1, 16, 17);
+  Serial2.setTimeout(20);
   Serial.println("[MAIN] Serial2 (GPIO 16) listening for ESP32-CAM data...");
 
   // Configure pins
@@ -269,23 +287,43 @@ void loop() {
     connectWiFi();
   }
 
-  // 2. Receive QR token from ESP32-CAM via Serial2
-  if (Serial2.available()) {
-    String token = Serial2.readStringUntil('\n');
-    token.trim();
+  // 2. Receive QR token from ESP32-CAM via Serial2.
+  // Protocol: "QR:<token>\n"
+  while (Serial2.available()) {
+    char ch = (char)Serial2.read();
 
-    if (token.length() > 0) {
-      Serial.print("[CAM→] Received token: ");
-      Serial.println(token);
+    if (ch == '\n') {
+      serial2Buffer.trim();
 
-      // Blink once to acknowledge receipt
-      digitalWrite(LED_INDICATOR, LOW);
-      delay(50);
-      digitalWrite(LED_INDICATOR, HIGH);
+      if (serial2Buffer.startsWith("QR:")) {
+        String token = serial2Buffer.substring(3);
+        token.trim();
 
-      // Send token to EcoDefill server
-      sendTokenToServer(token);
-      lastTokenSentAt = millis();
+        if (isPrintableToken(token)) {
+          Serial.print("[CAM->] Received token: ");
+          Serial.println(token);
+
+          // Blink once to acknowledge receipt
+          digitalWrite(LED_INDICATOR, LOW);
+          delay(50);
+          digitalWrite(LED_INDICATOR, HIGH);
+
+          // Send token to EcoDefill server
+          sendTokenToServer(token);
+          lastTokenSentAt = millis();
+        } else {
+          Serial.print("[CAM->] Ignored invalid token payload: ");
+          Serial.println(token);
+        }
+      }
+
+      serial2Buffer = "";
+    } else if (ch != '\r') {
+      if (serial2Buffer.length() < 600) {
+        serial2Buffer += ch;
+      } else {
+        serial2Buffer = "";
+      }
     }
   }
 
@@ -297,3 +335,4 @@ void loop() {
 
   delay(10);
 }
+

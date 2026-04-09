@@ -32,13 +32,13 @@ export async function POST(req: NextRequest) {
 
         // Generate JTI and set Expiry
         const jti = uuidv4();
-        const expiresInSeconds = 30;
+        const expiresInSeconds = 600; // 10 minutes to accommodate slow hardware scanning
         const expiresAtDate = new Date(Date.now() + expiresInSeconds * 1000);
 
         // Create MachineSession in DB
         const session = await prisma.machineSession.create({
             data: {
-                machineId: "MACHINE_001", // Hardcoded for MVP 
+                machineId: "MACHINE_01", // Match hardware ID
                 userId: user.id,
                 pointsToDeduct: amount,
                 amountToDispense: amount * 100, // 1 point = 100ml
