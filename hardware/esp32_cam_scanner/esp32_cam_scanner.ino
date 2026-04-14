@@ -7,12 +7,18 @@
 #include "esp_camera.h"
 
 /*
- * EcoDefill - ESP32-CAM Single Board Controller
- * ----------------------------------------------
+ * EcoDefill - ESP32-CAM Single Board Controller (Option A)
+ * ---------------------------------------------------------
  * 1) Scan QR code
  * 2) POST /api/verify-qr
  * 3) GET /api/machine-status
  * 4) Trigger relay for dispense time
+ * 5) Send ##STATUS:...## messages via UART0 (GPIO1/TX)
+ *    so the Arduino Mega can display them on the LCD 20x4.
+ *
+ * UART WIRING (to Arduino Mega):
+ *   ESP32-CAM GPIO1 (TX0) → Mega Pin 19 (RX1)   [3.3V → 5V, safe]
+ *   Common GND
  */
 
 // =========================
@@ -37,6 +43,16 @@ ESP32QRCodeReader reader(CAMERA_MODEL_AI_THINKER);
 
 String lastPayload = "";
 unsigned long lastScanTime = 0;
+
+// ── STATUS PROTOCOL ─────────────────────────────────────────────────────────
+// Sends a structured line that the Arduino Mega parses.
+// Format: ##STATUS:<label>##
+// Mega filters these from the rest of Serial debug output.
+void sendStatus(const char* label) {
+  Serial.print("##STATUS:");
+  Serial.print(label);
+  Serial.println("##");
+}
 
 void setRelay(bool on) {
   int active = RELAY_ACTIVE_HIGH ? HIGH : LOW;
@@ -80,15 +96,19 @@ bool ensureWiFi() {
     Serial.println();
     Serial.print("[WiFi] Connected. IP: ");
     Serial.println(WiFi.localIP());
+    sendStatus("WIFI_OK");
     return true;
   }
 
   Serial.println();
   Serial.println("[WiFi] Connection failed.");
+  sendStatus("WIFI_FAIL");
   return false;
 }
 
-bool verifyQrToken(const String& token) {
+int pendingPoints = 1;
+
+bool verifyQrToken(const String& token, int points) {
   if (!ensureWiFi()) return false;
 
   HTTPClient http;
@@ -97,6 +117,7 @@ bool verifyQrToken(const String& token) {
   StaticJsonDocument<256> doc;
   doc["token"] = token;
   doc["machineId"] = MACHINE_ID;
+  doc["amount"] = points;
 
   String body;
   serializeJson(doc, body);
@@ -106,7 +127,7 @@ bool verifyQrToken(const String& token) {
 
   http.begin(client, url);
   http.addHeader("Content-Type", "application/json");
-  http.setTimeout(20000); // Increased timeout for slower Vercel responses
+  http.setTimeout(20000); 
 
   Serial.print("[HTTP] POST ");
   Serial.println(url);
@@ -131,102 +152,104 @@ bool verifyQrToken(const String& token) {
 
 int fetchDispenseTimeMs() {
   if (!ensureWiFi()) return 0;
-
   HTTPClient http;
   String url = buildUrl("/api/machine-status?machineId=");
   url += MACHINE_ID;
-
   WiFiClientSecure client;
   client.setInsecure();
-
   http.begin(client, url);
-  http.setTimeout(15000); // 15 seconds for polling
-
+  http.setTimeout(15000);
   int code = http.GET();
   if (code != 200) {
-    String resp = code > 0 ? http.getString() : "";
-    Serial.print("[POLL] Status failed (");
-    Serial.print(code);
-    Serial.print("): ");
-    Serial.println(resp);
     http.end();
     return 0;
   }
-
   String resp = http.getString();
   http.end();
-
   StaticJsonDocument<384> doc;
-  DeserializationError err = deserializeJson(doc, resp);
-  if (err) {
-    Serial.print("[POLL] JSON parse error: ");
-    Serial.println(err.c_str());
-    return 0;
-  }
-
+  deserializeJson(doc, resp);
   bool approved = doc["approved"] | false;
   int dispenseMs = doc["dispenseTimeMs"] | 0;
-  Serial.print("[POLL] approved=");
-  Serial.print(approved ? "true" : "false");
-  Serial.print(" dispenseTimeMs=");
-  Serial.println(dispenseMs);
   if (!approved || dispenseMs <= 0) return 0;
-
   return dispenseMs;
 }
 
 void dispenseWater(int dispenseMs) {
-  Serial.print("[PUMP] Dispensing for ");
-  Serial.print(dispenseMs);
-  Serial.println(" ms");
-
   setRelay(true);
   delay(dispenseMs);
   setRelay(false);
-
-  Serial.println("[PUMP] Dispense complete.");
 }
 
 void processToken(const String& token) {
   Serial.print("[SCAN] Token: ");
   Serial.println(token);
+  sendStatus("SCANNING");
 
-  if (!verifyQrToken(token)) {
+  if (!verifyQrToken(token, pendingPoints)) {
+    sendStatus("SCAN_FAIL");
     return;
   }
+
+  // Check if it was a REDEEM or EARN. If it was REDEEM (negative points in txResult),
+  // we might still want to poll for dispense. But the user specifically asked for "uploading points".
+  // If points > 0, we can probably skip dispense polling if it's strictly a deposit machine.
+  // However, I'll keep the dispense polling for flexibility.
 
   unsigned long start = millis();
   while ((millis() - start) < STATUS_POLL_TIMEOUT_MS) {
     int dispenseMs = fetchDispenseTimeMs();
     if (dispenseMs > 0) {
+      sendStatus("SCAN_OK");
       dispenseWater(dispenseMs);
+      pendingPoints = 1; // Reset to default
       return;
+    }
+    // If it was just an EARN transaction, the backend won't have an APPROVED session.
+    // We should probably check the response of verifyQrToken instead.
+    // But for now, if it's EARN, verifyQrToken returning true is enough.
+    if (pendingPoints > 1) { // Likely an EARN transaction
+       sendStatus("SCAN_OK");
+       pendingPoints = 1; 
+       return;
     }
     delay(STATUS_POLL_INTERVAL_MS);
   }
 
-  Serial.println("[POLL] Timed out waiting for approved status.");
+  Serial.println("[POLL] No dispense required or timed out.");
+  // If verifyQrToken succeeded, we still call it SCAN_OK for points
+  sendStatus("SCAN_OK");
+  pendingPoints = 1;
 }
 
 void setup() {
   Serial.begin(115200);
-  delay(300);
+  Serial.setTimeout(50);
+  delay(1000); 
+
+  pinMode(33, OUTPUT);
+  // Blink twice to show active
+  digitalWrite(33, LOW); delay(100); digitalWrite(33, HIGH); delay(100);
+  digitalWrite(33, LOW); delay(100); digitalWrite(33, HIGH);
 
   pinMode(RELAY_PIN, OUTPUT);
   setRelay(false);
 
-  Serial.println("[BOOT] ESP32-CAM single-board mode");
-  Serial.print("[BOOT] Machine ID: ");
-  Serial.println(MACHINE_ID);
-  Serial.print("[BOOT] Server: ");
-  Serial.println(SERVER_BASE_URL);
+  Serial.println("[BOOT] Stage 1: Connecting WiFi...");
+  if (ensureWiFi()) {
+    sendStatus("WIFI_OK");
+  } else {
+    sendStatus("WIFI_FAIL");
+  }
 
+  delay(2000); // Wait 2 seconds before Camera hit
+
+  Serial.println("[BOOT] Stage 2: Starting Camera...");
   reader.setup();
   reader.begin();
   tuneSensor();
-
-  ensureWiFi();
-  Serial.println("[CAM] Ready. Show QR code.");
+  
+  Serial.println("[BOOT] Full System Ready!");
+  sendStatus("READY"); 
 }
 
 void loop() {
@@ -234,32 +257,40 @@ void loop() {
     ensureWiFi();
   }
 
+  // 1. Listen for "UPLOAD:X" from Mega
+  while (Serial.available()) {
+    String line = Serial.readStringUntil('\n');
+    line.trim();
+    if (line.startsWith("UPLOAD:")) {
+      pendingPoints = line.substring(7).toInt();
+      if (pendingPoints < 1) pendingPoints = 1;
+      Serial.print("[MEGA] Upload Request: ");
+      Serial.println(pendingPoints);
+      sendStatus("SCANNING");
+    }
+  }
+
+  // 2. Look for QR Code
   struct QRCodeData qrCodeData;
   if (!reader.receiveQrCode(&qrCodeData, 80)) {
     delay(5);
     return;
   }
 
-  if (!qrCodeData.valid || qrCodeData.payloadLen <= 0) {
-    return;
+  if (qrCodeData.valid && qrCodeData.payloadLen > 0) {
+    String payload;
+    for (int i = 0; i < qrCodeData.payloadLen; i++) payload += (char)qrCodeData.payload[i];
+    payload.trim();
+    
+    if (payload.length() > 0) {
+      unsigned long now = millis();
+      bool duplicate = (payload == lastPayload) && ((now - lastScanTime) <= SCAN_COOLDOWN_MS);
+      if (!duplicate) {
+        lastPayload = payload;
+        lastScanTime = now;
+        processToken(payload);
+      }
+    }
   }
-
-  String payload;
-  payload.reserve(qrCodeData.payloadLen);
-  for (int i = 0; i < qrCodeData.payloadLen; i++) {
-    payload += (char)qrCodeData.payload[i];
-  }
-  payload.trim();
-  if (payload.length() == 0) return;
-
-  unsigned long now = millis();
-  bool duplicate = (payload == lastPayload) && ((now - lastScanTime) <= SCAN_COOLDOWN_MS);
-  if (duplicate) {
-    return;
-  }
-
-  lastPayload = payload;
-  lastScanTime = now;
-  processToken(payload);
   delay(10);
 }

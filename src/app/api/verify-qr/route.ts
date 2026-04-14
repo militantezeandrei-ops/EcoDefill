@@ -4,10 +4,15 @@ import jwt from 'jsonwebtoken';
 
 export async function POST(req: Request) {
     try {
-        const { token, machineId } = await req.json();
+        const { token, machineId, amount } = await req.json();
 
         if (!token || !machineId) {
             return NextResponse.json({ error: 'Missing token or machineId' }, { status: 400 });
+        }
+
+        const pointsToProcess = Number(amount) || 1;
+        if (pointsToProcess > 10) {
+            return NextResponse.json({ error: 'Max 10 points per transaction.' }, { status: 400 });
         }
 
         // 1. Fetch the token first without claiming it
@@ -125,29 +130,29 @@ export async function POST(req: Request) {
                     }
                 });
 
-                const pointsEarned = Number(todayEarned._sum.amount || 0);
-                if (pointsEarned >= 10) {
+                const pointsEarnedTotal = Number(todayEarned._sum.amount || 0);
+                if (pointsEarnedTotal + pointsToProcess > 10) {
                     throw new Error('Daily earning limit reached');
                 }
 
-                // Add 1 point for scanning personal QR (check-in/earn)
+                // Add points based on hardware input
                 await tx.user.update({
                     where: { id: user.id },
-                    data: { balance: { increment: 1 } }
+                    data: { balance: { increment: pointsToProcess } }
                 });
 
                 // Log transaction
                 await tx.transaction.create({
                     data: {
                         userId: user.id,
-                        amount: 1,
+                        amount: pointsToProcess,
                         type: 'EARN'
                     }
                 });
 
                 txResult = {
                     userName: user.fullName || user.email?.split('@')[0] || 'Student',
-                    pointsDeducted: -1, // Negative indicates earning
+                    pointsDeducted: -pointsToProcess, // Negative indicates earning
                     waterAmount: 0,
                 };
             }
