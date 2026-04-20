@@ -73,24 +73,28 @@ export default function Login() {
     };
 
     useEffect(() => {
-        document.body.style.backgroundImage = "linear-gradient(to bottom, rgba(0,0,0,0.6), rgba(0,0,0,0.4), rgba(0,0,0,0.7)), url('/images/pdm-building.jpg')";
-        document.body.style.backgroundSize = "cover";
-        document.body.style.backgroundPosition = "center";
-        document.body.style.backgroundAttachment = "fixed";
-        document.body.style.backgroundRepeat = "no-repeat";
+        document.body.style.backgroundColor = "#f9fafb"; // Light gray background for the body
 
         return () => {
-            document.body.style.backgroundImage = "";
-            document.body.style.backgroundSize = "";
-            document.body.style.backgroundPosition = "";
-            document.body.style.backgroundAttachment = "";
-            document.body.style.backgroundRepeat = "";
+            document.body.style.backgroundColor = "";
         };
     }, []);
 
     return (
-        <div className="relative flex min-h-screen w-full flex-col items-center justify-center bg-transparent px-4 py-12 font-display -webkit-overflow-scrolling-touch">
-            <div className="relative mx-4 w-full max-w-[400px] my-auto overflow-hidden rounded-[32px] border border-gray-200 bg-white/95 px-6 py-8 shadow-[0_20px_50px_rgba(0,0,0,0.3)] backdrop-blur-md">
+        <div className="relative flex min-h-screen w-full flex-col items-center justify-center bg-gray-50 px-4 py-12 font-display overflow-hidden">
+            {/* Background Image with White Overlay */}
+            <div className="absolute inset-0 z-0">
+                <Image
+                    src="/images/pdm-building.jpg"
+                    alt="Background"
+                    fill
+                    className="object-cover"
+                    priority
+                />
+                <div className="absolute inset-0 bg-white/30" />
+            </div>
+
+            <div className="relative z-10 mx-4 w-full max-w-[400px] my-auto overflow-hidden rounded-[32px] border border-gray-200 bg-white px-6 py-8 shadow-[0_20px_50px_rgba(0,0,0,0.1)]">
                 <div className="absolute left-0 top-0 h-1.5 w-full bg-gradient-to-r from-blue-500 via-emerald-500 to-green-500" />
 
                 <div className="mb-4 mt-0 flex flex-col items-center text-center">
@@ -185,7 +189,7 @@ export default function Login() {
                 </div>
             </div>
 
-            <p className="mt-10 text-center text-[11px] font-black uppercase tracking-[0.3em] text-white/40">
+            <p className="mt-10 text-center text-[11px] font-black uppercase tracking-[0.3em] text-gray-400">
                 EcoDefill &copy; 2026 • PDM
             </p>
         </div>

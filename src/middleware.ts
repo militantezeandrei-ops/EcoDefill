@@ -7,8 +7,8 @@ export function middleware(request: NextRequest) {
 
     // Only protect /admin routes
     if (pathname.startsWith('/admin')) {
-        // Allow access to the login page
-        if (pathname === '/admin/login') {
+        // Allow access to the login and forgot-password pages
+        if (pathname === '/admin/login' || pathname === '/admin/forgot-password') {
             return NextResponse.next();
         }
 

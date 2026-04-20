@@ -7,6 +7,7 @@ import Image from "next/image";
 import { apiClient } from "@/lib/api";
 import { showToast } from "@/lib/toast";
 import { z } from "zod";
+import { OtpInput } from "@/components/OtpInput";
 
 const registerSchema = z.object({
     fullName: z.string().min(2, "Full Name is required"),
@@ -44,18 +45,10 @@ export default function Register() {
     const [codeHint, setCodeHint] = useState("");
 
     useEffect(() => {
-        document.body.style.backgroundImage = `linear-gradient(to bottom, rgba(0,0,0,0.6), rgba(0,0,0,0.4), rgba(0,0,0,0.7)), url('/images/pdm-building.jpg')`;
-        document.body.style.backgroundSize = 'cover';
-        document.body.style.backgroundPosition = 'center';
-        document.body.style.backgroundAttachment = 'fixed';
-        document.body.style.backgroundRepeat = 'no-repeat';
+        document.body.style.backgroundColor = "#f9fafb";
 
         return () => {
-            document.body.style.backgroundImage = '';
-            document.body.style.backgroundSize = '';
-            document.body.style.backgroundPosition = '';
-            document.body.style.backgroundAttachment = '';
-            document.body.style.backgroundRepeat = '';
+            document.body.style.backgroundColor = "";
         };
     }, []);
 
@@ -143,8 +136,20 @@ export default function Register() {
     };
 
     return (
-        <div className="relative flex min-h-screen w-full flex-col items-center justify-center bg-transparent px-4 py-12 font-display -webkit-overflow-scrolling-touch">
-            <div className="relative w-full max-w-[420px] my-auto overflow-hidden rounded-[32px] border border-gray-100 bg-white/95 p-8 shadow-[0_20px_50px_rgba(0,0,0,0.3)] backdrop-blur-md">
+        <div className="relative flex min-h-screen w-full flex-col items-center justify-center bg-gray-50 px-4 py-12 font-display overflow-hidden">
+            {/* Background Image with White Overlay */}
+            <div className="absolute inset-0 z-0">
+                <Image
+                    src="/images/pdm-building.jpg"
+                    alt="Background"
+                    fill
+                    className="object-cover"
+                    priority
+                />
+                <div className="absolute inset-0 bg-white/30" />
+            </div>
+
+            <div className="relative z-10 w-full max-w-[420px] my-auto overflow-hidden rounded-[32px] border border-gray-100 bg-white p-8 shadow-[0_20px_50px_rgba(0,0,0,0.1)]">
                 <div className="absolute left-0 top-0 h-1.5 w-full bg-gradient-to-r from-blue-600 via-emerald-600 to-green-600" />
 
                 <div className="mb-8 mt-2 flex flex-col items-center text-center">
@@ -200,33 +205,24 @@ export default function Register() {
                         </div>
 
                         <div>
-                            <label htmlFor="register-verification-code" className="ml-1 mb-2 block text-[11px] font-black uppercase tracking-wider text-gray-400">Verification Code</label>
-                            <div className="flex gap-2">
-                                <div className="relative flex-1 group">
-                                    <input
-                                        id="register-verification-code"
-                                        name="verificationCode"
-                                        type="text"
-                                        required
-                                        maxLength={6}
-                                        className="block w-full rounded-2xl border border-gray-50 bg-gray-50 px-4 py-3.5 pl-11 text-sm font-bold text-gray-900 placeholder-gray-400 transition-all focus:border-blue-500/50 focus:bg-white focus:outline-none focus:ring-4 focus:ring-blue-500/10"
-                                        placeholder="000000"
-                                        value={formData.verificationCode}
-                                        onChange={handleChange}
-                                    />
-                                    <span className="material-symbols-outlined pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[20px] text-gray-400 transition-colors group-focus-within:text-blue-600">verified_user</span>
-                                </div>
+                            <label className="ml-1 mb-3 block text-[11px] font-black uppercase tracking-wider text-gray-400 text-center">Verification Code</label>
+                            <div className="flex flex-col items-center gap-3">
+                                <OtpInput 
+                                    value={formData.verificationCode} 
+                                    onChange={(val) => setFormData(prev => ({ ...prev, verificationCode: val }))} 
+                                    disabled={sendingCode} 
+                                />
                                 <button
                                     type="button"
                                     onClick={handleSendCode}
                                     disabled={sendingCode}
-                                    className="flex h-[48px] items-center justify-center rounded-2xl bg-gradient-to-r from-blue-50 to-emerald-50 px-5 text-[12px] font-black uppercase tracking-wider text-blue-600 border border-blue-100 transition-all hover:bg-white hover:border-blue-300 disabled:opacity-50"
+                                    className="w-full max-w-[200px] rounded-2xl bg-blue-50 px-4 py-2 text-[11px] font-black uppercase tracking-wider text-blue-600 border border-blue-100 transition-all hover:bg-white hover:border-blue-300 disabled:opacity-50"
                                 >
-                                    {sendingCode ? "..." : "Send"}
+                                    {sendingCode ? "Sending..." : "Request Code"}
                                 </button>
                             </div>
-                            {errors.verificationCode && <p className="ml-1 mt-1 text-[11px] font-bold text-red-500">{errors.verificationCode}</p>}
-                            {codeHint && <p className="ml-1 mt-1 text-[11px] font-bold text-emerald-600">{codeHint}</p>}
+                            {errors.verificationCode && <p className="ml-1 mt-1 text-[11px] font-bold text-red-500 text-center">{errors.verificationCode}</p>}
+                            {codeHint && <p className="ml-1 mt-1 text-[11px] font-bold text-emerald-600 text-center">{codeHint}</p>}
                         </div>
 
                         <div>
@@ -395,11 +391,9 @@ export default function Register() {
                 </div>
             </div>
 
-            <p className="mt-10 text-[11px] font-black uppercase tracking-[0.3em] text-white/40">
+            <p className="mt-10 text-[11px] font-black uppercase tracking-[0.3em] text-gray-400">
                 EcoDefill &copy; 2026 • PDM
             </p>
         </div>
-
-
     );
 }
