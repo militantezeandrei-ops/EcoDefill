@@ -9,6 +9,8 @@ export default async function RecyclingPage() {
         include: { user: { select: { email: true, fullName: true, course: true } } },
     });
 
+    const walkInCount = logs.filter(l => l.isWalkIn).length;
+
     const totalItems = logs.reduce((s, l) => s + l.count, 0);
     const totalPts = logs.reduce((s, l) => s + Number(l.pointsEarned), 0);
     const co2Saved = (totalItems * 0.03).toFixed(1);
@@ -27,9 +29,9 @@ export default async function RecyclingPage() {
             subColor: "text-gray-500",
         },
         {
-            title: "Items Collected",
-            value: totalItems.toLocaleString(),
-            sub: "Bottles, cups & paper",
+            title: "Walk-ins",
+            value: walkInCount.toLocaleString(),
+            sub: "No app used",
             icon: Package,
             bg: "bg-white",
             iconBg: "bg-blue-50",
@@ -128,13 +130,28 @@ export default async function RecyclingPage() {
                                         </div>
                                         <div>
                                             <div className="flex items-center gap-2">
-                                                <p className="text-[15px] font-black text-gray-900">{item.user?.fullName || item.user?.email || "Unknown"}</p>
+                                                <div className="flex items-center gap-2">
+                                                <p className="text-[15px] font-black text-gray-900">
+                                                    {item.isWalkIn ? "Walk-in / Unknown" : (item.user?.fullName || item.user?.email || "Unknown")}
+                                                </p>
+                                                {item.isWalkIn && (
+                                                    <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-black uppercase tracking-wider text-amber-600">
+                                                        No App
+                                                    </span>
+                                                )}
+                                            </div>
+                                            <div className="flex items-center gap-2 mt-0.5">
                                                 <span className={`rounded-full px-2 py-0.5 text-[10px] font-black uppercase tracking-wider ${materialStyles[item.materialType]?.text} bg-white border border-current opacity-70`}>
                                                     {item.materialType}
                                                 </span>
                                             </div>
+                                            </div>
                                             <p className="mt-1 text-[12px] font-bold text-gray-400">
-                                                {formatTime(item.createdAt)} • {item.count} items collected • {item.user?.course || "Student"}
+                                                {formatTime(item.createdAt)} • {item.count} item{item.count !== 1 ? 's' : ''} •{" "}
+                                                {item.isWalkIn
+                                                    ? `${Number(item.waterDispensed ?? 0).toFixed(0)}ml dispensed`
+                                                    : item.user?.course || "Student"
+                                                }
                                             </p>
                                         </div>
                                     </div>

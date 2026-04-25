@@ -24,8 +24,8 @@
 // =========================
 // USER CONFIG
 // =========================
-const char* WIFI_SSID     = "militante";
-const char* WIFI_PASSWORD = "militante22";
+const char* WIFI_SSID     = "Free";
+const char* WIFI_PASSWORD = "1234pogi";
 const char* SERVER_BASE_URL = "https://eco-defill.vercel.app";
 const char* MACHINE_ID      = "MACHINE_01";
 

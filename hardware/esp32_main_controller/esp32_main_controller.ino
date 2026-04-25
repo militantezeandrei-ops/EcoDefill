@@ -1,338 +1,359 @@
 /*
- * EcoDefill - ESP32 Main Controller
- * ====================================
- * Board: DOIT ESP32 DEVKIT V1
+ * EcoDefill v2 — ESP32 DevKit V1 — WiFi / API Bridge
+ * ====================================================
+ * POWER : 5V from Buck 2 (Clean Logic Line)
+ * BOARD : DOIT ESP32 DEVKIT V1
  *
- * ROLES:
- *  1. Receives scanned QR tokens from the ESP32-CAM via Serial2 (GPIO 16).
- *  2. POSTs the token to the EcoDefill server's /api/verify-qr endpoint.
- *  3. Polls /api/machine-status every few seconds.
- *  4. Activates the relay (water pump) when the server sends an APPROVED status.
+ * ROLE  : Acts as the ONLY WiFi-capable board that talks to the Vercel server.
+ *         Receives commands from Arduino Mega via Serial2 (GPIO 16 RX).
+ *         Executes API calls and replies back to Mega.
+ *         Controls Relay for Pump + Solenoids (signals to relay board).
  *
- * LIBRARIES REQUIRED (Install via Arduino Library Manager):
- *  - ArduinoJson  (by Benoit Blanchon, v6.x or v7.x)
+ * COMMAND PROTOCOL (Mega → DevKit via Serial2):
+ *   "CMD:EARN|<type>|<pts>\n"              → Anonymous earn (bottle/cup)
+ *   "CMD:EARN|<type>|<pts>|<token>\n"      → Authenticated earn
+ *   "CMD:REDEEM|<token>|<pts>\n"           → Redeem water (QR flow)
+ *
+ * REPLY PROTOCOL (DevKit → Mega via Serial2 TX):
+ *   "RESULT:OK\n"
+ *   "RESULT:FAIL\n"
+ *   "DISPENSE:<ms>\n"    → Mega activates pump/solenoids for <ms> ms
  *
  * WIRING:
- *  ESP32-CAM U0TXD (GPIO1) --> ESP32 DevKit RX2 (GPIO 16)
- *  Relay IN                 --> ESP32 DevKit GPIO 23
- *  All GNDs connected together
+ *   Mega TX0 (pin 1)   → DevKit RX2 (GPIO 16)   [5V→3.3V: use 1k/2k divider]
+ *   DevKit TX2 (GPIO17)→ Mega RX0 (pin 0)        [3.3V→5V: safe]
+ *   Relay IN (Pump)    → DevKit GPIO 23           (active-LOW module)
+ *   Relay IN (Sol1)    → DevKit GPIO 25
+ *   Relay IN (Sol2)    → DevKit GPIO 26
+ *   All GNDs connected
+ *
+ * NOTE: Relay VCC from Buck 2 (5V); relay COM/NO on 12V direct line from
+ *       junction box Hole 4. Fit 1N4007 flyback diode across each load coil.
+ *
+ * LIBRARIES (install via Library Manager):
+ *   ArduinoJson  by Benoit Blanchon (v6 or v7)
  */
 
 #include <WiFi.h>
 #include <HTTPClient.h>
-#include <ArduinoJson.h>
 #include <WiFiClientSecure.h>
+#include <ArduinoJson.h>
 
-// ======================================================
-// CONFIGURATION — Edit these values before uploading
-// ======================================================
-
-// WiFi credentials
-const char* WIFI_SSID     = "militante";
-const char* WIFI_PASSWORD = "militante22";
-
-// EcoDefill Server URL (use your LAN IP when running locally, e.g. http://192.168.x.x:3000)
-// For production Vercel deployment use: https://eco-defill.vercel.app
+// ── USER CONFIG ───────────────────────────────────────────────────────────────
+const char* WIFI_SSID       = "Free";
+const char* WIFI_PASSWORD   = "1234pogi";
 const char* SERVER_BASE_URL = "https://eco-defill.vercel.app";
+const char* MACHINE_ID      = "MACHINE_01";   // Must match your DB record
 
-// Machine identifier (must match what is registered in your database)
-const char* MACHINE_ID = "MACHINE_01";
+// ── PINS ──────────────────────────────────────────────────────────────────────
+const int LED_PIN    = 2;   // Built-in LED (GPIO 2)
+// Relays are on Mega side now (driven by Mega relay pins 34/36/38).
+// DevKit only needs WiFi + Serial bridge in this architecture.
+// If you want DevKit to also drive a relay, uncomment:
+// const int RELAY_PUMP = 23;  const int RELAY_SOL1 = 25;  const int RELAY_SOL2 = 26;
 
-// ======================================================
-// PINS
-// ======================================================
-const int RELAY_PIN        = 23;  // Relay IN signal → controls water pump
-const int LED_INDICATOR    = 2;   // Built-in LED (GPIO 2 on most DevKit boards)
+// ── TIMING ────────────────────────────────────────────────────────────────────
+const unsigned long WIFI_TIMEOUT_MS  = 20000;
+const unsigned long HTTP_TIMEOUT_MS  = 20000;
+const unsigned long POLL_INTERVAL_MS = 3000;
 
-// ======================================================
-// TIMING
-// ======================================================
-const unsigned long POLL_INTERVAL_MS = 3000;       // How often to poll /machine-status
-const unsigned long WIFI_TIMEOUT_MS  = 15000;      // Max time to wait for WiFi
+// ── STATE ─────────────────────────────────────────────────────────────────────
+String serial2Buf = "";
+unsigned long lastPollAt = 0;
+bool pendingPoll = false;   // True after a REDEEM command, waiting for dispense approval
 
-// ======================================================
-// STATE
-// ======================================================
-unsigned long lastPollTime   = 0;
-unsigned long lastTokenSentAt = 0;
-bool          isDispensingWater = false;
-String        serial2Buffer = "";
-
-// ======================================================
-// HELPERS
-// ======================================================
+// ── HELPERS ───────────────────────────────────────────────────────────────────
 String buildUrl(const char* path) {
-  String url = String(SERVER_BASE_URL);
-  url += path;
-  return url;
+  return String(SERVER_BASE_URL) + path;
 }
 
-void blinkLed(int times, int delayMs = 100) {
-  for (int i = 0; i < times; i++) {
-    digitalWrite(LED_INDICATOR, HIGH);
-    delay(delayMs);
-    digitalWrite(LED_INDICATOR, LOW);
-    delay(delayMs);
+void blink(int n, int ms = 100) {
+  for (int i = 0; i < n; i++) {
+    digitalWrite(LED_PIN, HIGH); delay(ms);
+    digitalWrite(LED_PIN, LOW);  delay(ms);
   }
 }
 
-bool isPrintableToken(const String& token) {
-  if (token.length() < 8 || token.length() > 512) return false;
-  for (size_t i = 0; i < token.length(); i++) {
-    char c = token.charAt(i);
-    if (c < 33 || c > 126) return false;
-  }
-  return true;
-}
-
-// ======================================================
-// WIFI
-// ======================================================
-void connectWiFi() {
-  Serial.print("[WiFi] Connecting to: ");
+bool connectWiFi() {
+  Serial.print("[WiFi] Connecting to ");
   Serial.println(WIFI_SSID);
-
   WiFi.mode(WIFI_STA);
-  WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
   WiFi.setAutoReconnect(true);
+  WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
 
   unsigned long start = millis();
   while (WiFi.status() != WL_CONNECTED && millis() - start < WIFI_TIMEOUT_MS) {
-    delay(500);
-    Serial.print(".");
+    delay(400); Serial.print(".");
   }
+  Serial.println();
 
   if (WiFi.status() == WL_CONNECTED) {
-    Serial.println();
-    Serial.println("[WiFi] Connected!");
-    Serial.print("[WiFi] IP Address: ");
+    Serial.print("[WiFi] Connected. IP: ");
     Serial.println(WiFi.localIP());
-    // Solid LED = WiFi connected
-    digitalWrite(LED_INDICATOR, HIGH);
-  } else {
-    Serial.println();
-    Serial.println("[WiFi] FAILED to connect! Check credentials and router.");
-    // Rapid blink = error
-    blinkLed(10, 50);
+    digitalWrite(LED_PIN, HIGH);
+    return true;
   }
+  Serial.println("[WiFi] FAILED");
+  blink(10, 50);
+  return false;
 }
 
-// ======================================================
-// SEND QR TOKEN TO SERVER
-// ======================================================
-void sendTokenToServer(const String& token) {
-  if (WiFi.status() != WL_CONNECTED) {
-    Serial.println("[HTTP] WiFi not connected, skipping POST.");
+bool ensureWiFi() {
+  if (WiFi.status() == WL_CONNECTED) return true;
+  return connectWiFi();
+}
+
+// ── API: EARN POINTS ─────────────────────────────────────────────────────────
+// Anonymous:      POST /api/add-point  { machineId, itemType, amount }
+// Authenticated:  POST /api/add-point  { machineId, itemType, amount, token }
+void apiEarn(const String& itemType, int pts, const String& token = "") {
+  if (!ensureWiFi()) {
+    Serial2.println("RESULT:FAIL");
     return;
   }
 
+  WiFiClientSecure client; client.setInsecure();
   HTTPClient http;
-  String url = buildUrl("/api/verify-qr");
-
-  Serial.print("[HTTP] POST to: ");
-  Serial.println(url);
-
-  WiFiClientSecure client;
-  client.setInsecure();
-
+  String url = buildUrl("/api/add-point");
   http.begin(client, url);
   http.addHeader("Content-Type", "application/json");
-  http.setTimeout(20000); // 20 seconds for production connection stability
+  http.setTimeout(HTTP_TIMEOUT_MS);
 
-  // Build JSON body
+  StaticJsonDocument<256> doc;
+  doc["machineId"] = MACHINE_ID;
+  doc["itemType"]  = itemType;
+  doc["amount"]    = pts;
+  if (token.length() > 0) doc["token"] = token;
+
+  String body; serializeJson(doc, body);
+  Serial.print("[HTTP] POST earn: "); Serial.println(body);
+
+  int code = http.POST(body);
+  String resp = code > 0 ? http.getString() : "";
+  http.end();
+
+  Serial.printf("[HTTP] earn → %d %s\n", code, resp.c_str());
+
+  if (code == 200 || code == 201) {
+    Serial2.println("RESULT:OK");
+    blink(2, 80);
+  } else {
+    Serial2.println("RESULT:FAIL");
+    blink(3, 50);
+  }
+}
+
+// ── API: VERIFY QR (REDEEM) ──────────────────────────────────────────────────
+// POST /api/verify-qr  { token, machineId, amount }
+// On success, server queues a DISPENSE session — we then poll /api/machine-status
+bool apiVerifyQR(const String& token, int pts) {
+  if (!ensureWiFi()) return false;
+
+  WiFiClientSecure client; client.setInsecure();
+  HTTPClient http;
+  http.begin(client, buildUrl("/api/verify-qr"));
+  http.addHeader("Content-Type", "application/json");
+  http.setTimeout(HTTP_TIMEOUT_MS);
+
   StaticJsonDocument<256> doc;
   doc["token"]     = token;
   doc["machineId"] = MACHINE_ID;
+  doc["amount"]    = pts;
+  String body; serializeJson(doc, body);
 
-  String payload;
-  serializeJson(doc, payload);
-
-  Serial.print("[HTTP] Payload: ");
-  Serial.println(payload);
-
-  int responseCode = http.POST(payload);
-
-  if (responseCode > 0) {
-    String response = http.getString();
-    Serial.print("[HTTP] Response (");
-    Serial.print(responseCode);
-    Serial.print("): ");
-    Serial.println(response);
-
-    if (responseCode == 200) {
-      // Quick double blink = scan accepted
-      blinkLed(2, 80);
-    } else {
-      // Triple rapid blink = scan rejected/error
-      blinkLed(3, 50);
-    }
-  } else {
-    Serial.print("[HTTP] Request failed. Error: ");
-    Serial.println(http.errorToString(responseCode));
-    blinkLed(5, 30);
-  }
-
+  Serial.print("[HTTP] POST verify-qr: "); Serial.println(body);
+  int code = http.POST(body);
+  String resp = code > 0 ? http.getString() : "";
   http.end();
+
+  Serial.printf("[HTTP] verify-qr → %d %s\n", code, resp.c_str());
+  return (code == 200);
 }
 
-// ======================================================
-// POLL SERVER FOR DISPENSE COMMAND
-// ======================================================
+// ── API: POLL MACHINE STATUS (post-redeem) ───────────────────────────────────
+// GET /api/machine-status?machineId=MACHINE_01
+// Returns { approved: bool, dispenseTimeMs: int }
 void pollMachineStatus() {
-  if (WiFi.status() != WL_CONNECTED) return;
-  if (isDispensingWater) return; // Don't poll while dispensing
+  if (!ensureWiFi()) return;
 
+  WiFiClientSecure client; client.setInsecure();
   HTTPClient http;
   String url = buildUrl("/api/machine-status?machineId=");
   url += MACHINE_ID;
-
-  WiFiClientSecure client;
-  client.setInsecure();
-
   http.begin(client, url);
-  http.setTimeout(15000); // 15 seconds for polling
+  http.setTimeout(15000);
 
-  int responseCode = http.GET();
-
-  if (responseCode == 200) {
-    String response = http.getString();
-    Serial.print("[POLL] Status: ");
-    Serial.println(response);
-
-    StaticJsonDocument<512> doc;
-    DeserializationError err = deserializeJson(doc, response);
-
-    if (!err) {
-      bool approved = doc["approved"] | false;
-
-      if (approved) {
-        int dispenseMs = doc["dispenseTimeMs"] | 3000;
-
-        Serial.print("[PUMP] Dispensing water for ");
-        Serial.print(dispenseMs);
-        Serial.println(" ms");
-
-        isDispensingWater = true;
-
-        // Activate relay (water flows)
-        digitalWrite(RELAY_PIN, HIGH);
-        digitalWrite(LED_INDICATOR, HIGH);
-
-        delay(dispenseMs);
-
-        // Deactivate relay
-        digitalWrite(RELAY_PIN, LOW);
-        digitalWrite(LED_INDICATOR, LOW);
-
-        isDispensingWater = false;
-
-        Serial.println("[PUMP] Dispense complete.");
-        blinkLed(3, 100); // Three blinks = done
-        digitalWrite(LED_INDICATOR, HIGH); // Restore LED to ON
-      }
-    }
-  } else if (responseCode > 0) {
-    String response = http.getString();
-    Serial.print("[POLL] Non-200 response (");
-    Serial.print(responseCode);
-    Serial.print("): ");
-    Serial.println(response);
-  } else {
-    Serial.print("[POLL] Connection error: ");
-    Serial.println(http.errorToString(responseCode));
+  int code = http.GET();
+  if (code != 200) {
+    http.end();
+    return;
   }
 
+  String resp = http.getString();
   http.end();
+
+  StaticJsonDocument<256> doc;
+  if (deserializeJson(doc, resp)) return;
+
+  bool approved   = doc["approved"] | false;
+  int  dispenseMs = doc["dispenseTimeMs"] | 0;
+
+  if (approved && dispenseMs > 0) {
+    Serial.printf("[POLL] APPROVED! Dispense %d ms\n", dispenseMs);
+    Serial2.print("DISPENSE:");
+    Serial2.println(dispenseMs);
+    pendingPoll = false;   // Stop polling
+    blink(3, 100);
+  }
 }
 
-// ======================================================
-// SETUP
-// ======================================================
-void setup() {
-  Serial.begin(115200);  // USB Serial (for debugging)
-  delay(500);
-  Serial.println("\n[MAIN] EcoDefill Main Controller Booting...");
+// ── COMMAND PARSER ────────────────────────────────────────────────────────────
+// Supported commands from Mega:
+//   CMD:VERIFY|<token>         → Auto-detect EARN or REDEEM from server response
+//   CMD:EARN|<type>|<pts>      → Anonymous earn (log to machine, no user account)
+//
+// Replies to Mega:
+//   EARN:<pts>                 → Points credited to mobile account
+//   DISPENSE:<ms>              → Mega should open pump for <ms> milliseconds
+//   RESULT:FAIL                → Server rejected the token
+void handleCommand(const String& line) {
+  Serial.print("[CMD] Received: "); Serial.println(line);
+  if (!line.startsWith("CMD:")) return;
 
-  // Serial2 = receives QR tokens from ESP32-CAM
-  // RX2 = GPIO 16, TX2 = GPIO 17 (TX2 unused, but configured anyway)
+  String body = line.substring(4);
+  int p1 = body.indexOf('|');
+  if (p1 < 0) return;
+
+  String verb = body.substring(0, p1);
+  String rest = body.substring(p1 + 1);
+
+  // ── CMD:VERIFY|<token> ────────────────────────────────────────────────────
+  // Unified QR handler. POSTs to /api/verify-qr.
+  // Server response determines the action:
+  //   { action:"EARN",   points: N }   → reply "EARN:<N>" to Mega
+  //   { action:"REDEEM", dispenseTimeMs: N } → reply "DISPENSE:<N>" to Mega
+  if (verb == "VERIFY") {
+    String token = rest;
+    token.trim();
+    if (token.length() < 8) { Serial2.println("RESULT:FAIL"); return; }
+
+    Serial.printf("[VERIFY] Token: ...%s\n", token.substring(token.length() - 8).c_str());
+
+    if (!ensureWiFi()) { Serial2.println("RESULT:FAIL"); return; }
+
+    WiFiClientSecure client; client.setInsecure();
+    HTTPClient http;
+    http.begin(client, buildUrl("/api/verify-qr"));
+    http.addHeader("Content-Type", "application/json");
+    http.setTimeout(HTTP_TIMEOUT_MS);
+
+    StaticJsonDocument<256> doc;
+    doc["token"]     = token;
+    doc["machineId"] = MACHINE_ID;
+    String body2; serializeJson(doc, body2);
+
+    Serial.print("[HTTP] POST verify-qr: "); Serial.println(body2);
+    int code = http.POST(body2);
+    String resp = code > 0 ? http.getString() : "";
+    http.end();
+
+    Serial.printf("[HTTP] verify-qr → %d %s\n", code, resp.c_str());
+
+    if (code != 200) {
+      Serial2.println("RESULT:FAIL");
+      return;
+    }
+
+    // Parse response to determine action
+    StaticJsonDocument<512> res;
+    if (deserializeJson(res, resp)) {
+      Serial2.println("RESULT:FAIL");
+      return;
+    }
+
+    // Check for REDEEM: server approved dispense
+    int dispenseMs = res["dispenseTimeMs"] | 0;
+    if (dispenseMs > 0) {
+      Serial.printf("[VERIFY] REDEEM approved → DISPENSE %d ms\n", dispenseMs);
+      Serial2.print("DISPENSE:");
+      Serial2.println(dispenseMs);
+      blink(3, 100);
+      return;
+    }
+
+    // Check for EARN: server credited points to mobile account
+    int earnedPts = res["points"] | res["pointsEarned"] | res["amount"] | 0;
+    if (earnedPts > 0) {
+      Serial.printf("[VERIFY] EARN confirmed → %d pts credited to mobile\n", earnedPts);
+      Serial2.print("EARN:");
+      Serial2.println(earnedPts);
+      blink(2, 80);
+      return;
+    }
+
+    // Fallback: success but no actionable data
+    Serial.println("[VERIFY] Success but no actionable fields in response");
+    Serial2.println("RESULT:OK");
+  }
+
+  // ── CMD:EARN|<type>|<pts> ─────────────────────────────────────────────────
+  // Anonymous earn — logs the recycling event to the machine.
+  // No QR involved: points tracked locally on machine only until BTN_SCAN used.
+  else if (verb == "EARN") {
+    int p2 = rest.indexOf('|');
+    if (p2 < 0) return;
+    String itemType = rest.substring(0, p2);
+    int    pts      = rest.substring(p2 + 1).toInt();
+    Serial.printf("[EARN] Anon: type=%s pts=%d\n", itemType.c_str(), pts);
+    // Log to backend (anonymous transaction)
+    apiEarn(itemType, pts, "");
+  }
+}
+
+// ── SETUP ─────────────────────────────────────────────────────────────────────
+void setup() {
+  Serial.begin(115200);
+  delay(500);
+  Serial.println("[DEVKIT] EcoDefill v2 WiFi Bridge booting...");
+
+  // Serial2 = link to Mega (RX2=GPIO16, TX2=GPIO17)
   Serial2.begin(115200, SERIAL_8N1, 16, 17);
   Serial2.setTimeout(20);
-  Serial.println("[MAIN] Serial2 (GPIO 16) listening for ESP32-CAM data...");
 
-  // Configure pins
-  pinMode(RELAY_PIN,     OUTPUT);
-  pinMode(LED_INDICATOR, OUTPUT);
-  digitalWrite(RELAY_PIN,     LOW);
-  digitalWrite(LED_INDICATOR, LOW);
+  pinMode(LED_PIN, OUTPUT);
+  digitalWrite(LED_PIN, LOW);
 
-  // Connect to WiFi
   connectWiFi();
 
-  Serial.println("[MAIN] Ready!");
-  Serial.print("[MAIN] Server: ");
-  Serial.println(SERVER_BASE_URL);
-  Serial.print("[MAIN] Machine ID: ");
-  Serial.println(MACHINE_ID);
+  Serial.println("[DEVKIT] Ready. Waiting for commands from Mega on Serial2...");
 }
 
-// ======================================================
-// MAIN LOOP
-// ======================================================
+// ── LOOP ──────────────────────────────────────────────────────────────────────
 void loop() {
-
-  // 1. Check WiFi health — auto-reconnect if dropped
+  // WiFi health check
   if (WiFi.status() != WL_CONNECTED) {
-    Serial.println("[WiFi] Connection lost. Reconnecting...");
-    digitalWrite(LED_INDICATOR, LOW);
+    digitalWrite(LED_PIN, LOW);
     connectWiFi();
   }
 
-  // 2. Receive QR token from ESP32-CAM via Serial2.
-  // Protocol: "QR:<token>\n"
+  // Read commands from Mega (Serial2)
   while (Serial2.available()) {
     char ch = (char)Serial2.read();
-
     if (ch == '\n') {
-      serial2Buffer.trim();
-
-      if (serial2Buffer.startsWith("QR:")) {
-        String token = serial2Buffer.substring(3);
-        token.trim();
-
-        if (isPrintableToken(token)) {
-          Serial.print("[CAM->] Received token: ");
-          Serial.println(token);
-
-          // Blink once to acknowledge receipt
-          digitalWrite(LED_INDICATOR, LOW);
-          delay(50);
-          digitalWrite(LED_INDICATOR, HIGH);
-
-          // Send token to EcoDefill server
-          sendTokenToServer(token);
-          lastTokenSentAt = millis();
-        } else {
-          Serial.print("[CAM->] Ignored invalid token payload: ");
-          Serial.println(token);
-        }
-      }
-
-      serial2Buffer = "";
+      serial2Buf.trim();
+      if (serial2Buf.length() > 0) handleCommand(serial2Buf);
+      serial2Buf = "";
     } else if (ch != '\r') {
-      if (serial2Buffer.length() < 600) {
-        serial2Buffer += ch;
-      } else {
-        serial2Buffer = "";
-      }
+      if (serial2Buf.length() < 600) serial2Buf += ch;
+      else serial2Buf = "";
     }
   }
 
-  // 3. Poll machine-status every POLL_INTERVAL_MS
-  if (millis() - lastPollTime >= POLL_INTERVAL_MS) {
+  // Poll machine-status after a REDEEM command
+  if (pendingPoll && millis() - lastPollAt >= POLL_INTERVAL_MS) {
     pollMachineStatus();
-    lastPollTime = millis();
+    lastPollAt = millis();
   }
 
   delay(10);
 }
-

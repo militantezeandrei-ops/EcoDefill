@@ -112,19 +112,23 @@ model MachineSession {
 }
 
 /// Detailed logs for items processed by the recycling machine.
+/// userId is nullable to support walk-in / anonymous users (no mobile app).
 model RecyclingLog {
-  id           String   @id @default(uuid()) @db.Uuid
-  machineId    String   @db.VarChar(50)
-  userId       String   @db.Uuid
-  user         User     @relation(fields: [userId], references: [id])
-  materialType String   @db.VarChar(20) // BOTTLE, CUP, PAPER
-  count        Int
-  pointsEarned Decimal  @db.Decimal(10, 2)
-  status       String   @default("SUCCESS") @db.VarChar(20) // SUCCESS, REJECTED
-  createdAt    DateTime @default(now()) @db.Timestamptz
+  id              String   @id @default(uuid()) @db.Uuid
+  machineId       String   @db.VarChar(50)
+  userId          String?  @db.Uuid                         // NULL = walk-in / unknown user
+  user            User?    @relation(fields: [userId], references: [id])
+  materialType    String   @db.VarChar(20)                  // BOTTLE, CUP, PAPER
+  count           Int
+  pointsEarned    Decimal  @db.Decimal(10, 2)               // Used to calculate water dispensed
+  waterDispensed  Decimal? @db.Decimal(10, 2)               // ml dispensed (pointsEarned * 100)
+  isWalkIn        Boolean  @default(false)                  // True when no mobile app used
+  status          String   @default("SUCCESS") @db.VarChar(20) // SUCCESS, REJECTED
+  createdAt       DateTime @default(now()) @db.Timestamptz
 
   @@index([userId, createdAt])
   @@index([machineId, createdAt])
+  @@index([isWalkIn, createdAt])
 }
 
 /// System-level logs for IoT hardware health monitoring.
