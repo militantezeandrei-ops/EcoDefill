@@ -48,12 +48,13 @@ LiquidCrystal_I2C lcd(LCD_ADDR, LCD_COLS, LCD_ROWS);
 
 // ─── SERVO PINS  (signal only — power from Buck 1 @ 6V) ─────────────────────
 // Two servos per mechanical group → never exceed 2 moving at once
-#define SRV_BOTTLE_GATE   22   // Opens / closes the bottle input slot
-#define SRV_BOTTLE_SORT   24   // Routes accepted bottle into the bin
-#define SRV_CUP_GATE      26   // Opens / closes the cup input slot
-#define SRV_CUP_SORT      28   // Routes accepted cup into the bin
-#define SRV_BOTTLE_COMP   30   // Bottle bin compactor arm
-#define SRV_CUP_COMP      32   // Cup bin compactor arm
+// Mapped to PWM-capable pins to match physical wiring
+#define SRV_BOTTLE_GATE    5   // Opens / closes the bottle input slot
+#define SRV_BOTTLE_SORT    6   // Routes accepted bottle into the bin
+#define SRV_CUP_GATE       8   // Opens / closes the cup input slot
+#define SRV_CUP_SORT       9   // Routes accepted cup into the bin
+#define SRV_BOTTLE_COMP    7   // Bottle bin compactor arm
+#define SRV_CUP_COMP      10   // Cup bin compactor arm
 
 Servo srvBottleGate, srvBottleSort;
 Servo srvCupGate,    srvCupSort;
@@ -69,20 +70,33 @@ Servo srvBottleComp, srvCupComp;
 #define COMP_IDLE       20
 
 // ─── IR SENSOR PINS ──────────────────────────────────────────────────────────
-#define IR_BOTTLE_SLOT  A0   // LOW = object present in bottle slot
-#define IR_CUP_SLOT     A1   // LOW = object present in cup slot
+#define IR_BOTTLE_SLOT  22   // LOW = object present in bottle slot
+#define IR_CUP_SLOT     24   // LOW = object present in cup slot
+#define IR_BOTTLE_VALID 23   // LOW = bottle in validation zone
+#define IR_CUP_VALID    25   // LOW = cup in validation zone
+
+// ─── PAPER SYSTEM PINS ──────────────────────────────────────────────────────
+#define IR_PAPER_ENTRY  26   // LOW = paper detected at entry
+#define IR_PAPER_VALID  27   // LOW = paper passed through
+#define PAPER_MOTOR     11   // HIGH = motor off, LOW = motor on (relay)
+
+// ─── ULTRASONIC SENSOR ──────────────────────────────────────────────────────
+#define ULTRASONIC_TRIG 32
+#define ULTRASONIC_ECHO 33
+#define REFILL_DETECT_CM 12  // container detected if distance <= 12cm
 
 // ─── RELAY PINS  (signal → relay module → switches 12V line) ─────────────────
 // Standard optocoupler relay modules are ACTIVE LOW
 #define RELAY_PUMP   34
 #define RELAY_SOL1   36
 #define RELAY_SOL2   38
+#define SOLENOID     12     // Direct solenoid for water dispensing
 #define RELAY_ON  LOW
 #define RELAY_OFF HIGH
 
 // ─── BUTTONS ─────────────────────────────────────────────────────────────────
-#define BTN_DISPENSE  2   // Dispense water using local session pts (INPUT_PULLUP)
-#define BTN_SCAN      3   // Activate QR-CAM for EARN or REDEEM
+#define BTN_DISPENSE 30   // Dispense water / green button (INPUT_PULLUP)
+#define BTN_SCAN     31   // Activate QR-CAM / red button (INPUT_PULLUP)
 
 // ─── TIMING ──────────────────────────────────────────────────────────────────
 #define DEBOUNCE_MS        60UL
@@ -112,6 +126,12 @@ State machineState = ST_IDLE;
 int    sessionPts       = 0;      // Points accumulated this session (from recycling)
 bool   bottleSlotActive = false;  // which slot triggered identification
 bool   scanModeActive   = false;  // true = QR-CAM is listening for a scan
+
+// ─── PAPER SYSTEM ────────────────────────────────────────────────────────────
+int    paperCount       = 0;      // Raw paper sheets fed
+int    paperPoints      = 0;      // Points from paper (paperCount / 3)
+unsigned long paperOffTimer = 0;
+bool   paperLocked      = false;
 
 // ─── SERIAL BUFFERS ──────────────────────────────────────────────────────────
 String qrBuf  = "";   // Serial1 ← QR-CAM
@@ -145,8 +165,9 @@ void lcdShow(const String& r0,
 }
 
 void lcdIdle() {
+  int totalPts = sessionPts + paperPoints;
   lcdShow("   EcoDefill v2.0   ",
-          "Session pts: " + String(sessionPts),
+          "Session pts: " + String(totalPts),
           "[1]Dispense [2]Scan ",
           "Insert item to earn ");
 }
@@ -374,13 +395,68 @@ void readSerial(HardwareSerial& port, String& buf,
 // BUTTON HANDLERS
 // ─────────────────────────────────────────────────────────────────────────────
 
+// ─────────────────────────────────────────────────────────────────────────────
+// ULTRASONIC HELPER
+// ─────────────────────────────────────────────────────────────────────────────
+long getDistanceCM() {
+  digitalWrite(ULTRASONIC_TRIG, LOW);
+  delayMicroseconds(2);
+  digitalWrite(ULTRASONIC_TRIG, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(ULTRASONIC_TRIG, LOW);
+  long duration = pulseIn(ULTRASONIC_ECHO, HIGH, 30000);
+  if (duration == 0) return 999;
+  return duration * 0.034 / 2;
+}
+
+bool refillContainerDetected() {
+  long d = getDistanceCM();
+  Serial.print(F("[US] Distance: ")); Serial.println(d);
+  return (d > 0 && d <= REFILL_DETECT_CM);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PAPER HANDLER
+// ─────────────────────────────────────────────────────────────────────────────
+void handlePaper() {
+  bool entryState = digitalRead(IR_PAPER_ENTRY);
+  bool validState = digitalRead(IR_PAPER_VALID);
+
+  if (!paperLocked) {
+    if (entryState == LOW) {
+      digitalWrite(PAPER_MOTOR, LOW);   // Motor ON (active-low relay)
+    } else {
+      digitalWrite(PAPER_MOTOR, HIGH);  // Motor OFF
+      if (paperOffTimer == 0) {
+        paperOffTimer = millis();
+        if (validState == LOW) {
+          paperCount++;
+          paperPoints = paperCount / 3;
+          Serial.print(F("[PAPER] Count=")); Serial.print(paperCount);
+          Serial.print(F(" pts=")); Serial.println(paperPoints);
+        }
+      }
+    }
+  }
+
+  if (paperOffTimer > 0) {
+    paperLocked = true;
+    if (millis() - paperOffTimer >= 2000) {
+      paperOffTimer = 0;
+      paperLocked   = false;
+    }
+  }
+}
+
 // ── BTN 1: DISPENSE ──────────────────────────────────────────────────────────
 // Directly dispenses water using locally accumulated session points.
 // Cap: 5 points per press = 500ml. User can press again for more.
 void onDispensePressed() {
   if (machineState == ST_DISPENSING || machineState == ST_IDENTIFYING) return;
 
-  if (sessionPts <= 0) {
+  int totalPts = sessionPts + paperPoints;
+
+  if (totalPts <= 0) {
     lcdShow("No Points!          ",
             "Insert bottles/cups ",
             "to earn points first",
@@ -388,8 +464,17 @@ void onDispensePressed() {
     return;
   }
 
+  // Check ultrasonic — refuse if no container present
+  if (!refillContainerDetected()) {
+    lcdShow("No Container!       ",
+            "Place bottle/tumbler",
+            "under the nozzle    ",
+            "[1]Dispense [2]Scan ");
+    return;
+  }
+
   // Cap at MAX_PTS_PER_PRESS (5 pts = 500ml)
-  int ptsToUse = min(sessionPts, MAX_PTS_PER_PRESS);
+  int ptsToUse = min(totalPts, MAX_PTS_PER_PRESS);
   unsigned long dispenseMs = (unsigned long)ptsToUse * MS_PER_100ML;
   int mlToDispense = ptsToUse * ML_PER_POINT;
 
@@ -403,8 +488,11 @@ void onDispensePressed() {
   machineState = ST_DISPENSING;
   dispenseWater(dispenseMs);
 
-  // Deduct used points
-  sessionPts -= ptsToUse;
+  // Deduct used points (paper points first, then session)
+  int fromPaper = min(ptsToUse, paperPoints);
+  paperPoints -= fromPaper;
+  sessionPts  -= (ptsToUse - fromPaper);
+  if (sessionPts < 0) sessionPts = 0;
   machineState = ST_AWAIT_ITEM;
 
   if (sessionPts > 0) {
@@ -500,8 +588,24 @@ void setup() {
   pinMode(BTN_SCAN,     INPUT_PULLUP);
 
   // IR Sensors
-  pinMode(IR_BOTTLE_SLOT, INPUT_PULLUP);
-  pinMode(IR_CUP_SLOT,    INPUT_PULLUP);
+  pinMode(IR_BOTTLE_SLOT,  INPUT_PULLUP);
+  pinMode(IR_CUP_SLOT,     INPUT_PULLUP);
+  pinMode(IR_BOTTLE_VALID, INPUT);
+  pinMode(IR_CUP_VALID,    INPUT);
+
+  // Paper system
+  pinMode(IR_PAPER_ENTRY, INPUT);
+  pinMode(IR_PAPER_VALID, INPUT);
+  pinMode(PAPER_MOTOR, OUTPUT);
+  digitalWrite(PAPER_MOTOR, HIGH);  // Motor OFF at boot
+
+  // Ultrasonic sensor
+  pinMode(ULTRASONIC_TRIG, OUTPUT);
+  pinMode(ULTRASONIC_ECHO, INPUT);
+
+  // Solenoid direct drive
+  pinMode(SOLENOID, OUTPUT);
+  digitalWrite(SOLENOID, LOW);
 
   // Relays — ensure OFF at boot
   pinMode(RELAY_PUMP, OUTPUT); digitalWrite(RELAY_PUMP, RELAY_OFF);
@@ -559,6 +663,9 @@ void loop() {
 
   // ── IR polling ────────────────────────────────────────────────────────────
   checkIR();
+
+  // ── Paper system ──────────────────────────────────────────────────────────
+  handlePaper();
 
   // ── Camera timeout guard ─────────────────────────────────────────────────
   if (camPending && machineState == ST_IDENTIFYING &&
