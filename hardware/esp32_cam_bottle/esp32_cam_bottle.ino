@@ -1,45 +1,45 @@
 /*
- * EcoDefill v2 — ESP32-CAM Bottle Detector
- * ==========================================
- * POWER  : 5V from Buck 3 (Heavy Processing Line — add heatsink to LM2596!)
+ * EcoDefill v3 — ESP32-CAM Bottle Detector (WiFi Mode)
+ * =====================================================
+ * POWER  : 5V via programming board USB
  * BOARD  : AI Thinker ESP32-CAM
- * SENSOR : OV3660 (3MP — same GPIO pinout as OV2640 on AI Thinker PCB)
+ * SENSOR : OV3660 (3MP)
  *
- * OV3660 NOTES:
- *   - set_hmirror=1 required (OV3660 default horizontal orientation is mirrored).
- *   - set_vflip=1 required (sensor physically mounted inverted on AI Thinker PCB).
- *   - Better low-light performance → lower BRIGHTNESS_THRESH needed.
- *   - We use SVGA (800×600) for higher detection accuracy vs QVGA.
+ * ROLE:
+ *   1. Connect to hotspot WiFi.
+ *   2. Listen for "##IDENTIFY##" trigger from ESP32 Dev Kit via HTTP GET /identify.
+ *   3. Capture frame and run bottle heuristic detection.
+ *   4. POST result JSON to Dev Kit: POST http://<DEVKIT_IP>/detect
+ *      Body: { "cam": "BOTTLE", "result": "BOTTLE" }  or  { "cam": "BOTTLE", "result": "NONE" }
  *
- * ROLE  : Listen for "##IDENTIFY##" from Arduino Mega on UART0 RX.
- *         Capture a frame and determine if a BOTTLE is present.
- *         Reply with "##DETECT:BOTTLE##" or "##DETECT:NONE##" on UART0 TX.
+ * NO UART WIRING TO MEGA NEEDED — fully wireless.
  *
- * DETECTION METHOD:
- *   This sketch uses simple heuristics on the captured frame:
- *   1. Check if a tall, narrow cylindrical shape is present (aspect ratio + edge density)
- *   For true ML inference, replace analyzeFrame() with your TFLite model call.
- *
- * SERIAL PROTOCOL (UART0 GPIO1=TX, GPIO3=RX):
- *   Receives from Mega: "##IDENTIFY##\n"
- *   Sends to Mega:      "##DETECT:BOTTLE##\n"  or  "##DETECT:NONE##\n"
- *
- * WIRING:
- *   ESP32-CAM GPIO3 (RX0) ← Mega Pin 16 (TX2)  [5V→3.3V! Use voltage divider]
- *   ESP32-CAM GPIO1 (TX0) → Mega Pin 17 (RX2)  [3.3V→5V: safe]
- *   Common GND
- *
- * ⚠️  VOLTAGE DIVIDER on the 5V TX line from Mega → ESP32 RX:
- *     Mega TX2 (pin 16) → 1kΩ → ESP32-CAM GPIO3
- *                                ESP32-CAM GPIO3 → 2kΩ → GND
- *     This gives ≈3.3V which is safe for the ESP32-CAM GPIO.
+ * STATIC IP CONFIG:
+ *   This CAM uses static IP 192.168.43.110 on the hotspot network.
+ *   Change DEVKIT_IP to match your Dev Kit's actual IP on the hotspot.
  *
  * LIBRARIES:
  *   esp_camera  (bundled with ESP32 Arduino core)
+ *   ArduinoJson by Benoit Blanchon (v6 or v7)
+ *   WebServer   (bundled with ESP32 Arduino core)
  */
 
 #include "esp_camera.h"
 #include <Arduino.h>
+#include <WiFi.h>
+#include <WebServer.h>
+#include <HTTPClient.h>
+#include <ArduinoJson.h>
+
+// ── USER CONFIG ───────────────────────────────────────────────────────────────
+const char* WIFI_SSID     = "Free";       // ← Same as Dev Kit
+const char* WIFI_PASSWORD = "1234pogi";   // ← Same as Dev Kit
+const char* DEVKIT_IP     = "192.168.43.100";         // ← Dev Kit IP on hotspot
+
+// Static IP for this CAM on the hotspot
+IPAddress local_IP(192, 168, 43, 110);
+IPAddress gateway(192, 168, 43, 1);      // Android hotspot default gateway
+IPAddress subnet(255, 255, 255, 0);
 
 // ── CAMERA PIN MAP  (AI Thinker) ─────────────────────────────────────────────
 #define PWDN_GPIO_NUM     32
@@ -59,17 +59,14 @@
 #define HREF_GPIO_NUM     23
 #define PCLK_GPIO_NUM     22
 
-// ── CONFIG ────────────────────────────────────────────────────────────────────
-#define BAUD_RATE        115200
-#define CAPTURE_TIMEOUT  5000     // ms: max time for one capture attempt
-// OV3660 low-light advantage → threshold reduced from 60 to 40
-#define BRIGHTNESS_THRESH 40      // 0-255: minimum average brightness needed
+// ── DETECTION CONFIG ─────────────────────────────────────────────────────────
+#define BRIGHTNESS_THRESH      40    // Min avg brightness (0-255)
+#define BOTTLE_EDGE_RATIO_MIN  0.06f // Min edge density for bottle
+#define BOTTLE_ASPECT_MIN      1.5f  // Height/Width ratio — tall shape
 
-// Detection thresholds for OV3660 SVGA (800×600) — sharper sensor = lower minimums
-#define BOTTLE_EDGE_RATIO_MIN  0.06f   // Reduced from 0.08 — OV3660 edges are crisper
-#define BOTTLE_ASPECT_MIN      1.5f    // Height/Width ratio — same (shape geometry unchanged)
-
-String rxBuf = "";
+// ── STATE ─────────────────────────────────────────────────────────────────────
+WebServer server(80);
+const unsigned long WIFI_TIMEOUT_MS = 20000;
 
 // ── CAMERA INIT ───────────────────────────────────────────────────────────────
 bool initCamera() {
@@ -93,30 +90,30 @@ bool initCamera() {
   config.pin_pwdn     = PWDN_GPIO_NUM;
   config.pin_reset    = RESET_GPIO_NUM;
   config.xclk_freq_hz = 20000000;
-  config.pixel_format = PIXFORMAT_GRAYSCALE;  // Grayscale for faster analysis
-  // OV3660 supports SVGA (800x600) — more pixels = better aspect ratio accuracy
-  config.frame_size   = FRAMESIZE_SVGA;       // 800x600 (was QVGA 320x240)
-  config.jpeg_quality = 10;                   // Slightly better quality for OV3660
+  config.pixel_format = PIXFORMAT_GRAYSCALE;
+  config.frame_size   = FRAMESIZE_SVGA;   // 800x600
+  config.jpeg_quality = 10;
   config.fb_count     = 1;
+  return (esp_camera_init(&config) == ESP_OK);
+}
 
-  esp_err_t err = esp_camera_init(&config);
-  return (err == ESP_OK);
+// ── SENSOR TUNING ─────────────────────────────────────────────────────────────
+void tuneSensor() {
+  sensor_t* s = esp_camera_sensor_get();
+  if (!s) return;
+  s->set_vflip(s, 1);
+  s->set_hmirror(s, 1);
+  s->set_brightness(s, 0);
+  s->set_contrast(s, 1);
+  s->set_saturation(s, -1);
+  s->set_exposure_ctrl(s, 1);
+  s->set_aec2(s, 1);
+  s->set_ae_level(s, 0);
+  s->set_sharpness(s, 2);
+  s->set_denoise(s, 0);
 }
 
 // ── DETECTION LOGIC ───────────────────────────────────────────────────────────
-/*
- * analyzeFrame():
- * Given a grayscale frame buffer, decide if a bottle is visible.
- *
- * Algorithm (simple heuristic — replace with TFLite model for production):
- *   1. Compute average brightness. If too dark → NONE (no item or too dim).
- *   2. Scan columns to find the widest contiguous bright region (the item).
- *   3. Scan rows to find the height of the bright region.
- *   4. If aspect ratio (height/width) > BOTTLE_ASPECT_MIN → likely a tall bottle.
- *   5. Compute edge density (gradient magnitude) — bottles have strong vertical edges.
- *
- * Returns true if a bottle is detected.
- */
 bool analyzeFrame(camera_fb_t* fb) {
   if (!fb || fb->len == 0) return false;
 
@@ -128,14 +125,13 @@ bool analyzeFrame(camera_fb_t* fb) {
   long sum = 0;
   for (int i = 0; i < W * H; i++) sum += p[i];
   float avgBright = (float)sum / (W * H);
-  Serial.printf("[BOTTLE-CAM] Avg brightness: %.1f\n", avgBright);
+  Serial.printf("[BOTTLE] Avg brightness: %.1f\n", avgBright);
   if (avgBright < BRIGHTNESS_THRESH) {
-    Serial.println("[BOTTLE-CAM] Too dark — item not visible");
+    Serial.println("[BOTTLE] Too dark");
     return false;
   }
 
-  // 2. Find bounding box of bright (foreground) pixels
-  // Foreground = pixels brighter than 60% of average
+  // 2. Bounding box of bright (foreground) pixels
   uint8_t threshold = (uint8_t)(avgBright * 0.6f);
   int minX = W, maxX = 0, minY = H, maxY = 0;
   int foreCount = 0;
@@ -152,15 +148,14 @@ bool analyzeFrame(camera_fb_t* fb) {
   }
 
   if (foreCount == 0) return false;
-
   int blobW = maxX - minX;
   int blobH = maxY - minY;
   if (blobW <= 0 || blobH <= 0) return false;
 
   float aspect = (float)blobH / blobW;
-  Serial.printf("[BOTTLE-CAM] Blob W=%d H=%d aspect=%.2f\n", blobW, blobH, aspect);
+  Serial.printf("[BOTTLE] Blob W=%d H=%d aspect=%.2f\n", blobW, blobH, aspect);
 
-  // 3. Edge density (count pixels where horizontal gradient > 20)
+  // 3. Edge density
   int edgeCount = 0;
   for (int y = 0; y < H; y++) {
     for (int x = 1; x < W; x++) {
@@ -169,92 +164,125 @@ bool analyzeFrame(camera_fb_t* fb) {
     }
   }
   float edgeDensity = (float)edgeCount / (W * H);
-  Serial.printf("[BOTTLE-CAM] Edge density: %.4f\n", edgeDensity);
+  Serial.printf("[BOTTLE] Edge density: %.4f\n", edgeDensity);
 
-  // 4. Decision
   bool isBottle = (aspect >= BOTTLE_ASPECT_MIN) && (edgeDensity >= BOTTLE_EDGE_RATIO_MIN);
-  Serial.printf("[BOTTLE-CAM] Decision: %s\n", isBottle ? "BOTTLE" : "NONE");
+  Serial.printf("[BOTTLE] Decision: %s\n", isBottle ? "BOTTLE" : "NONE");
   return isBottle;
 }
 
-// ── IDENTIFICATION ROUTINE ────────────────────────────────────────────────────
-void identify() {
-  Serial.println("[BOTTLE-CAM] Capture requested...");
+// ── CAPTURE AND POST RESULT ───────────────────────────────────────────────────
+void doIdentify() {
+  Serial.println("[BOTTLE] Capture requested...");
 
-  camera_fb_t* fb = nullptr;
-  unsigned long start = millis();
-
-  // Warm up: discard first frame (camera AEC adjustment)
-  fb = esp_camera_fb_get();
+  // Warmup frame
+  camera_fb_t* fb = esp_camera_fb_get();
   if (fb) esp_camera_fb_return(fb);
   delay(200);
 
-  // Capture real frame
   fb = esp_camera_fb_get();
   if (!fb) {
-    Serial.println("[BOTTLE-CAM] Frame capture FAILED");
-    Serial.println("##DETECT:NONE##");
+    Serial.println("[BOTTLE] Frame capture FAILED");
+    postResult("NONE");
     return;
   }
 
   bool detected = analyzeFrame(fb);
   esp_camera_fb_return(fb);
+  postResult(detected ? "BOTTLE" : "NONE");
+}
 
-  if (detected) {
-    Serial.println("##DETECT:BOTTLE##");
+void postResult(const char* result) {
+  HTTPClient http;
+  String url = "http://" + String(DEVKIT_IP) + "/detect";
+  http.begin(url);
+  http.addHeader("Content-Type", "application/json");
+  http.setTimeout(8000);
+
+  StaticJsonDocument<64> doc;
+  doc["cam"]    = "BOTTLE";
+  doc["result"] = result;
+  String body; serializeJson(doc, body);
+
+  int code = http.POST(body);
+  http.end();
+  Serial.printf("[BOTTLE] POST /detect → %d (result=%s)\n", code, result);
+}
+
+// ── HTTP SERVER HANDLERS ──────────────────────────────────────────────────────
+// GET /identify — Dev Kit calls this to trigger a capture
+void handleIdentify() {
+  server.send(200, "text/plain", "OK");
+  doIdentify();  // Run after responding so HTTP doesn't time out
+}
+
+// GET /ping — Dev Kit can check if CAM is online
+void handlePing() {
+  server.send(200, "text/plain", "BOTTLE_CAM_OK");
+}
+
+// ── WIFI CONNECT ─────────────────────────────────────────────────────────────
+void connectWiFi() {
+  Serial.print("[WiFi] Connecting to "); Serial.println(WIFI_SSID);
+
+  // Request static IP
+  if (!WiFi.config(local_IP, gateway, subnet)) {
+    Serial.println("[WiFi] Static IP config failed");
+  }
+  WiFi.mode(WIFI_STA);
+  WiFi.setAutoReconnect(true);
+  WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
+
+  unsigned long start = millis();
+  while (WiFi.status() != WL_CONNECTED && millis() - start < WIFI_TIMEOUT_MS) {
+    delay(400); Serial.print(".");
+  }
+  Serial.println();
+
+  if (WiFi.status() == WL_CONNECTED) {
+    Serial.print("[WiFi] Connected. IP: "); Serial.println(WiFi.localIP());
   } else {
-    Serial.println("##DETECT:NONE##");
+    Serial.println("[WiFi] FAILED — will retry in loop");
   }
 }
 
 // ── SETUP ─────────────────────────────────────────────────────────────────────
 void setup() {
-  Serial.begin(BAUD_RATE);
+  Serial.begin(115200);
   delay(1000);
 
-  // Flash LED twice
+  // Flash LED to confirm boot (2 flashes = Bottle CAM)
   pinMode(33, OUTPUT);
-  for (int i = 0; i < 4; i++) { digitalWrite(33, i % 2 == 0 ? LOW : HIGH); delay(120); }
+  for (int i = 0; i < 4; i++) {
+    digitalWrite(33, i % 2 == 0 ? LOW : HIGH); delay(150);
+  }
 
-  Serial.println(F("[BOTTLE-CAM] Initializing camera (OV3660)..."));
+  Serial.println("[BOTTLE] Connecting WiFi...");
+  connectWiFi();
+
+  Serial.println("[BOTTLE] Initializing camera (OV3660 SVGA)...");
   if (!initCamera()) {
-    Serial.println(F("[BOTTLE-CAM] ERROR: Camera init failed! Check GPIO0 jumper."));
+    Serial.println("[BOTTLE] ERROR: Camera init FAILED!");
     while (true) { digitalWrite(33, LOW); delay(100); digitalWrite(33, HIGH); delay(100); }
   }
+  tuneSensor();
 
-  // OV3660 sensor tuning
-  sensor_t* s = esp_camera_sensor_get();
-  if (s) {
-    s->set_vflip(s, 1);           // AI Thinker PCB mounts sensor inverted
-    s->set_hmirror(s, 1);         // OV3660 requires horizontal mirror correction
-    s->set_brightness(s, 0);      // Auto (OV3660 handles exposure natively)
-    s->set_contrast(s, 1);
-    s->set_saturation(s, -1);     // Irrelevant for grayscale; reduce for stability
-    s->set_exposure_ctrl(s, 1);
-    s->set_aec2(s, 1);
-    s->set_ae_level(s, 0);
-    s->set_sharpness(s, 2);       // Max sharpness — critical for edge detection
-    s->set_denoise(s, 0);         // Off — we need raw edges for the algorithm
-  }
+  server.on("/identify", handleIdentify);
+  server.on("/ping",     handlePing);
+  server.begin();
 
-  Serial.println("##STATUS:BOTTLE_CAM_READY##");
-  Serial.println("[BOTTLE-CAM] Waiting for ##IDENTIFY## command from Mega...");
+  Serial.println("[BOTTLE] HTTP server started on port 80");
+  Serial.println("[BOTTLE] Ready — waiting for /identify requests from Dev Kit");
 }
 
 // ── LOOP ──────────────────────────────────────────────────────────────────────
 void loop() {
-  while (Serial.available()) {
-    char c = (char)Serial.read();
-    if (c == '\n') {
-      rxBuf.trim();
-      if (rxBuf == "##IDENTIFY##") {
-        identify();
-      }
-      rxBuf = "";
-    } else if (c != '\r') {
-      if (rxBuf.length() < 64) rxBuf += c;
-      else rxBuf = "";
-    }
+  server.handleClient();
+
+  // WiFi watchdog
+  if (WiFi.status() != WL_CONNECTED) {
+    connectWiFi();
   }
+
   delay(5);
 }

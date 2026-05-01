@@ -1,46 +1,45 @@
 /*
- * EcoDefill v2 — ESP32-CAM Cup Detector
- * =======================================
- * POWER  : 5V from Buck 3 (Heavy Processing Line — add heatsink to LM2596!)
+ * EcoDefill v3 — ESP32-CAM Cup Detector (WiFi Mode)
+ * ===================================================
+ * POWER  : 5V via programming board USB
  * BOARD  : AI Thinker ESP32-CAM
- * SENSOR : OV3660 (3MP — same GPIO pinout as OV2640 on AI Thinker PCB)
+ * SENSOR : OV3660 (3MP)
  *
- * OV3660 NOTES:
- *   - set_hmirror=1 required (OV3660 default horizontal orientation is mirrored).
- *   - set_vflip=1 required (sensor physically mounted inverted on AI Thinker PCB).
- *   - Better low-light performance → BRIGHTNESS_THRESH lowered to 40.
- *   - We use SVGA (800×600) for higher detection accuracy vs QVGA.
+ * ROLE:
+ *   1. Connect to hotspot WiFi.
+ *   2. Listen for trigger from ESP32 Dev Kit via HTTP GET /identify.
+ *   3. Capture frame and run cup heuristic detection.
+ *   4. POST result JSON to Dev Kit: POST http://<DEVKIT_IP>/detect
+ *      Body: { "cam": "CUP", "result": "CUP" }  or  { "cam": "CUP", "result": "NONE" }
  *
- * ROLE  : Listen for "##IDENTIFY##" from Arduino Mega on UART0 RX.
- *         Capture a frame and determine if a CUP is present.
- *         Reply with "##DETECT:CUP##" or "##DETECT:NONE##" on UART0 TX.
+ * NO UART WIRING TO MEGA NEEDED — fully wireless.
  *
- * DETECTION METHOD:
- *   Uses simple heuristics on the captured grayscale frame:
- *   1. Average brightness check (too dark = no item).
- *   2. Blob aspect ratio — cups are WIDE and SHORT (opposite of bottles).
- *   3. Edge density — cups have strong horizontal top/bottom edges.
- *   Replace analyzeFrame() with TFLite model for production accuracy.
- *
- * SERIAL PROTOCOL (UART0 GPIO1=TX, GPIO3=RX):
- *   Receives from Mega: "##IDENTIFY##\n"
- *   Sends to Mega:      "##DETECT:CUP##\n"  or  "##DETECT:NONE##\n"
- *
- * WIRING:
- *   ESP32-CAM GPIO3 (RX0) ← Mega Pin 14 (TX3)  [5V→3.3V! Use voltage divider]
- *   ESP32-CAM GPIO1 (TX0) → Mega Pin 15 (RX3)  [3.3V→5V: safe]
- *   Common GND
- *
- * ⚠️  VOLTAGE DIVIDER on the 5V TX line from Mega → ESP32 RX:
- *     Mega TX3 (pin 14) → 1kΩ → ESP32-CAM GPIO3
- *                                ESP32-CAM GPIO3 → 2kΩ → GND
+ * STATIC IP CONFIG:
+ *   This CAM uses static IP 192.168.43.111 on the hotspot network.
+ *   Change DEVKIT_IP to match your Dev Kit's actual IP on the hotspot.
  *
  * LIBRARIES:
  *   esp_camera  (bundled with ESP32 Arduino core)
+ *   ArduinoJson by Benoit Blanchon (v6 or v7)
+ *   WebServer   (bundled with ESP32 Arduino core)
  */
 
 #include "esp_camera.h"
 #include <Arduino.h>
+#include <WiFi.h>
+#include <WebServer.h>
+#include <HTTPClient.h>
+#include <ArduinoJson.h>
+
+// ── USER CONFIG ───────────────────────────────────────────────────────────────
+const char* WIFI_SSID     = "Free";       // ← Same as Dev Kit
+const char* WIFI_PASSWORD = "1234pogi";   // ← Same as Dev Kit
+const char* DEVKIT_IP     = "192.168.43.100";         // ← Dev Kit IP on hotspot
+
+// Static IP for this CAM on the hotspot
+IPAddress local_IP(192, 168, 43, 111);   // Different from Bottle CAM (.110)
+IPAddress gateway(192, 168, 43, 1);
+IPAddress subnet(255, 255, 255, 0);
 
 // ── CAMERA PIN MAP  (AI Thinker) ─────────────────────────────────────────────
 #define PWDN_GPIO_NUM     32
@@ -60,18 +59,19 @@
 #define HREF_GPIO_NUM     23
 #define PCLK_GPIO_NUM     22
 
-// ── CONFIG ────────────────────────────────────────────────────────────────────
-#define BAUD_RATE        115200
-// OV3660 low-light advantage → threshold reduced from 60 to 40
-#define BRIGHTNESS_THRESH 40      // 0-255: minimum average brightness
+// ── DETECTION CONFIG ─────────────────────────────────────────────────────────
+#define BRIGHTNESS_THRESH      40
+#define CUP_ASPECT_MAX         0.85f   // Height/Width < this → short/wide (cup)
+#define CUP_ASPECT_MIN         0.30f   // Guard against noise
+#define CUP_EDGE_RATIO_MIN     0.05f   // Min horizontal edge density
+#define CUP_BLOB_FILL_MIN      0.08f   // Min 8% of frame occupied
 
-// Cup detection thresholds for OV3660 SVGA (800×600) — cups are WIDE and SHORT
-#define CUP_ASPECT_MAX     0.85f  // Height/Width < this → short/wide shape
-#define CUP_ASPECT_MIN     0.30f  // Guard against noise (too flat = not a cup)
-#define CUP_EDGE_RATIO_MIN 0.05f  // Reduced — OV3660 horizontal edges are sharper
-#define CUP_BLOB_FILL_MIN  0.08f  // 8% of SVGA frame (larger than QVGA fill requirement)
+// ── STATE ─────────────────────────────────────────────────────────────────────
+WebServer server(80);
+const unsigned long WIFI_TIMEOUT_MS = 20000;
 
-String rxBuf = "";
+// Forward declaration
+void postResult(const char* result);
 
 // ── CAMERA INIT ───────────────────────────────────────────────────────────────
 bool initCamera() {
@@ -96,22 +96,29 @@ bool initCamera() {
   config.pin_reset    = RESET_GPIO_NUM;
   config.xclk_freq_hz = 20000000;
   config.pixel_format = PIXFORMAT_GRAYSCALE;
-  // OV3660 supports SVGA (800x600) — better accuracy than QVGA
-  config.frame_size   = FRAMESIZE_SVGA;   // 800x600 (was QVGA 320x240)
+  config.frame_size   = FRAMESIZE_SVGA;   // 800x600
   config.jpeg_quality = 10;
   config.fb_count     = 1;
-
   return (esp_camera_init(&config) == ESP_OK);
 }
 
+// ── SENSOR TUNING ─────────────────────────────────────────────────────────────
+void tuneSensor() {
+  sensor_t* s = esp_camera_sensor_get();
+  if (!s) return;
+  s->set_vflip(s, 1);
+  s->set_hmirror(s, 1);
+  s->set_brightness(s, 0);
+  s->set_contrast(s, 1);
+  s->set_saturation(s, -1);
+  s->set_exposure_ctrl(s, 1);
+  s->set_aec2(s, 1);
+  s->set_ae_level(s, 0);
+  s->set_sharpness(s, 2);
+  s->set_denoise(s, 0);
+}
+
 // ── DETECTION LOGIC ───────────────────────────────────────────────────────────
-/*
- * analyzeFrame():
- * Cups are wider than they are tall, with distinct horizontal edges at the rim
- * and base. The detection logic is the INVERSE of the bottle detector.
- *
- * Returns true if a cup is detected.
- */
 bool analyzeFrame(camera_fb_t* fb) {
   if (!fb || fb->len == 0) return false;
 
@@ -123,13 +130,13 @@ bool analyzeFrame(camera_fb_t* fb) {
   long sum = 0;
   for (int i = 0; i < W * H; i++) sum += p[i];
   float avgBright = (float)sum / (W * H);
-  Serial.printf("[CUP-CAM] Avg brightness: %.1f\n", avgBright);
+  Serial.printf("[CUP] Avg brightness: %.1f\n", avgBright);
   if (avgBright < BRIGHTNESS_THRESH) {
-    Serial.println("[CUP-CAM] Too dark");
+    Serial.println("[CUP] Too dark");
     return false;
   }
 
-  // 2. Find bounding box of foreground pixels
+  // 2. Bounding box of foreground pixels
   uint8_t threshold = (uint8_t)(avgBright * 0.6f);
   int minX = W, maxX = 0, minY = H, maxY = 0;
   int foreCount = 0;
@@ -146,18 +153,15 @@ bool analyzeFrame(camera_fb_t* fb) {
   }
 
   if (foreCount == 0) return false;
-
   int blobW = maxX - minX;
   int blobH = maxY - minY;
   if (blobW <= 0 || blobH <= 0) return false;
 
-  float aspect    = (float)blobH / blobW;     // cups → aspect < 1.0
-  float blobFill  = (float)foreCount / (W * H);
+  float aspect   = (float)blobH / blobW;   // Cup → aspect < 1 (wider than tall)
+  float blobFill = (float)foreCount / (W * H);
+  Serial.printf("[CUP] Blob W=%d H=%d aspect=%.2f fill=%.3f\n", blobW, blobH, aspect, blobFill);
 
-  Serial.printf("[CUP-CAM] Blob W=%d H=%d aspect=%.2f fill=%.3f\n",
-                blobW, blobH, aspect, blobFill);
-
-  // 3. Horizontal edge density (cups have strong top & bottom rims)
+  // 3. Horizontal edge density (cups have strong top/bottom rim edges)
   int hEdgeCount = 0;
   for (int y = 1; y < H; y++) {
     for (int x = 0; x < W; x++) {
@@ -166,88 +170,128 @@ bool analyzeFrame(camera_fb_t* fb) {
     }
   }
   float hEdgeDensity = (float)hEdgeCount / (W * H);
-  Serial.printf("[CUP-CAM] Horiz edge density: %.4f\n", hEdgeDensity);
+  Serial.printf("[CUP] Horiz edge density: %.4f\n", hEdgeDensity);
 
-  // 4. Decision
+  // 4. Decision — cups are wide & short with horizontal rim edges
   bool isCup = (aspect >= CUP_ASPECT_MIN)
             && (aspect <= CUP_ASPECT_MAX)
             && (hEdgeDensity >= CUP_EDGE_RATIO_MIN)
             && (blobFill >= CUP_BLOB_FILL_MIN);
 
-  Serial.printf("[CUP-CAM] Decision: %s\n", isCup ? "CUP" : "NONE");
+  Serial.printf("[CUP] Decision: %s\n", isCup ? "CUP" : "NONE");
   return isCup;
 }
 
-// ── IDENTIFICATION ROUTINE ────────────────────────────────────────────────────
-void identify() {
-  Serial.println("[CUP-CAM] Capture requested...");
+// ── CAPTURE AND POST RESULT ───────────────────────────────────────────────────
+void doIdentify() {
+  Serial.println("[CUP] Capture requested...");
 
-  // Warm up frame (discard AEC adjustment)
+  // Warmup frame
   camera_fb_t* fb = esp_camera_fb_get();
   if (fb) esp_camera_fb_return(fb);
   delay(200);
 
   fb = esp_camera_fb_get();
   if (!fb) {
-    Serial.println("[CUP-CAM] Frame capture FAILED");
-    Serial.println("##DETECT:NONE##");
+    Serial.println("[CUP] Frame capture FAILED");
+    postResult("NONE");
     return;
   }
 
   bool detected = analyzeFrame(fb);
   esp_camera_fb_return(fb);
+  postResult(detected ? "CUP" : "NONE");
+}
 
-  Serial.println(detected ? "##DETECT:CUP##" : "##DETECT:NONE##");
+void postResult(const char* result) {
+  HTTPClient http;
+  String url = "http://" + String(DEVKIT_IP) + "/detect";
+  http.begin(url);
+  http.addHeader("Content-Type", "application/json");
+  http.setTimeout(8000);
+
+  StaticJsonDocument<64> doc;
+  doc["cam"]    = "CUP";
+  doc["result"] = result;
+  String body; serializeJson(doc, body);
+
+  int code = http.POST(body);
+  http.end();
+  Serial.printf("[CUP] POST /detect → %d (result=%s)\n", code, result);
+}
+
+// ── HTTP SERVER HANDLERS ──────────────────────────────────────────────────────
+// GET /identify — Dev Kit calls this to trigger a capture
+void handleIdentify() {
+  server.send(200, "text/plain", "OK");
+  doIdentify();
+}
+
+// GET /ping — connectivity check
+void handlePing() {
+  server.send(200, "text/plain", "CUP_CAM_OK");
+}
+
+// ── WIFI CONNECT ─────────────────────────────────────────────────────────────
+void connectWiFi() {
+  Serial.print("[WiFi] Connecting to "); Serial.println(WIFI_SSID);
+
+  if (!WiFi.config(local_IP, gateway, subnet)) {
+    Serial.println("[WiFi] Static IP config failed");
+  }
+  WiFi.mode(WIFI_STA);
+  WiFi.setAutoReconnect(true);
+  WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
+
+  unsigned long start = millis();
+  while (WiFi.status() != WL_CONNECTED && millis() - start < WIFI_TIMEOUT_MS) {
+    delay(400); Serial.print(".");
+  }
+  Serial.println();
+
+  if (WiFi.status() == WL_CONNECTED) {
+    Serial.print("[WiFi] Connected. IP: "); Serial.println(WiFi.localIP());
+  } else {
+    Serial.println("[WiFi] FAILED — will retry in loop");
+  }
 }
 
 // ── SETUP ─────────────────────────────────────────────────────────────────────
 void setup() {
-  Serial.begin(BAUD_RATE);
+  Serial.begin(115200);
   delay(1000);
 
-  // Flash LED 3 times (distinguishes from Bottle-CAM's 2 flashes)
+  // Flash LED 3 times to distinguish from Bottle CAM (2 flashes)
   pinMode(33, OUTPUT);
-  for (int i = 0; i < 6; i++) { digitalWrite(33, i % 2 == 0 ? LOW : HIGH); delay(120); }
+  for (int i = 0; i < 6; i++) {
+    digitalWrite(33, i % 2 == 0 ? LOW : HIGH); delay(150);
+  }
 
-  Serial.println(F("[CUP-CAM] Initializing camera (OV3660)..."));
+  Serial.println("[CUP] Connecting WiFi...");
+  connectWiFi();
+
+  Serial.println("[CUP] Initializing camera (OV3660 SVGA)...");
   if (!initCamera()) {
-    Serial.println(F("[CUP-CAM] ERROR: Camera init failed!"));
+    Serial.println("[CUP] ERROR: Camera init FAILED!");
     while (true) { digitalWrite(33, LOW); delay(100); digitalWrite(33, HIGH); delay(100); }
   }
+  tuneSensor();
 
-  // OV3660 sensor tuning
-  sensor_t* s = esp_camera_sensor_get();
-  if (s) {
-    s->set_vflip(s, 1);           // AI Thinker PCB mounts sensor inverted
-    s->set_hmirror(s, 1);         // OV3660 requires horizontal mirror correction
-    s->set_brightness(s, 0);      // Auto (OV3660 handles exposure natively)
-    s->set_contrast(s, 1);
-    s->set_saturation(s, -1);     // Irrelevant for grayscale; reduce for stability
-    s->set_exposure_ctrl(s, 1);
-    s->set_aec2(s, 1);
-    s->set_ae_level(s, 0);
-    s->set_sharpness(s, 2);       // Max sharpness — critical for horizontal rim edges
-    s->set_denoise(s, 0);         // Off — raw edges needed for analysis
-  }
+  server.on("/identify", handleIdentify);
+  server.on("/ping",     handlePing);
+  server.begin();
 
-  Serial.println("##STATUS:CUP_CAM_READY##");
-  Serial.println("[CUP-CAM] Waiting for ##IDENTIFY## from Mega...");
+  Serial.println("[CUP] HTTP server started on port 80");
+  Serial.println("[CUP] Ready — waiting for /identify requests from Dev Kit");
 }
 
 // ── LOOP ──────────────────────────────────────────────────────────────────────
 void loop() {
-  while (Serial.available()) {
-    char c = (char)Serial.read();
-    if (c == '\n') {
-      rxBuf.trim();
-      if (rxBuf == "##IDENTIFY##") {
-        identify();
-      }
-      rxBuf = "";
-    } else if (c != '\r') {
-      if (rxBuf.length() < 64) rxBuf += c;
-      else rxBuf = "";
-    }
+  server.handleClient();
+
+  if (WiFi.status() != WL_CONNECTED) {
+    connectWiFi();
   }
+
   delay(5);
 }
