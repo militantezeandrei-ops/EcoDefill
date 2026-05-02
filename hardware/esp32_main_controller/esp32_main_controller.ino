@@ -56,6 +56,9 @@ const char* MACHINE_ID      = "MACHINE_01";
 const char* BOTTLE_CAM_IP   = "192.168.43.110";  // ← Must match Bottle CAM static IP
 const char* CUP_CAM_IP      = "192.168.43.111";  // ← Must match Cup CAM static IP
 const char* QR_CAM_IP       = "192.168.43.120";  // ← Must match QR-CAM static IP
+IPAddress DEVKIT_LOCAL_IP(192, 168, 43, 100);
+IPAddress DEVKIT_GATEWAY(192, 168, 43, 1);
+IPAddress DEVKIT_SUBNET(255, 255, 255, 0);
 
 // ── PINS ──────────────────────────────────────────────────────────────────────
 const int LED_PIN = 2;   // Built-in LED
@@ -81,6 +84,9 @@ bool connectWiFi() {
   Serial.print("[WiFi] Connecting to "); Serial.println(WIFI_SSID);
   WiFi.mode(WIFI_STA);
   WiFi.setAutoReconnect(true);
+  if (!WiFi.config(DEVKIT_LOCAL_IP, DEVKIT_GATEWAY, DEVKIT_SUBNET)) {
+    Serial.println("[WiFi] Static IP config failed");
+  }
   WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
 
   unsigned long start = millis();
