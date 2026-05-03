@@ -46,22 +46,23 @@ LiquidCrystal_I2C lcd(LCD_ADDR, LCD_COLS, LCD_ROWS);
 Servo srvBottleGate, srvBottleExit, srvBottleBin;
 Servo srvCupGate,    srvCupExit,    srvCupBin;
 
-// Angle presets — tweak to match your build
-#define GATE_OPEN    90
-#define GATE_CLOSED   0
-#define EXIT_OPEN    90
-#define EXIT_CLOSED   0
-#define BIN_OPEN     90
-#define BIN_CLOSED    0
-#define SERVO_DELAY_MS  150UL  // Between servo moves (Buck 1 protection)
-#define GATE_SERVO_DELAY_MS 80UL
-#define EXIT_HOLD_MS   2000UL  // How long exit stays open to release item
+// Angle presets — tweak to match your physical build
+#define GATE_OPEN       90
+#define GATE_CLOSED      0
+#define SORT_ACTIVE_B   40    // Bottle bin direction
+#define SORT_ACTIVE_C  140    // Cup bin direction
+#define SORT_IDLE       90    // Neutral
+#define COMP_PRESS     120
+#define COMP_IDLE       20
 
 // ─── IR SENSOR PINS ──────────────────────────────────────────────────────────
-#define IR_BOTTLE_SLOT   22   // LOW = bottle inserted into input slot
-#define IR_BOTTLE_VALID  23   // LOW = bottle reached validation chamber
-#define IR_CUP_SLOT      24   // LOW = cup inserted into input slot
-#define IR_CUP_VALID     25   // LOW = cup reached validation chamber
+#define IR_BOTTLE_SLOT  22   // LOW = object present in bottle slot
+#define IR_CUP_SLOT     24   // LOW = object present in cup slot
+
+// ─── PAPER SYSTEM PINS ───────────────────────────────────────────────────────
+#define IR_PAPER_ENTRY  26   // LOW = paper detected at entry
+#define IR_PAPER_VALID  27   // LOW = paper passed through
+#define PAPER_MOTOR     11   // HIGH = motor off, LOW = motor on (relay)
 
 // ─── RELAY PINS ──────────────────────────────────────────────────────────────
 #define RELAY_PUMP   34
@@ -175,58 +176,27 @@ bool refillContainerDetected() {
 // ─────────────────────────────────────────────────────────────────────────────
 // SERVO HELPERS — max 2 at a time, delay between groups
 // ─────────────────────────────────────────────────────────────────────────────
-
-// BOTTLE — open gate (Srv1) to accept item
-void openBottleGate() {
-  Serial.println(F("[SERVO] Bottle GATE open"));
-  srvBottleGate.write(GATE_OPEN);
-  delay(GATE_SERVO_DELAY_MS);
+void moveGroup(Servo& a, int pa, Servo& b, int pb) {
+  a.write(pa);
+  b.write(pb);
+  delay(SERVO_DELAY_MS);  // ⚠️ Buck 1 protection
 }
 
-// BOTTLE — close gate (Srv1) after item enters validation chamber
-void closeBottleGate() {
-  Serial.println(F("[SERVO] Bottle GATE closed"));
-  srvBottleGate.write(GATE_CLOSED);
-  delay(GATE_SERVO_DELAY_MS);
+void openBottleSlot() {
+  Serial.println(F("[SERVO] Bottle slot OPEN"));
+  moveGroup(srvBottleGate, GATE_OPEN, srvBottleSort, SORT_ACTIVE_B);
 }
-
-// BOTTLE VALID: Srv3 (bin gate) opens FIRST, then Srv2 (exit) opens
-void releaseBottleValid() {
-  Serial.println(F("[SERVO] Bottle BIN gate open (Srv3 first)"));
-  srvBottleBin.write(BIN_OPEN);
-  delay(SERVO_DELAY_MS);
-
-  Serial.println(F("[SERVO] Bottle EXIT open (Srv2)"));
-  srvBottleExit.write(EXIT_OPEN);
-  delay(EXIT_HOLD_MS);
-
-  // Close in reverse: exit first, then bin gate
-  srvBottleExit.write(EXIT_CLOSED);
-  delay(SERVO_DELAY_MS);
-  srvBottleBin.write(BIN_CLOSED);
-  delay(SERVO_DELAY_MS);
+void closeBottleSlot() {
+  Serial.println(F("[SERVO] Bottle slot CLOSE"));
+  moveGroup(srvBottleGate, GATE_CLOSED, srvBottleSort, SORT_IDLE);
 }
-
-// BOTTLE INVALID: Srv2 (exit) opens ONLY — item returned to user
-void returnBottleInvalid() {
-  Serial.println(F("[SERVO] Bottle EXIT open - returning item (Srv2 only)"));
-  srvBottleExit.write(EXIT_OPEN);
-  delay(EXIT_HOLD_MS);
-  srvBottleExit.write(EXIT_CLOSED);
-  delay(SERVO_DELAY_MS);
+void openCupSlot() {
+  Serial.println(F("[SERVO] Cup slot OPEN"));
+  moveGroup(srvCupGate, GATE_OPEN, srvCupSort, SORT_ACTIVE_C);
 }
-
-// CUP — same structure
-void openCupGate() {
-  Serial.println(F("[SERVO] Cup GATE open"));
-  srvCupGate.write(GATE_OPEN);
-  delay(GATE_SERVO_DELAY_MS);
-}
-
-void closeCupGate() {
-  Serial.println(F("[SERVO] Cup GATE closed"));
-  srvCupGate.write(GATE_CLOSED);
-  delay(GATE_SERVO_DELAY_MS);
+void closeCupSlot() {
+  Serial.println(F("[SERVO] Cup slot CLOSE"));
+  moveGroup(srvCupGate, GATE_CLOSED, srvCupSort, SORT_IDLE);
 }
 
 void releaseCupValid() {
@@ -273,7 +243,7 @@ void dispenseWater(unsigned long ms) {
 void handleDevKit(const String& msg) {
   Serial.print(F("[DEV->] ")); Serial.println(msg);
 
-  // ── BOTTLE VALID ──────────────────────────────────────────────────────────
+  // ── BOTTLE RESULT ─────────────────────────────────────────────────────────
   if (msg == "CAM:BOTTLE:VALID") {
     camPending = false;
     if (machineState != ST_IDENTIFYING || !bottleSlotActive) return;
@@ -283,7 +253,14 @@ void handleDevKit(const String& msg) {
             "Sorting item now... ",
             "                    ");
     sessionPts += 2;
-    releaseBottleValid();   // Srv3 FIRST, then Srv2
+    openBottleSlot();
+    delay(1500);
+    compactBottle();
+    closeBottleSlot();
+    lcdShow("Bottle Accepted!    ",
+            "+2 Points Earned!   ",
+            "Session: " + String(sessionPts) + " pts",
+            "[1]Dispense [2]Scan ");
     devkitSend("CMD:EARN_ANON|BOTTLE|2");
 
     lcdShow("  Bottle Accepted!  ",
@@ -308,7 +285,7 @@ void handleDevKit(const String& msg) {
             "[1]Water  [2]QR Scan");
     machineState = ST_AWAIT_ITEM;
 
-  // ── CUP VALID ─────────────────────────────────────────────────────────────
+  // ── CUP RESULT ────────────────────────────────────────────────────────────
   } else if (msg == "CAM:CUP:VALID") {
     camPending = false;
     if (machineState != ST_IDENTIFYING || bottleSlotActive) return;
@@ -318,7 +295,14 @@ void handleDevKit(const String& msg) {
             "Sorting item now... ",
             "                    ");
     sessionPts += 1;
-    releaseCupValid();      // Srv3 FIRST, then Srv2
+    openCupSlot();
+    delay(1500);
+    compactCup();
+    closeCupSlot();
+    lcdShow("Cup Accepted!       ",
+            "+1 Point Earned!    ",
+            "Session: " + String(sessionPts) + " pts",
+            "[1]Dispense [2]Scan ");
     devkitSend("CMD:EARN_ANON|CUP|1");
 
     lcdShow("   Cup Accepted!    ",
@@ -412,9 +396,11 @@ void onDispensePressed() {
     return;
   }
 
-  int ptsToUse     = min(sessionPts, MAX_PTS_PER_PRESS);
-  unsigned long ms = (unsigned long)ptsToUse * MS_PER_100ML;
-  int ml           = ptsToUse * ML_PER_POINT;
+  int ptsToUse      = min(totalPts, MAX_PTS_PER_PRESS);
+  unsigned long ms  = (unsigned long)ptsToUse * MS_PER_100ML;
+  int ml            = ptsToUse * ML_PER_POINT;
+
+  Serial.printf("[BTN1] Dispensing %d pts = %dml (%lums)\n", ptsToUse, ml, ms);
 
   lcdShow("  Dispensing Water  ",
           String(ml) + "ml (" + String(ptsToUse) + " pts used) ",
@@ -484,85 +470,27 @@ void checkIR() {
     bool botSlotLow = (digitalRead(IR_BOTTLE_SLOT) == LOW);
     bool cupSlotLow = (digitalRead(IR_CUP_SLOT)    == LOW);
 
-    if (!botSlotLow) bottleSlotArmed = true;
-    if (!cupSlotLow) cupSlotArmed = true;
+  if (botIR) {
+    Serial.println(F("[IR] Bottle slot triggered"));
+    machineState     = ST_IDENTIFYING;
+    bottleSlotActive = true;
+    camPending       = true;
+    camSentAt        = millis();
+    devkitSend("CMD:IDENTIFY_BOTTLE");
+    lcdShow("Identifying...      ",
+            "Bottle slot         ",
+            "Please hold still   ");
 
-    if (botSlotLow && bottleSlotArmed) {
-      bottleSlotArmed = false;
-      Serial.println(F("[IR] Bottle slot triggered - opening gate"));
-      bottleSlotActive = true;
-      machineState     = ST_GATE_OPEN;
-      gateOpenedAt     = millis();
-      gateValidationSeen = false;
-      openBottleGate();
-      lcdShow("  Bottle Detected!  ",
-              "Gate is opening...  ",
-              "Insert your bottle  ",
-              "into the slot.      ");
-
-    } else if (cupSlotLow && cupSlotArmed) {
-      cupSlotArmed = false;
-      Serial.println(F("[IR] Cup slot triggered - opening gate"));
-      bottleSlotActive = false;
-      machineState     = ST_GATE_OPEN;
-      gateOpenedAt     = millis();
-      gateValidationSeen = false;
-      openCupGate();
-      lcdShow("   Cup Detected!    ",
-              "Gate is opening...  ",
-              "Insert your cup     ",
-              "into the slot.      ");
-    }
-  }
-
-  // ── STAGE 2: Validation IR → close gate → trigger camera ───────────────
-  if (machineState == ST_GATE_OPEN) {
-    bool botValid = (digitalRead(IR_BOTTLE_VALID) == LOW);
-    bool cupValid = (digitalRead(IR_CUP_VALID)    == LOW);
-
-    if ((bottleSlotActive && botValid) || (!bottleSlotActive && cupValid)) {
-      gateValidationSeen = true;
-    }
-
-    if ((millis() - gateOpenedAt) >= GATE_STAGE_TIMEOUT_MS) {
-      if (gateValidationSeen) {
-        if (bottleSlotActive) {
-          Serial.println(F("[IR] Bottle validated in 1s window - closing gate"));
-          closeBottleGate();
-          machineState = ST_IDENTIFYING;
-          camPending   = true;
-          camSentAt    = millis();
-          devkitSend("CMD:IDENTIFY_BOTTLE");
-          lcdShow("  Scanning Item...  ",
-                  "Camera is checking  ",
-                  "if its a bottle.    ",
-                  "Please wait...      ");
-        } else {
-          Serial.println(F("[IR] Cup validated in 1s window - closing gate"));
-          closeCupGate();
-          machineState = ST_IDENTIFYING;
-          camPending   = true;
-          camSentAt    = millis();
-          devkitSend("CMD:IDENTIFY_CUP");
-          lcdShow("  Scanning Item...  ",
-                  "Camera is checking  ",
-                  "if its a cup.       ",
-                  "Please wait...      ");
-        }
-      } else {
-        Serial.println(F("[IR] 1s gate window ended - closing gate"));
-        if (bottleSlotActive) {
-          closeBottleGate();
-        } else {
-          closeCupGate();
-        }
-        machineState = ST_AWAIT_ITEM;
-        lcdShow("No item in chamber. ",
-                "Gate closed for safe",
-                "Please insert again.",
-                "[1]Water  [2]QR Scan");
-      }
-    }
+  } else if (cupIR) {
+    Serial.println(F("[IR] Cup slot triggered"));
+    machineState     = ST_IDENTIFYING;
+    bottleSlotActive = false;
+    camPending       = true;
+    camSentAt        = millis();
+    devkitSend("CMD:IDENTIFY_CUP");
+    lcdShow("Identifying...      ",
+            "Cup slot            ",
+            "Please hold still   ");
   }
 }
 
@@ -596,10 +524,14 @@ void setup() {
   pinMode(BTN_SCAN,     INPUT_PULLUP);
 
   // IR Sensors
-  pinMode(IR_BOTTLE_SLOT,  INPUT_PULLUP);
-  pinMode(IR_BOTTLE_VALID, INPUT_PULLUP);
-  pinMode(IR_CUP_SLOT,     INPUT_PULLUP);
-  pinMode(IR_CUP_VALID,    INPUT_PULLUP);
+  pinMode(IR_BOTTLE_SLOT, INPUT_PULLUP);
+  pinMode(IR_CUP_SLOT,    INPUT_PULLUP);
+
+  // Paper system
+  pinMode(IR_PAPER_ENTRY, INPUT);
+  pinMode(IR_PAPER_VALID, INPUT);
+  pinMode(PAPER_MOTOR, OUTPUT);
+  digitalWrite(PAPER_MOTOR, HIGH);  // Motor OFF at boot
 
   // Ultrasonic
   pinMode(ULTRASONIC_TRIG, OUTPUT);
@@ -622,7 +554,7 @@ void setup() {
   srvCupBin.attach(SRV_CUP_BIN);         srvCupBin.write(BIN_CLOSED);
 
   // LCD
-  lcd.init();
+  lcd.begin();
   lcd.backlight();
   lcd.clear();
   lcdShow("   EcoDefill v3.0   ",
