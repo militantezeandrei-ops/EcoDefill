@@ -41,7 +41,9 @@ IPAddress local_IP(192, 168, 43, 110);
 IPAddress gateway(192, 168, 43, 1);      // Android hotspot default gateway
 IPAddress subnet(255, 255, 255, 0);
 
-// ── CAMERA PIN MAP  (AI Thinker) ─────────────────────────────────────────────
+/* ── Camera model: AI Thinker ────────────────────────────────────────────── */
+#define CAMERA_MODEL_AI_THINKER
+
 #define PWDN_GPIO_NUM     32
 #define RESET_GPIO_NUM    -1
 #define XCLK_GPIO_NUM      0
@@ -67,6 +69,9 @@ IPAddress subnet(255, 255, 255, 0);
 // ── STATE ─────────────────────────────────────────────────────────────────────
 WebServer server(80);
 const unsigned long WIFI_TIMEOUT_MS = 20000;
+
+// Forward declaration
+void postResult(const char* result);
 
 // ── CAMERA INIT ───────────────────────────────────────────────────────────────
 bool initCamera() {
