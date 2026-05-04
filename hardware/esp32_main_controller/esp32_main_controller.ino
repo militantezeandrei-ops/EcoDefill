@@ -118,7 +118,8 @@ void toMega(const String& msg) {
 
 // ── BACKEND: VERIFY QR TOKEN ─────────────────────────────────────────────────
 // Sends token to /api/verify-qr
-// Server replies: { action:"EARN", points:N } or { action:"REDEEM", dispenseTimeMs:N }
+// Backend REDEEM response: { success:true, waterAmount:<ml>, pointsDeducted:<N>, userName:"..." }
+// Backend EARN   response: { success:true, waterAmount:0,   pointsDeducted:<-N>, userName:"..." }
 void apiVerifyQR(const String& token) {
   if (!ensureWiFi()) { toMega("QR:FAIL"); return; }
 
@@ -144,17 +145,22 @@ void apiVerifyQR(const String& token) {
   StaticJsonDocument<512> res;
   if (deserializeJson(res, resp)) { toMega("QR:FAIL"); return; }
 
-  // REDEEM path
-  int dispenseMs = res["dispenseTimeMs"] | 0;
-  if (dispenseMs > 0) {
+  // ── REDEEM path ───────────────────────────────────────────────────────────
+  // Backend returns waterAmount in ml. Convert ml → ms for Mega.
+  // ML_PER_POINT = 100, MS_PER_100ML = 2000 → 1 ml = 20 ms
+  int waterAmountMl = res["waterAmount"] | 0;
+  if (waterAmountMl > 0) {
+    int dispenseMs = waterAmountMl * 20;  // 100ml = 2000ms (20ms per ml)
     toMega("QR:DISPENSE:" + String(dispenseMs));
     blink(3, 100);
     return;
   }
 
-  // EARN path
-  int pts = res["points"] | res["pointsEarned"] | res["amount"] | 0;
-  if (pts > 0) {
+  // ── EARN path ─────────────────────────────────────────────────────────────
+  // pointsDeducted is negative for EARN (e.g. -2 means +2 earned)
+  int pointsDeducted = res["pointsDeducted"] | 0;
+  if (pointsDeducted < 0) {
+    int pts = -pointsDeducted;
     toMega("QR:EARN:" + String(pts));
     blink(2, 80);
     return;
@@ -305,9 +311,17 @@ void handleQR() {
 
   server.send(200, "text/plain", "OK");  // Respond fast before blocking API call
 
-  if (token.length() >= 8 && qrModeActive) {
-    qrModeActive = false;
-    apiVerifyQR(token);
+  if (token.length() >= 8) {
+    if (qrModeActive) {
+      // Normal path: Mega triggered a QR scan and QR-CAM found a code
+      qrModeActive = false;
+      apiVerifyQR(token);
+    } else {
+      // Token arrived but Mega didn't request a scan (race/stale scan)
+      // Notify Mega so the LCD doesn't hang
+      Serial.println("[HTTP] /qr  WARNING: token received but qrModeActive=false — sending QR:FAIL");
+      toMega("QR:FAIL");
+    }
   }
 }
 
