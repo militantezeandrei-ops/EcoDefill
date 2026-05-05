@@ -17,7 +17,7 @@ export function BottomNav() {
 
     return (
         <div className="fixed inset-x-0 bottom-0 z-50 px-3 pb-[calc(var(--safe-bottom)+4px)]">
-            <nav className="mx-auto w-full max-w-sm overflow-hidden rounded-[24px] bg-white shadow-[0_-8px_24px_rgba(0,0,0,0.06),0_12px_32px_rgba(0,0,0,0.12)] backdrop-blur-xl dark:bg-zinc-900">
+            <nav className="mx-auto w-full max-w-sm overflow-hidden rounded-[24px] border border-slate-200/70 bg-white shadow-[0_-4px_14px_rgba(0,0,0,0.05),0_8px_20px_rgba(0,0,0,0.08)] dark:bg-zinc-900">
                 <div className="flex h-16 items-center justify-around px-1">
                     {navItems.map((item) => {
                         const isActive = pathname === item.path;
