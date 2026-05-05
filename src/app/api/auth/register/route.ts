@@ -10,9 +10,6 @@ const registerSchemaServer = z.object({
     email: z.string().email(),
     password: z.string().min(8),
     verificationCode: z.string().length(6),
-    phoneNumber: z
-        .string()
-        .regex(/^\+?[0-9]{10,15}$/, "Invalid phone number format"),
     fullName: z.string().optional(),
     course: z.string().optional(),
     yearLevel: z.string().optional(),
@@ -28,7 +25,7 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ message: "Invalid input format" }, { status: 400 });
         }
 
-        const { email, password, fullName, course, yearLevel, section, verificationCode, phoneNumber } = result.data;
+        const { email, password, fullName, course, yearLevel, section, verificationCode } = result.data;
         const normalizedEmail = email.trim().toLowerCase();
 
         const existingUser = await prisma.user.findUnique({ where: { email: normalizedEmail } });
@@ -56,7 +53,6 @@ export async function POST(req: NextRequest) {
                 email: normalizedEmail,
                 passwordHash,
                 fullName: fullName || null,
-                phoneNumber,
                 role: "STUDENT",
                 balance: 0,
                 course: course || null,

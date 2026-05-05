@@ -12,7 +12,6 @@ import { OtpInput } from "@/components/OtpInput";
 const registerSchema = z.object({
     fullName: z.string().min(2, "Full Name is required"),
     email: z.string().email("Invalid email address"),
-    phoneNumber: z.string().length(11, "Phone number must be exactly 11 digits"),
     verificationCode: z.string().length(6, "Verification code must be 6 digits"),
     course: z.string().min(1, "Please select a course"),
     yearLevel: z.string().min(1, "Please select an year level"),
@@ -30,7 +29,6 @@ export default function Register() {
     const [formData, setFormData] = useState({
         fullName: "",
         email: "",
-        phoneNumber: "",
         verificationCode: "",
         course: "",
         yearLevel: "",
@@ -79,7 +77,6 @@ export default function Register() {
                 body: JSON.stringify({
                     email: formData.email,
                     verificationCode: formData.verificationCode,
-                    phoneNumber: formData.phoneNumber,
                     password: formData.password,
                     fullName: formData.fullName,
                     course: formData.course,
@@ -223,25 +220,6 @@ export default function Register() {
                             </div>
                             {errors.verificationCode && <p className="ml-1 mt-1 text-[11px] font-bold text-red-500 text-center">{errors.verificationCode}</p>}
                             {codeHint && <p className="ml-1 mt-1 text-[11px] font-bold text-emerald-600 text-center">{codeHint}</p>}
-                        </div>
-
-                        <div>
-                            <label htmlFor="register-phone-number" className="ml-1 mb-2 block text-[11px] font-black uppercase tracking-wider text-gray-400">Phone Number</label>
-                            <div className="group relative">
-                                <input
-                                    id="register-phone-number"
-                                    name="phoneNumber"
-                                    type="tel"
-                                    required
-                                    maxLength={11}
-                                    className="block w-full rounded-2xl border border-gray-50 bg-gray-50 px-4 py-3.5 pl-11 text-sm font-bold text-gray-900 placeholder-gray-400 transition-all focus:border-blue-500/50 focus:bg-white focus:outline-none focus:ring-4 focus:ring-blue-500/10"
-                                    placeholder="09123456789"
-                                    value={formData.phoneNumber}
-                                    onChange={handleChange}
-                                />
-                                <span className="material-symbols-outlined pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[20px] text-gray-400 transition-colors group-focus-within:text-blue-600">call</span>
-                            </div>
-                            {errors.phoneNumber && <p className="ml-1 mt-1 text-[11px] font-bold text-red-500">{errors.phoneNumber}</p>}
                         </div>
 
                         <div className="grid grid-cols-3 gap-3">

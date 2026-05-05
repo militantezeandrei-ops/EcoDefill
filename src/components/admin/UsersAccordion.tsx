@@ -7,7 +7,6 @@ interface UserData {
     id: string;
     name: string;
     email: string;
-    phone: string;
     course: string;
     yearLevel: string;
     section: string;
@@ -205,7 +204,6 @@ export default function UsersAccordion({ courses }: { courses: CourseGroup[] }) 
                                     <tr className="bg-gray-50/50 border-b border-gray-100">
                                         <th className="px-4 py-2 text-left text-[11px] font-black uppercase tracking-widest text-gray-400">Student</th>
                                         <th className="px-4 py-2 text-left text-[11px] font-black uppercase tracking-widest text-gray-400">Email</th>
-                                        <th className="px-4 py-2 text-left text-[11px] font-black uppercase tracking-widest text-gray-400">Phone</th>
                                         <th className="px-4 py-2 text-left text-[11px] font-black uppercase tracking-widest text-gray-400">Points</th>
                                         <th className="px-4 py-2 text-left text-[11px] font-black uppercase tracking-widest text-gray-400">Items</th>
                                         <th className="px-4 py-2 text-left text-[11px] font-black uppercase tracking-widest text-gray-400 text-right">Status</th>
@@ -224,9 +222,6 @@ export default function UsersAccordion({ courses }: { courses: CourseGroup[] }) 
                                             </td>
                                             <td className="px-4 py-3">
                                                 <span className="text-[12px] font-medium text-gray-500">{u.email}</span>
-                                            </td>
-                                            <td className="px-4 py-3">
-                                                <span className="text-[12px] font-semibold text-gray-600 whitespace-nowrap">{u.phone}</span>
                                             </td>
                                             <td className="px-4 py-3">
                                                 <span className="text-sm font-black text-emerald-600">{u.totalEarned.toLocaleString()}</span>
@@ -253,4 +248,3 @@ export default function UsersAccordion({ courses }: { courses: CourseGroup[] }) 
         </div>
     );
 }
-
