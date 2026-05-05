@@ -50,27 +50,7 @@ export default function ProfilePage() {
                     </div>
                 </div>
 
-                {/* Actions */}
-                <div className="app-card p-0 overflow-hidden divide-y divide-slate-50">
-                    {[
-                        { icon: "person", label: "Edit Profile", action: undefined },
-                        { icon: "help", label: "Help & Support", action: undefined },
-                    ].map((item) => (
-                        <button
-                            key={item.label}
-                            onClick={item.action}
-                            className="tap-target flex w-full items-center justify-between px-4 py-3 text-left transition-colors active:bg-slate-50"
-                        >
-                            <span className="flex items-center gap-3">
-                                <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-slate-50">
-                                    <span className="material-symbols-outlined text-[16px] text-slate-500">{item.icon}</span>
-                                </div>
-                                <span className="text-xs font-black text-slate-700">{item.label}</span>
-                            </span>
-                            <span className="material-symbols-outlined text-[16px] text-slate-300">chevron_right</span>
-                        </button>
-                    ))}
-
+                <div className="app-card overflow-hidden p-0 divide-y divide-slate-50">
                     <button
                         onClick={logout}
                         className="tap-target flex w-full items-center justify-between px-4 py-3 text-left transition-colors active:bg-rose-50"

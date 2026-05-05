@@ -25,6 +25,7 @@ export default function Login() {
     const { login } = useAuth();
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
+    const [showPassword, setShowPassword] = useState(false);
     const [loading, setLoading] = useState(false);
     const [errors, setErrors] = useState<FormErrors>({});
 
@@ -73,7 +74,7 @@ export default function Login() {
     };
 
     useEffect(() => {
-        document.body.style.backgroundColor = "#f9fafb"; // Light gray background for the body
+        document.body.style.backgroundColor = "#f9fafb";
 
         return () => {
             document.body.style.backgroundColor = "";
@@ -81,8 +82,7 @@ export default function Login() {
     }, []);
 
     return (
-        <div className="relative flex min-h-screen w-full flex-col items-center justify-center bg-gray-50 px-4 py-12 font-display overflow-hidden">
-            {/* Background Image with White Overlay */}
+        <div className="relative flex min-h-screen w-full flex-col items-center justify-center overflow-hidden bg-gray-50 px-4 py-12 font-display">
             <div className="absolute inset-0 z-0">
                 <Image
                     src="/images/pdm-building.jpg"
@@ -94,7 +94,7 @@ export default function Login() {
                 <div className="absolute inset-0 bg-white/30" />
             </div>
 
-            <div className="relative z-10 mx-4 w-full max-w-[400px] my-auto overflow-hidden rounded-[32px] border border-gray-200 bg-white px-6 py-8 shadow-[0_20px_50px_rgba(0,0,0,0.1)]">
+            <div className="relative z-10 mx-4 my-auto w-full max-w-[400px] overflow-hidden rounded-[32px] border border-gray-200 bg-white px-6 py-8 shadow-[0_20px_50px_rgba(0,0,0,0.1)]">
                 <div className="absolute left-0 top-0 h-1.5 w-full bg-gradient-to-r from-blue-500 via-emerald-500 to-green-500" />
 
                 <div className="mb-4 mt-0 flex flex-col items-center text-center">
@@ -139,10 +139,10 @@ export default function Login() {
                             <input
                                 id="login-password"
                                 name="password"
-                                type="password"
+                                type={showPassword ? "text" : "password"}
                                 required
-                                className={`block w-full rounded-xl border bg-gray-50 px-4 py-3 pl-11 text-sm font-medium text-gray-900 placeholder-gray-400 transition-all focus:bg-white focus:outline-none focus:ring-2 ${errors.password ? "border-red-500/70 focus:ring-red-500/20" : "border-gray-200 focus:border-blue-500/50 focus:ring-blue-500/20"}`}
-                                placeholder="••••••••"
+                                className={`block w-full rounded-xl border bg-gray-50 px-4 py-3 pl-11 pr-11 text-sm font-medium text-gray-900 placeholder-gray-400 transition-all focus:bg-white focus:outline-none focus:ring-2 ${errors.password ? "border-red-500/70 focus:ring-red-500/20" : "border-gray-200 focus:border-blue-500/50 focus:ring-blue-500/20"}`}
+                                placeholder="********"
                                 value={password}
                                 onChange={(e) => {
                                     setPassword(e.target.value);
@@ -150,6 +150,16 @@ export default function Login() {
                                 }}
                             />
                             <span className="material-symbols-outlined pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[18px] text-gray-400 transition-colors group-focus-within:text-blue-500">lock</span>
+                            <button
+                                type="button"
+                                onClick={() => setShowPassword((prev) => !prev)}
+                                className="absolute right-3 top-1/2 flex -translate-y-1/2 items-center justify-center rounded-full p-1 text-gray-400 transition-colors hover:text-blue-500"
+                                aria-label={showPassword ? "Hide password" : "Show password"}
+                            >
+                                <span className="material-symbols-outlined text-[20px]">
+                                    {showPassword ? "visibility_off" : "visibility"}
+                                </span>
+                            </button>
                         </div>
                         {errors.password && <p className="ml-1 mt-1 text-xs font-medium text-red-500">{errors.password}</p>}
                         <div className="mt-2 text-right">
@@ -165,7 +175,7 @@ export default function Login() {
                         </div>
                     )}
 
-                    <div className="pt-2 flex justify-center">
+                    <div className="flex justify-center pt-2">
                         <button
                             type="submit"
                             disabled={loading}
@@ -182,7 +192,7 @@ export default function Login() {
                 </form>
 
                 <div className="mt-5 text-center text-[13px]">
-                    <span className="text-gray-500 font-medium">Don&apos;t have an account?</span>
+                    <span className="font-medium text-gray-500">Don&apos;t have an account?</span>
                     <Link href="/register" className="ml-2 font-bold text-emerald-600 transition-all hover:text-emerald-700 hover:underline hover:underline-offset-4">
                         Create Account
                     </Link>
@@ -190,9 +200,8 @@ export default function Login() {
             </div>
 
             <p className="mt-10 text-center text-[11px] font-black uppercase tracking-[0.3em] text-gray-400">
-                EcoDefill &copy; 2026 • PDM
+                EcoDefill © 2026 • PDM
             </p>
         </div>
-
     );
 }

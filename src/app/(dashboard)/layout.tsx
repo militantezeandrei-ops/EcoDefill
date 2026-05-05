@@ -6,7 +6,7 @@ import { StatusBarBackdrop } from "@/components/layout/StatusBarBackdrop";
 import { useAuth } from "@/hooks/useAuth";
 import { usePathname, useRouter } from "next/navigation";
 
-const TAB_ORDER = ["/dashboard", "/rewards", "/history", "/profile"];
+const TAB_ORDER = ["/dashboard", "/rewards", "/history", "/ranking", "/profile"];
 
 function getTabIndex(pathname: string): number {
     return TAB_ORDER.findIndex((tabPath) => pathname.startsWith(tabPath));

@@ -2,6 +2,7 @@ import Link from "next/link";
 import prisma from "@/lib/prisma";
 import { Users, Target, Droplet, Activity, TrendingUp, Recycle } from "lucide-react";
 import DashboardCharts from "@/components/admin/DashboardCharts";
+import { getCourseRanking } from "@/lib/course-ranking";
 export default async function DashboardContent({ searchParams }: { searchParams: any }) {
     const filter = (searchParams?.filter as string) || "week";
 
@@ -30,10 +31,10 @@ export default async function DashboardContent({ searchParams }: { searchParams:
         healthyMachines,
         allMachines,
         earnTransactions,
-        leaderboardData,
         allRecentTransactions,
         latestFive,
         todaysRedeemsAgg,
+        leaderboard,
     ] = await Promise.all([
         prisma.user.count({ where: { role: "STUDENT" } }),
         prisma.transaction.aggregate({ _sum: { amount: true }, where: { type: "EARN", createdAt: { gte: today } } }),
@@ -46,10 +47,6 @@ export default async function DashboardContent({ searchParams }: { searchParams:
         prisma.transaction.findMany({
             where: { type: "EARN", createdAt: { gte: filterDate } },
             select: { amount: true, createdAt: true },
-        }),
-        prisma.user.findMany({
-            where: { role: "STUDENT" },
-            include: { transactions: { where: { type: "EARN" }, select: { amount: true, count: true, materialType: true } } },
         }),
         prisma.transaction.findMany({
             where: { createdAt: { gte: filterDate } },
@@ -64,6 +61,7 @@ export default async function DashboardContent({ searchParams }: { searchParams:
             _sum: { amount: true }, 
             where: { type: "REDEEM", status: "SUCCESS", createdAt: { gte: today } } 
         }),
+        getCourseRanking(),
     ]);
 
     const todaysPoints = Number(todaysPointsAgg._sum.amount || 0);
@@ -112,36 +110,6 @@ export default async function DashboardContent({ searchParams }: { searchParams:
     const chartData = days.map((day) => ({ day, amount: dailyPoints[day] }));
     const redeemData = days.map((day) => ({ day, amount: dailyRedeems[day] }));
     const comparisonData = days.map((day) => ({ day, earn: dailyPoints[day], redeem: dailyRedeems[day] }));
-
-    // Build leaderboard
-    // Initialize with all required courses to ensure they show even with zero points
-    const baseCourses = ["BSIT", "BSCS", "BSHM", "BSTM", "BECED", "BTLED", "BSOAD"];
-    const initialAcc = baseCourses.map(c => ({ course: c, points: 0, items: 0 }));
-
-    const leaderboard = leaderboardData
-        .reduce((acc: { course: string; points: number; items: number }[], u) => {
-            const courseRaw = u.course || "Unknown";
-            const course = courseRaw.trim().toUpperCase();
-            
-            const pts = u.transactions.reduce((s, t) => s + Number(t.amount), 0);
-            const items = u.transactions.reduce((s, t) => {
-                const amount = Number(t.amount);
-                if (t.materialType === "BOTTLE") return s + (t.count || amount * 1);
-                if (t.materialType === "CUP") return s + (t.count || amount * 2);
-                if (t.materialType === "PAPER") return s + (t.count || amount * 3);
-                return s + (t.count || amount);
-            }, 0);
-            
-            const existing = acc.find((c) => c.course.trim().toUpperCase() === course);
-            if (existing) { 
-                existing.points += pts; 
-                existing.items += items; 
-            }
-            else if (baseCourses.includes(course)) acc.push({ course, points: pts, items });
-            return acc;
-        }, initialAcc)
-        .sort((a, b) => b.points - a.points)
-        .slice(0, 8);
 
     const maxPoints = leaderboard[0]?.points || 1;
 
