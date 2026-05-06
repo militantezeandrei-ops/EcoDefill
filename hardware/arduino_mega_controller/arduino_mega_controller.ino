@@ -197,24 +197,29 @@ void moveGroup(Servo& a, int pa, Servo& b, int pb) {
   delay(SERVO_DELAY_MS);
 }
 
+void moveServo(Servo& s, int pos) {
+  s.write(pos);
+  delay(SERVO_DELAY_MS);
+}
+
 void openBottleSlot() {
   Serial.println(F("[SERVO] Bottle slot OPEN"));
-  moveGroup(srvBottleGate, GATE_OPEN, srvBottleBin, SORT_ACTIVE_B);
+  moveServo(srvBottleGate, GATE_OPEN);
 }
 
 void closeBottleSlot() {
   Serial.println(F("[SERVO] Bottle slot CLOSE"));
-  moveGroup(srvBottleGate, GATE_CLOSED, srvBottleBin, SORT_IDLE);
+  moveServo(srvBottleGate, GATE_CLOSED);
 }
 
 void openCupSlot() {
   Serial.println(F("[SERVO] Cup slot OPEN"));
-  moveGroup(srvCupGate, GATE_OPEN, srvCupBin, SORT_ACTIVE_C);
+  moveServo(srvCupGate, GATE_OPEN);
 }
 
 void closeCupSlot() {
   Serial.println(F("[SERVO] Cup slot CLOSE"));
-  moveGroup(srvCupGate, GATE_CLOSED, srvCupBin, SORT_IDLE);
+  moveServo(srvCupGate, GATE_CLOSED);
 }
 
 void compactBottle() {
@@ -338,6 +343,11 @@ void handleDevKit(const String& msg) {
             "Try inserting again.",
             "Returning home...   ",
             "                    ");
+
+    delay(1200);
+    machineState = ST_AWAIT_ITEM;
+    lcdIdle();
+  }
 
   else if (msg == "CAM:CUP:VALID") {
     camPending = false;
@@ -648,29 +658,6 @@ void checkIR() {
       delay(1200);
       lcdIdle();
     }
-=======
-  if (botIR) {
-    Serial.println(F("[IR] Bottle slot triggered"));
-    machineState     = ST_IDENTIFYING;
-    bottleSlotActive = true;
-    camPending       = true;
-    camSentAt        = millis();
-    devkitSend("CMD:IDENTIFY_BOTTLE");
-    lcdShow("Identifying...      ",
-            "Bottle slot         ",
-            "Please hold still   ");
-
-  } else if (cupIR) {
-    Serial.println(F("[IR] Cup slot triggered"));
-    machineState     = ST_IDENTIFYING;
-    bottleSlotActive = false;
-    camPending       = true;
-    camSentAt        = millis();
-    devkitSend("CMD:IDENTIFY_CUP");
-    lcdShow("Identifying...      ",
-            "Cup slot            ",
-            "Please hold still   ");
->>>>>>> 975beb9840716abba4f2fa1e32e41f3b6738bbff
   }
 }
 
@@ -703,7 +690,6 @@ void setup() {
   pinMode(BTN_DISPENSE, INPUT);
   pinMode(BTN_SCAN, INPUT);
 
-<<<<<<< HEAD
   pinMode(IR_BOTTLE_SLOT, INPUT_PULLUP);
   pinMode(IR_BOTTLE_VALID, INPUT_PULLUP);
   pinMode(IR_CUP_SLOT, INPUT_PULLUP);
@@ -714,17 +700,6 @@ void setup() {
 
   pinMode(PAPER_MOTOR, OUTPUT);
   digitalWrite(PAPER_MOTOR, HIGH);
-=======
-  // IR Sensors
-  pinMode(IR_BOTTLE_SLOT, INPUT_PULLUP);
-  pinMode(IR_CUP_SLOT,    INPUT_PULLUP);
-
-  // Paper system
-  pinMode(IR_PAPER_ENTRY, INPUT);
-  pinMode(IR_PAPER_VALID, INPUT);
-  pinMode(PAPER_MOTOR, OUTPUT);
-  digitalWrite(PAPER_MOTOR, HIGH);  // Motor OFF at boot
->>>>>>> 975beb9840716abba4f2fa1e32e41f3b6738bbff
 
   pinMode(ULTRASONIC_TRIG, OUTPUT);
   pinMode(ULTRASONIC_ECHO, INPUT);
@@ -737,7 +712,6 @@ void setup() {
   digitalWrite(RELAY_SOL1, RELAY_OFF);
   digitalWrite(RELAY_SOL2, RELAY_OFF);
 
-<<<<<<< HEAD
   srvBottleGate.attach(SRV_BOTTLE_GATE, SERVO_MIN_US, SERVO_MAX_US);
   srvBottleGate.write(GATE_CLOSED);
 
@@ -767,10 +741,6 @@ void setup() {
   srvCupExit.detach();
 
   lcd.begin(LCD_COLS, LCD_ROWS);
-=======
-  // LCD
-  lcd.begin();
->>>>>>> 975beb9840716abba4f2fa1e32e41f3b6738bbff
   lcd.backlight();
   lcd.clear();
 
