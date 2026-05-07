@@ -51,6 +51,11 @@ export async function POST(req: NextRequest) {
         });
 
         if (existingToken) {
+            await prisma.qrToken.update({
+                where: { id: existingToken.id },
+                data: { usedAt: null }
+            });
+
             return NextResponse.json({
                 success: true,
                 token: existingToken.shortToken,

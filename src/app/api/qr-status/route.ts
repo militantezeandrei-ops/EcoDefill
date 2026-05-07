@@ -36,7 +36,7 @@ export async function GET(req: NextRequest) {
         }
 
         return NextResponse.json({
-            used: qrToken.used,
+            used: qrToken.used || Boolean(qrToken.usedAt),
             usedAt: qrToken.usedAt
         });
 

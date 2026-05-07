@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Recycling Rewards Guide</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#13ec1e",
+                        "secondary": "#3b82f6", // Blue accent for water
+                        "background-light": "#f6f8f6",
+                        "background-dark": "#102211",
+                        "card-light": "#ffffff",
+                        "card-dark": "#1a2e1b",
+                        "text-main": "#111811",
+                        "text-muted": "#618963",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "2xl": "1rem", "full": "9999px" },
+                },
+            },
+        }
+    </script>
+<style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .material-symbols-outlined.fill {
+            font-variation-settings: 'FILL' 1;
+        }
+        body {
+          min-height: max(884px, 100dvh);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark min-h-screen flex flex-col font-display text-text-main dark:text-gray-100 overflow-x-hidden">
+<header class="sticky top-0 z-50 bg-background-light/90 dark:bg-background-dark/90 backdrop-blur-md px-4 py-3 border-b border-gray-100 dark:border-gray-800">
+<div class="flex items-center justify-between">
+<button class="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+<span class="material-symbols-outlined text-text-main dark:text-gray-100">arrow_back</span>
+</button>
+<h1 class="text-lg font-bold text-center flex-1">Rewards Guide</h1>
+<div class="w-10"></div>
+</div>
+</header>
+<main class="flex-1 flex flex-col p-4 gap-6 pb-24">
+<section>
+<h2 class="text-2xl font-bold mb-2 text-gray-900 dark:text-white">Point Conversion</h2>
+<p class="text-text-muted dark:text-gray-400 text-sm leading-relaxed">
+            Simple guide to converting your recyclables into points for clean water at PDM.
+        </p>
+</section>
+<section class="bg-gradient-to-br from-secondary/10 to-secondary/5 dark:from-secondary/20 dark:to-secondary/5 border border-secondary/20 rounded-2xl p-6 relative overflow-hidden shadow-sm">
+<div class="absolute -right-4 -top-4 w-24 h-24 bg-secondary/20 rounded-full blur-2xl"></div>
+<div class="flex items-center justify-between relative z-10">
+<div class="flex flex-col gap-1">
+<span class="text-xs font-semibold tracking-wider text-secondary uppercase">Exchange Rate</span>
+<h3 class="text-2xl font-bold text-gray-900 dark:text-white">1 Point = 100ml</h3>
+<p class="text-secondary font-medium">Purified Water</p>
+</div>
+<div class="bg-white dark:bg-gray-800 p-4 rounded-full shadow-md text-secondary">
+<span class="material-symbols-outlined text-4xl fill">water_drop</span>
+</div>
+</div>
+<div class="mt-4 pt-4 border-t border-secondary/10 flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+<span class="material-symbols-outlined text-lg text-secondary">check_circle</span>
+<span>Redeem at any water dispenser</span>
+</div>
+</section>
+<section class="flex flex-col gap-4">
+<div class="flex justify-between items-end mb-1">
+<h3 class="text-lg font-bold text-gray-900 dark:text-white">How to Earn</h3>
+<span class="text-xs font-medium text-primary bg-primary/10 px-2 py-1 rounded-full">Standard Rates</span>
+</div>
+<div class="bg-white dark:bg-card-dark rounded-xl p-4 shadow-sm border border-gray-100 dark:border-gray-800 flex items-center gap-4">
+<div class="h-16 w-16 rounded-lg bg-green-50 dark:bg-green-900/20 flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-3xl text-green-600 dark:text-green-400">recycling</span>
+</div>
+<div class="flex-1">
+<h4 class="font-bold text-gray-900 dark:text-white">1 Plastic Bottle</h4>
+<p class="text-xs text-text-muted dark:text-gray-400 mt-1">Clean PET bottle</p>
+</div>
+<div class="flex flex-col items-end justify-center h-full">
+<div class="flex items-baseline gap-1">
+<span class="text-xl font-bold text-primary">1</span>
+<span class="text-xs font-medium text-gray-500 uppercase">Pt</span>
+</div>
+</div>
+</div>
+<div class="bg-white dark:bg-card-dark rounded-xl p-4 shadow-sm border border-gray-100 dark:border-gray-800 flex items-center gap-4">
+<div class="h-16 w-16 rounded-lg bg-orange-50 dark:bg-orange-900/20 flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-3xl text-orange-500 dark:text-orange-400">local_cafe</span>
+</div>
+<div class="flex-1">
+<h4 class="font-bold text-gray-900 dark:text-white">2 Plastic Cups</h4>
+<p class="text-xs text-text-muted dark:text-gray-400 mt-1">Clean plastic cups</p>
+</div>
+<div class="flex flex-col items-end justify-center h-full">
+<div class="flex items-baseline gap-1">
+<span class="text-xl font-bold text-primary">1</span>
+<span class="text-xs font-medium text-gray-500 uppercase">Pt</span>
+</div>
+</div>
+</div>
+<div class="bg-white dark:bg-card-dark rounded-xl p-4 shadow-sm border border-gray-100 dark:border-gray-800 flex items-center gap-4">
+<div class="h-16 w-16 rounded-lg bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-3xl text-blue-500 dark:text-blue-400">description</span>
+</div>
+<div class="flex-1">
+<h4 class="font-bold text-gray-900 dark:text-white">3 Papers</h4>
+<p class="text-xs text-text-muted dark:text-gray-400 mt-1">Sheets or newspapers</p>
+</div>
+<div class="flex flex-col items-end justify-center h-full">
+<div class="flex items-baseline gap-1">
+<span class="text-xl font-bold text-primary">1</span>
+<span class="text-xs font-medium text-gray-500 uppercase">Pt</span>
+</div>
+</div>
+</div>
+</section>
+<section class="mt-2">
+<div class="w-full h-32 rounded-xl overflow-hidden relative shadow-md">
+<div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent z-10 flex items-end p-4">
+<p class="text-white font-medium text-sm">Keep our campus clean and sustainable.</p>
+</div>
+<div class="w-full h-full bg-cover bg-center" data-alt="University campus recycling station with green bins" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuCUKMFAEG497_99BrKjPr7b8Qiumh5-ZoJMyv_x149R0gjcVcXtv4_0RklNgjLHxeQ2RpIinCTdaI_rjW-tCypXYnK4-N-KzpT5wUIAshW_fKT6IJqdeY_602KLCJk7b2WHIvA5NL7LgATpfCgCDcAoSi06JZ7kjuPB-TUarLZcMKsKQWfZ8t1iVl3JjIFAeELn7ymDd2gc2f_Sfy2DXKXUXv-s2LGmZx_1gBOdRuY33e9EIKnZGYL0Sxo5Dljr3gLGRQO-ORtsPEgm');"></div>
+</div>
+</section>
+</main>
+<nav class="fixed bottom-0 w-full border-t border-gray-100 dark:border-gray-800 bg-white dark:bg-card-dark px-6 pb-safe pt-2 z-50">
+<div class="flex justify-between items-center pb-3">
+<a class="flex flex-1 flex-col items-center justify-center gap-1 text-text-muted dark:text-gray-400 hover:text-primary dark:hover:text-primary transition-colors" href="#">
+<span class="material-symbols-outlined text-2xl">home</span>
+<p class="text-[10px] font-medium leading-normal">Home</p>
+</a>
+<a class="flex flex-1 flex-col items-center justify-center gap-1 text-primary" href="#">
+<span class="material-symbols-outlined text-2xl fill">stars</span>
+<p class="text-[10px] font-medium leading-normal">Rewards</p>
+</a>
+<a class="flex flex-1 flex-col items-center justify-center gap-1 text-text-muted dark:text-gray-400 hover:text-primary dark:hover:text-primary transition-colors" href="#">
+<span class="material-symbols-outlined text-2xl">history</span>
+<p class="text-[10px] font-medium leading-normal">History</p>
+</a>
+<a class="flex flex-1 flex-col items-center justify-center gap-1 text-text-muted dark:text-gray-400 hover:text-primary dark:hover:text-primary transition-colors" href="#">
+<span class="material-symbols-outlined text-2xl">person</span>
+<p class="text-[10px] font-medium leading-normal">Profile</p>
+</a>
+</div>
+</nav>
+
+</body></html>

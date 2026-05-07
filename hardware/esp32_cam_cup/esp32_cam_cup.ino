@@ -15,7 +15,7 @@
  * NO UART WIRING TO MEGA NEEDED — fully wireless.
  *
  * STATIC IP CONFIG:
- *   This CAM uses static IP 192.168.43.111 on the hotspot network.
+ *   This CAM uses static IP 192.168.1.111 on the hotspot network.
  *   Change DEVKIT_IP to match your Dev Kit's actual IP on the hotspot.
  *
  * LIBRARIES:
@@ -32,13 +32,13 @@
 #include <ArduinoJson.h>
 
 // ── USER CONFIG ───────────────────────────────────────────────────────────────
-const char* WIFI_SSID     = "Free";       // ← Same as Dev Kit
-const char* WIFI_PASSWORD = "1234pogi";   // ← Same as Dev Kit
-const char* DEVKIT_IP     = "192.168.43.100";         // ← Dev Kit IP on hotspot
+const char* WIFI_SSID     = "ZTE_2.4G_iWhgQR"; // ← Same as Dev Kit
+const char* WIFI_PASSWORD = "v3WSQWKw";        // ← Same as Dev Kit
+const char* DEVKIT_IP     = "192.168.1.100";         // ← Dev Kit IP on hotspot
 
 // Static IP for this CAM on the hotspot
-IPAddress local_IP(192, 168, 43, 111);   // Different from Bottle CAM (.110)
-IPAddress gateway(192, 168, 43, 1);
+IPAddress local_IP(192, 168, 1, 111);   // Different from Bottle CAM (.110)
+IPAddress gateway(192, 168, 1, 1);
 IPAddress subnet(255, 255, 255, 0);
 
 // ── CAMERA PIN MAP  (AI Thinker) ─────────────────────────────────────────────

@@ -9,33 +9,45 @@ LiquidCrystal_I2C lcd(LCD_ADDR, LCD_COLS, LCD_ROWS);
 
 // SERVO PINS
 #define SRV_BOTTLE_GATE  5
-#define SRV_BOTTLE_EXIT  6
-#define SRV_BOTTLE_BIN   7
-
 #define SRV_CUP_GATE     8
-#define SRV_CUP_EXIT     9
-#define SRV_CUP_BIN     10
+
+// If servo 2 and servo 3 are physically swapped, flip the relevant flag.
+#define SWAP_BOTTLE_EXIT_BIN true
+#define SWAP_CUP_EXIT_BIN    false
+
+#if SWAP_BOTTLE_EXIT_BIN
+  #define SRV_BOTTLE_EXIT  7
+  #define SRV_BOTTLE_BIN   6
+#else
+  #define SRV_BOTTLE_EXIT  6
+  #define SRV_BOTTLE_BIN   7
+#endif
+
+#if SWAP_CUP_EXIT_BIN
+  #define SRV_CUP_EXIT    10
+  #define SRV_CUP_BIN      9
+#else
+  #define SRV_CUP_EXIT     9
+  #define SRV_CUP_BIN     10
+#endif
 
 Servo srvBottleGate, srvBottleExit, srvBottleBin;
 Servo srvCupGate, srvCupExit, srvCupBin;
 
 // SERVO ANGLES
-#define GATE_OPEN       90
+#define GATE_OPEN       80
 #define GATE_CLOSED      0
 #define SORT_ACTIVE_B   40
 #define SORT_ACTIVE_C  140
 #define SORT_IDLE       90
 #define SERVO_DELAY_MS  250UL
+#define SERVO_CLOSE_DELAY_MS 1500UL
 
 #define EXIT_HOLD_MS   1200UL
 #define EXIT_OPEN       90
 #define EXIT_CLOSED      0
 #define BIN_OPEN        90
 #define BIN_CLOSED       0
-
-// Servo pulse range clamp helps reduce random twitch on some MG996R clones.
-#define SERVO_MIN_US 1000
-#define SERVO_MAX_US 2000
 
 // IR SENSOR PINS
 #define IR_BOTTLE_SLOT   22
@@ -59,6 +71,8 @@ Servo srvCupGate, srvCupExit, srvCupBin;
 // BUTTONS
 #define BTN_DISPENSE 30
 #define BTN_SCAN     31
+#define BTN_RELEASED LOW
+#define BTN_PRESSED  HIGH
 
 // ULTRASONIC
 #define ULTRASONIC_TRIG  32
@@ -67,11 +81,12 @@ Servo srvCupGate, srvCupExit, srvCupBin;
 
 // TIMING
 #define CAM_TIMEOUT_MS          9000UL
-#define GATE_STAGE_TIMEOUT_MS   1000UL
+#define GATE_STAGE_TIMEOUT_MS   2000UL
 #define SOL_OPEN_DELAY          80UL
 #define BUSY_MSG_COOLDOWN_MS    2000UL
 #define BUSY_MSG_SHOW_MS        900UL
 #define SCAN_PRESS_GUARD_MS     2500UL
+#define SCAN_CANCEL_GUARD_MS    2000UL
 #define DISPENSE_GUARD_MS       2500UL
 #define QR_SCAN_TIMEOUT_MS      15000UL
 
@@ -86,6 +101,7 @@ enum State {
   ST_GATE_OPEN,
   ST_IDENTIFYING,
   ST_SCAN_WAIT,
+  ST_QR_READY,
   ST_DISPENSING,
   ST_DONE
 };
@@ -119,6 +135,8 @@ bool cupSlotArmed = true;
 unsigned long lastBusyMsgAt = 0;
 bool busyMsgActive = false;
 unsigned long busyMsgShownAt = 0;
+unsigned long pendingQrDispenseMs = 0;
+int pendingQrDispenseMl = 0;
 
 // LCD FUNCTIONS
 void lcdLine(uint8_t row, const String& text) {
@@ -150,6 +168,18 @@ void lcdIdle() {
           "Insert item to earn ");
 }
 
+void clearPendingQrDispense() {
+  pendingQrDispenseMs = 0;
+  pendingQrDispenseMl = 0;
+}
+
+void lcdShowPendingQrDispense() {
+  lcdShow(" QR Redeem Success  ",
+          String(pendingQrDispenseMl) + "ml approved     ",
+          "Place cup, press[1]",
+          "to dispense water  ");
+}
+
 // DEVKIT
 void devkitSend(const String& cmd) {
   Serial.print(F("[->DEV] "));
@@ -176,20 +206,6 @@ bool refillContainerDetected() {
   return (d > 0 && d <= REFILL_DETECT_CM);
 }
 
-void ensureBottleExitAttached() {
-  if (!srvBottleExit.attached()) {
-    srvBottleExit.attach(SRV_BOTTLE_EXIT, SERVO_MIN_US, SERVO_MAX_US);
-    delay(20);
-  }
-}
-
-void ensureCupExitAttached() {
-  if (!srvCupExit.attached()) {
-    srvCupExit.attach(SRV_CUP_EXIT, SERVO_MIN_US, SERVO_MAX_US);
-    delay(20);
-  }
-}
-
 // SERVO FUNCTIONS
 void moveGroup(Servo& a, int pa, Servo& b, int pb) {
   a.write(pa);
@@ -204,22 +220,24 @@ void moveServo(Servo& s, int pos) {
 
 void openBottleSlot() {
   Serial.println(F("[SERVO] Bottle slot OPEN"));
-  moveServo(srvBottleGate, GATE_OPEN);
+  moveGroup(srvBottleGate, GATE_OPEN, srvBottleBin, SORT_ACTIVE_B);
 }
 
 void closeBottleSlot() {
   Serial.println(F("[SERVO] Bottle slot CLOSE"));
-  moveServo(srvBottleGate, GATE_CLOSED);
+  delay(SERVO_CLOSE_DELAY_MS);
+  moveGroup(srvBottleGate, GATE_CLOSED, srvBottleBin, SORT_IDLE);
 }
 
 void openCupSlot() {
   Serial.println(F("[SERVO] Cup slot OPEN"));
-  moveServo(srvCupGate, GATE_OPEN);
+  moveGroup(srvCupGate, GATE_OPEN, srvCupBin, SORT_ACTIVE_C);
 }
 
 void closeCupSlot() {
   Serial.println(F("[SERVO] Cup slot CLOSE"));
-  moveServo(srvCupGate, GATE_CLOSED);
+  delay(SERVO_CLOSE_DELAY_MS);
+  moveGroup(srvCupGate, GATE_CLOSED, srvCupBin, SORT_IDLE);
 }
 
 void compactBottle() {
@@ -228,27 +246,23 @@ void compactBottle() {
   delay(SERVO_DELAY_MS);
 
   Serial.println(F("[SERVO] Bottle EXIT open"));
-  ensureBottleExitAttached();
   srvBottleExit.write(EXIT_OPEN);
   delay(EXIT_HOLD_MS);
 
   srvBottleExit.write(EXIT_CLOSED);
-  delay(SERVO_DELAY_MS);
-  srvBottleExit.detach();
+  delay(SERVO_CLOSE_DELAY_MS);
 
   srvBottleBin.write(BIN_CLOSED);
-  delay(SERVO_DELAY_MS);
+  delay(SERVO_CLOSE_DELAY_MS);
 }
 
 void returnBottleInvalid() {
   Serial.println(F("[SERVO] Bottle EXIT only"));
-  ensureBottleExitAttached();
   srvBottleExit.write(EXIT_OPEN);
   delay(EXIT_HOLD_MS);
 
   srvBottleExit.write(EXIT_CLOSED);
-  delay(SERVO_DELAY_MS);
-  srvBottleExit.detach();
+  delay(SERVO_CLOSE_DELAY_MS);
 }
 
 void compactCup() {
@@ -257,27 +271,23 @@ void compactCup() {
   delay(SERVO_DELAY_MS);
 
   Serial.println(F("[SERVO] Cup EXIT open"));
-  ensureCupExitAttached();
   srvCupExit.write(EXIT_OPEN);
   delay(EXIT_HOLD_MS);
 
   srvCupExit.write(EXIT_CLOSED);
-  delay(SERVO_DELAY_MS);
-  srvCupExit.detach();
+  delay(SERVO_CLOSE_DELAY_MS);
 
   srvCupBin.write(BIN_CLOSED);
-  delay(SERVO_DELAY_MS);
+  delay(SERVO_CLOSE_DELAY_MS);
 }
 
 void returnCupInvalid() {
   Serial.println(F("[SERVO] Cup EXIT only"));
-  ensureCupExitAttached();
   srvCupExit.write(EXIT_OPEN);
   delay(EXIT_HOLD_MS);
 
   srvCupExit.write(EXIT_CLOSED);
-  delay(SERVO_DELAY_MS);
-  srvCupExit.detach();
+  delay(SERVO_CLOSE_DELAY_MS);
 }
 
 // WATER DISPENSE
@@ -400,18 +410,10 @@ void handleDevKit(const String& msg) {
     if (ms > 0) {
       scanModeActive = false;
       qrScanStartedAt = 0;
-      machineState = ST_DISPENSING;
-
-      dispenseWater((unsigned long)ms);
-
-      lcdShow("  Water Dispensed!  ",
-              "Thank you for using ",
-              "EcoDefill!          ",
-              "Returning home...   ");
-
-      delay(1500);
-      machineState = ST_AWAIT_ITEM;
-      lcdIdle();
+      pendingQrDispenseMs = (unsigned long)ms;
+      pendingQrDispenseMl = ms / 20;
+      machineState = ST_QR_READY;
+      lcdShowPendingQrDispense();
     }
   }
 
@@ -455,6 +457,39 @@ void onDispensePressed() {
   lastDispensePressAt = millis();
 
   if (scanModeActive || machineState == ST_SCAN_WAIT) return;
+
+  if (pendingQrDispenseMs > 0 && machineState == ST_QR_READY) {
+    if (!refillContainerDetected()) {
+      lcdShow(" No Cup Detected!   ",
+              "Place cup/bottle    ",
+              "under nozzle.       ",
+              "QR water is waiting ");
+
+      delay(1200);
+      lcdShowPendingQrDispense();
+      return;
+    }
+
+    machineState = ST_DISPENSING;
+
+    lcdShow("  Dispensing Water  ",
+            String(pendingQrDispenseMl) + "ml approved     ",
+            "QR redeem accepted  ",
+            "Please wait...      ");
+
+    dispenseWater(pendingQrDispenseMs);
+    clearPendingQrDispense();
+    machineState = ST_AWAIT_ITEM;
+
+    lcdShow("  Water Dispensed!  ",
+            "QR redeem complete  ",
+            "Thank you for using ",
+            "EcoDefill!          ");
+
+    delay(1500);
+    lcdIdle();
+    return;
+  }
 
   if (machineState == ST_DISPENSING ||
       machineState == ST_IDENTIFYING ||
@@ -527,6 +562,12 @@ void onScanPressed() {
   lastScanPressAt = millis();
 
   if (scanModeActive || machineState == ST_SCAN_WAIT) {
+    if (qrScanStartedAt > 0 &&
+        (millis() - qrScanStartedAt) < SCAN_CANCEL_GUARD_MS) {
+      Serial.println(F("[BTN] QR CANCEL IGNORED (guard)"));
+      return;
+    }
+
     scanModeActive = false;
     qrScanStartedAt = 0;
     machineState = ST_AWAIT_ITEM;
@@ -540,6 +581,17 @@ void onScanPressed() {
 
     delay(800);
     lcdIdle();
+    return;
+  }
+
+  if (pendingQrDispenseMs > 0 || machineState == ST_QR_READY) {
+    lcdShow(" QR Ready To Pour   ",
+            String(pendingQrDispenseMl) + "ml is reserved ",
+            "Press [1] dispense ",
+            "before new QR scan ");
+
+    delay(1200);
+    lcdShowPendingQrDispense();
     return;
   }
 
@@ -564,7 +616,7 @@ void onScanPressed() {
   machineState = ST_SCAN_WAIT;
   qrScanStartedAt = millis();
 
-  devkitSend("CMD:SCAN_QR");
+  devkitSend("CMD:SCAN_QR|" + String(sessionPts));
 
   lcdShow(" Show Your QR Code  ",
           "Hold QR in front of ",
@@ -687,6 +739,8 @@ void setup() {
   // S/OUT -> Arduino pin
   // VCC   -> 5V
   // GND   -> GND
+  // not pressed = LOW
+  // pressed     = HIGH
   pinMode(BTN_DISPENSE, INPUT);
   pinMode(BTN_SCAN, INPUT);
 
@@ -712,33 +766,31 @@ void setup() {
   digitalWrite(RELAY_SOL1, RELAY_OFF);
   digitalWrite(RELAY_SOL2, RELAY_OFF);
 
-  srvBottleGate.attach(SRV_BOTTLE_GATE, SERVO_MIN_US, SERVO_MAX_US);
+  srvBottleGate.attach(SRV_BOTTLE_GATE);
   srvBottleGate.write(GATE_CLOSED);
 
-  ensureBottleExitAttached();
+  srvBottleExit.attach(SRV_BOTTLE_EXIT);
   srvBottleExit.write(EXIT_CLOSED);
 
   delay(SERVO_DELAY_MS);
 
-  srvBottleBin.attach(SRV_BOTTLE_BIN, SERVO_MIN_US, SERVO_MAX_US);
+  srvBottleBin.attach(SRV_BOTTLE_BIN);
   srvBottleBin.write(BIN_CLOSED);
 
   delay(SERVO_DELAY_MS);
 
-  srvCupGate.attach(SRV_CUP_GATE, SERVO_MIN_US, SERVO_MAX_US);
+  srvCupGate.attach(SRV_CUP_GATE);
   srvCupGate.write(GATE_CLOSED);
 
-  ensureCupExitAttached();
+  srvCupExit.attach(SRV_CUP_EXIT);
   srvCupExit.write(EXIT_CLOSED);
 
   delay(SERVO_DELAY_MS);
 
-  srvCupBin.attach(SRV_CUP_BIN, SERVO_MIN_US, SERVO_MAX_US);
+  srvCupBin.attach(SRV_CUP_BIN);
   srvCupBin.write(BIN_CLOSED);
 
   delay(SERVO_DELAY_MS);
-  srvBottleExit.detach();
-  srvCupExit.detach();
 
   lcd.begin(LCD_COLS, LCD_ROWS);
   lcd.backlight();
@@ -764,8 +816,8 @@ void loop() {
   readSerial(Serial1, devBuf, handleDevKit);
 
   // DISPENSE BUTTON - 3-pin module stable debounce
-  static bool lastStableDispense = LOW;
-  static bool lastRawDispense = LOW;
+  static bool lastStableDispense = BTN_RELEASED;
+  static bool lastRawDispense = BTN_RELEASED;
   static unsigned long lastDispenseChange = 0;
 
   bool rawDispense = digitalRead(BTN_DISPENSE);
@@ -779,10 +831,7 @@ void loop() {
     if (rawDispense != lastStableDispense) {
       lastStableDispense = rawDispense;
 
-      // Most 3-pin modules:
-      // not pressed = LOW
-      // pressed     = HIGH
-      if (lastStableDispense == HIGH) {
+      if (lastStableDispense == BTN_PRESSED) {
         Serial.println(F("[BTN] DISPENSE PRESSED"));
         onDispensePressed();
       }
@@ -790,8 +839,8 @@ void loop() {
   }
 
   // QR BUTTON - 3-pin module stable debounce
-  static bool lastStableScan = LOW;
-  static bool lastRawScan = LOW;
+  static bool lastStableScan = BTN_RELEASED;
+  static bool lastRawScan = BTN_RELEASED;
   static unsigned long lastScanChange = 0;
 
   bool rawScan = digitalRead(BTN_SCAN);
@@ -805,10 +854,7 @@ void loop() {
     if (rawScan != lastStableScan) {
       lastStableScan = rawScan;
 
-      // Most 3-pin modules:
-      // not pressed = LOW
-      // pressed     = HIGH
-      if (lastStableScan == HIGH) {
+      if (lastStableScan == BTN_PRESSED) {
         Serial.println(F("[BTN] QR PRESSED"));
         onScanPressed();
       }

@@ -10,11 +10,6 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: 'Missing token or machineId' }, { status: 400 });
         }
 
-        const pointsToProcess = Number(amount) || 1;
-        if (pointsToProcess > 10) {
-            return NextResponse.json({ error: 'Max 10 points per transaction.' }, { status: 400 });
-        }
-
         // 1. Fetch the token first without claiming it
         const qrToken = await prisma.qrToken.findUnique({
             where: { shortToken: token },
@@ -25,8 +20,22 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: 'Invalid or missing QR code.' }, { status: 404 });
         }
 
-        if (qrToken.used) {
+        const isEarnToken = qrToken.type === "EARN";
+        const requestedPoints = Number(amount);
+
+        if (qrToken.used && !isEarnToken) {
             return NextResponse.json({ error: 'QR code has already been used.' }, { status: 400 });
+        }
+
+        const pointsToProcess = isEarnToken ? Math.floor(requestedPoints) : 0;
+        if (isEarnToken) {
+            if (!Number.isFinite(requestedPoints) || pointsToProcess <= 0) {
+                return NextResponse.json({ error: 'No machine points available to transfer.' }, { status: 400 });
+            }
+
+            if (pointsToProcess > 10) {
+                return NextResponse.json({ error: 'Max 10 points per transaction.' }, { status: 400 });
+            }
         }
 
         // 2. Validate basic constraints (expiry) before claiming
@@ -65,13 +74,13 @@ export async function POST(req: Request) {
         let txResult: { userName: string; pointsDeducted: number; waterAmount: number } | null = null;
 
         await prisma.$transaction(async (tx) => {
-            // Mark the QR token as used first to prevent concurrent scans during this TX
-            await tx.qrToken.update({
-                where: { id: qrToken.id },
-                data: { used: true, usedAt: new Date() }
-            });
-
             if (qrToken.type === "REDEEM") {
+                // Redeem tokens are single-use.
+                await tx.qrToken.update({
+                    where: { id: qrToken.id },
+                    data: { used: true, usedAt: new Date() }
+                });
+
                 const user = await tx.user.findUnique({ where: { id: qrToken.userId } });
 
                 if (!user || Number(user.balance) < Number(qrToken.amount)) {
@@ -108,6 +117,12 @@ export async function POST(req: Request) {
                     };
                 }
             } else if (qrToken.type === "EARN") {
+                // Earn tokens stay reusable; usedAt marks the latest successful scan.
+                await tx.qrToken.update({
+                    where: { id: qrToken.id },
+                    data: { usedAt: new Date() }
+                });
+
                 const user = await tx.user.findUnique({ where: { id: qrToken.userId } });
 
                 if (!user) {
@@ -160,7 +175,9 @@ export async function POST(req: Request) {
 
         return NextResponse.json({
             success: true,
-            message: 'QR Verified. Machine dispensing...',
+            message: qrToken.type === "REDEEM"
+                ? 'QR Verified. Machine dispensing...'
+                : 'QR Verified. Points transferred.',
             userName: txResult!.userName,
             pointsDeducted: txResult!.pointsDeducted,
             waterAmount: txResult!.waterAmount,

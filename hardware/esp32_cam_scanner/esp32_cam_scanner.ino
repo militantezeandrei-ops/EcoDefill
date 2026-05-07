@@ -17,7 +17,7 @@
  * NO UART WIRING TO MEGA NEEDED — fully wireless.
  *
  * STATIC IP CONFIG:
- *   This CAM uses static IP 192.168.43.120 on the hotspot network.
+ *   This CAM uses static IP 192.168.1.120 on the hotspot network.
  *   (Dev Kit firmware references this IP as QR_CAM_IP)
  *
  * LIBRARIES (install via Library Manager):
@@ -35,13 +35,13 @@
 #include "esp_camera.h"
 
 // ── USER CONFIG ───────────────────────────────────────────────────────────────
-const char* WIFI_SSID     = "Free";       // ← Same as Dev Kit
-const char* WIFI_PASSWORD = "1234pogi";   // ← Same as Dev Kit
-const char* DEVKIT_IP     = "192.168.43.100";         // ← Dev Kit IP on hotspot
+const char* WIFI_SSID     = "ZTE_2.4G_iWhgQR"; // ← Same as Dev Kit
+const char* WIFI_PASSWORD = "v3WSQWKw";        // ← Same as Dev Kit
+const char* DEVKIT_IP     = "192.168.1.100";         // ← Dev Kit IP on hotspot
 
 // Static IP for QR CAM
-IPAddress local_IP(192, 168, 43, 120);   // Referenced in Dev Kit as QR_CAM_IP
-IPAddress gateway(192, 168, 43, 1);
+IPAddress local_IP(192, 168, 1, 120);   // Referenced in Dev Kit as QR_CAM_IP
+IPAddress gateway(192, 168, 1, 1);
 IPAddress subnet(255, 255, 255, 0);
 
 // ── CONFIG ────────────────────────────────────────────────────────────────────

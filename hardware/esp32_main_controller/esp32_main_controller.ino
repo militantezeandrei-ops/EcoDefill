@@ -47,18 +47,21 @@
 #include <ArduinoJson.h>
 
 // ── USER CONFIG ───────────────────────────────────────────────────────────────
-const char* WIFI_SSID       = "Free";     // ← Change to your hotspot
-const char* WIFI_PASSWORD   = "1234pogi"; // ← Change to your hotspot password
+const char* WIFI_SSID       = "ZTE_2.4G_iWhgQR"; // ← Change to your hotspot
+const char* WIFI_PASSWORD   = "v3WSQWKw";        // ← Change to your hotspot password
 const char* SERVER_BASE_URL = "https://eco-defill.vercel.app";
+const char* SERVER_HOST     = "eco-defill.vercel.app";
 const char* MACHINE_ID      = "MACHINE_01";
 
 // IPs of each CAM on hotspot network (must match static IPs in each CAM firmware)
-const char* BOTTLE_CAM_IP   = "192.168.43.110";  // ← Must match Bottle CAM static IP
-const char* CUP_CAM_IP      = "192.168.43.111";  // ← Must match Cup CAM static IP
-const char* QR_CAM_IP       = "192.168.43.120";  // ← Must match QR-CAM static IP
-IPAddress DEVKIT_LOCAL_IP(192, 168, 43, 100);
-IPAddress DEVKIT_GATEWAY(192, 168, 43, 1);
+const char* BOTTLE_CAM_IP   = "192.168.1.110";  // ← Must match Bottle CAM static IP
+const char* CUP_CAM_IP      = "192.168.1.111";  // ← Must match Cup CAM static IP
+const char* QR_CAM_IP       = "192.168.1.120";  // ← Must match QR-CAM static IP
+IPAddress DEVKIT_LOCAL_IP(192, 168, 1, 100);
+IPAddress DEVKIT_GATEWAY(192, 168, 1, 1);
 IPAddress DEVKIT_SUBNET(255, 255, 255, 0);
+IPAddress DEVKIT_DNS1(192, 168, 1, 1);
+IPAddress DEVKIT_DNS2(8, 8, 8, 8);
 
 // ── PINS ──────────────────────────────────────────────────────────────────────
 const int LED_PIN = 2;   // Built-in LED
@@ -66,11 +69,14 @@ const int LED_PIN = 2;   // Built-in LED
 // ── TIMING ────────────────────────────────────────────────────────────────────
 const unsigned long WIFI_TIMEOUT_MS  = 20000;
 const unsigned long HTTP_TIMEOUT_MS  = 20000;
+const unsigned long QR_CANCEL_GUARD_MS = 2000;
 
 // ── STATE ─────────────────────────────────────────────────────────────────────
 WebServer server(80);
 String serial2Buf  = "";
 bool   qrModeActive = false;   // True when Mega wants QR scan
+unsigned long qrScanActivatedAt = 0;
+int qrScanRequestedPoints = 0;
 
 // ── HELPERS ───────────────────────────────────────────────────────────────────
 void blink(int n, int ms = 100) {
@@ -84,7 +90,7 @@ bool connectWiFi() {
   Serial.print("[WiFi] Connecting to "); Serial.println(WIFI_SSID);
   WiFi.mode(WIFI_STA);
   WiFi.setAutoReconnect(true);
-  if (!WiFi.config(DEVKIT_LOCAL_IP, DEVKIT_GATEWAY, DEVKIT_SUBNET)) {
+  if (!WiFi.config(DEVKIT_LOCAL_IP, DEVKIT_GATEWAY, DEVKIT_SUBNET, DEVKIT_DNS1, DEVKIT_DNS2)) {
     Serial.println("[WiFi] Static IP config failed");
   }
   WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
@@ -97,6 +103,8 @@ bool connectWiFi() {
 
   if (WiFi.status() == WL_CONNECTED) {
     Serial.print("[WiFi] Connected. IP: "); Serial.println(WiFi.localIP());
+    Serial.print("[WiFi] DNS1: "); Serial.println(WiFi.dnsIP(0));
+    Serial.print("[WiFi] DNS2: "); Serial.println(WiFi.dnsIP(1));
     digitalWrite(LED_PIN, HIGH);
     return true;
   }
@@ -110,6 +118,132 @@ bool ensureWiFi() {
   return connectWiFi();
 }
 
+void logHttpTransportFailure(const char* label, HTTPClient& http, int code) {
+  Serial.printf("[HTTP] %s transport failure: %d (%s)\n",
+                label,
+                code,
+                http.errorToString(code).c_str());
+  Serial.print("[HTTP] WiFi status: ");
+  Serial.println(WiFi.status());
+  Serial.print("[HTTP] Local IP: ");
+  Serial.println(WiFi.localIP());
+  Serial.print("[HTTP] DNS1: ");
+  Serial.println(WiFi.dnsIP(0));
+  Serial.print("[HTTP] DNS2: ");
+  Serial.println(WiFi.dnsIP(1));
+}
+
+void logBackendReachability(const char* phase) {
+  IPAddress resolvedIp;
+  int dnsResult = WiFi.hostByName(SERVER_HOST, resolvedIp);
+  Serial.printf("[NET] %s DNS %s -> %d", phase, SERVER_HOST, dnsResult);
+  if (dnsResult == 1) {
+    Serial.print(" ip=");
+    Serial.print(resolvedIp);
+  }
+  Serial.println();
+
+  WiFiClient tcpClient;
+  bool tcpOk = tcpClient.connect(SERVER_HOST, 443);
+  Serial.printf("[NET] %s TCP %s:443 -> %s\n",
+                phase,
+                SERVER_HOST,
+                tcpOk ? "OK" : "FAIL");
+  if (tcpOk) {
+    tcpClient.stop();
+  }
+
+  WiFiClientSecure tlsClient;
+  tlsClient.setInsecure();
+  bool tlsOk = tlsClient.connect(SERVER_HOST, 443);
+  Serial.printf("[NET] %s TLS %s:443 -> %s\n",
+                phase,
+                SERVER_HOST,
+                tlsOk ? "OK" : "FAIL");
+  if (tlsOk) {
+    tlsClient.stop();
+  }
+}
+
+String normalizeMegaCommand(const String& raw) {
+  int cmdStart = raw.indexOf("CMD:");
+  if (cmdStart < 0) {
+    return "";
+  }
+
+  String cleaned = raw.substring(cmdStart);
+  cleaned.trim();
+  return cleaned;
+}
+
+String sanitizeMegaSegment(const String& raw) {
+  String out = "";
+  for (size_t i = 0; i < raw.length(); ++i) {
+    char c = raw.charAt(i);
+    const bool allowed =
+      (c >= 'A' && c <= 'Z') ||
+      (c >= 'a' && c <= 'z') ||
+      (c >= '0' && c <= '9') ||
+      c == ':' || c == '_' || c == '|';
+
+    if (allowed) {
+      out += c;
+    }
+  }
+  out.trim();
+  return out;
+}
+
+String normalizeQrToken(String token) {
+  token.trim();
+  if (token.startsWith("eco-") || token.startsWith("ECO-")) {
+    token.toUpperCase();
+  }
+  return token;
+}
+
+void processMegaCommand(const String& cmd) {
+  Serial.print("[MEGA→] "); Serial.println(cmd);
+
+  if (cmd == "CMD:IDENTIFY_BOTTLE") {
+    triggerBottleCam();
+
+  } else if (cmd == "CMD:IDENTIFY_CUP") {
+    triggerCupCam();
+
+  } else if (cmd == "CMD:SCAN_QR" || cmd.startsWith("CMD:SCAN_QR|")) {
+    qrModeActive = true;
+    qrScanActivatedAt = millis();
+    qrScanRequestedPoints = 0;
+    int sep = cmd.indexOf('|');
+    if (sep > 0) {
+      qrScanRequestedPoints = cmd.substring(sep + 1).toInt();
+    }
+    triggerQRCam();
+
+  } else if (cmd == "CMD:CANCEL_QR") {
+    if (qrModeActive && (millis() - qrScanActivatedAt) < QR_CANCEL_GUARD_MS) {
+      Serial.println("[MEGA→] Ignored early CMD:CANCEL_QR");
+      return;
+    }
+    qrModeActive = false;
+    qrScanActivatedAt = 0;
+    qrScanRequestedPoints = 0;
+    cancelQRCam();
+
+  } else if (cmd.startsWith("CMD:EARN_ANON|")) {
+    String rest = cmd.substring(14);
+    int sep = rest.indexOf('|');
+    if (sep > 0) {
+      String type = rest.substring(0, sep);
+      int pts = rest.substring(sep + 1).toInt();
+      apiEarnAnon(type, pts);
+    }
+  } else {
+    Serial.println("[MEGA→] Ignored unrecognized command");
+  }
+}
+
 // ── MEGA COMMUNICATION ────────────────────────────────────────────────────────
 void toMega(const String& msg) {
   Serial.print("[→MEGA] "); Serial.println(msg);
@@ -120,7 +254,7 @@ void toMega(const String& msg) {
 // Sends token to /api/verify-qr
 // Backend REDEEM response: { success:true, waterAmount:<ml>, pointsDeducted:<N>, userName:"..." }
 // Backend EARN   response: { success:true, waterAmount:0,   pointsDeducted:<-N>, userName:"..." }
-void apiVerifyQR(const String& token) {
+void apiVerifyQR(const String& token, int pointsToTransfer) {
   if (!ensureWiFi()) { toMega("QR:FAIL"); return; }
 
   WiFiClientSecure client; client.setInsecure();
@@ -132,11 +266,16 @@ void apiVerifyQR(const String& token) {
   StaticJsonDocument<256> req;
   req["token"]     = token;
   req["machineId"] = MACHINE_ID;
+  req["amount"]    = pointsToTransfer;
   String body; serializeJson(req, body);
 
   Serial.print("[HTTP] POST verify-qr: "); Serial.println(body);
   int code = http.POST(body);
   String resp = code > 0 ? http.getString() : "";
+  if (code <= 0) {
+    logHttpTransportFailure("verify-qr", http, code);
+    logBackendReachability("verify-qr");
+  }
   http.end();
   Serial.printf("[HTTP] verify-qr → %d %s\n", code, resp.c_str());
 
@@ -186,6 +325,10 @@ void apiEarnAnon(const String& itemType, int pts) {
   String body; serializeJson(req, body);
 
   int code = http.POST(body);
+  if (code <= 0) {
+    logHttpTransportFailure("earn-anon", http, code);
+    logBackendReachability("earn-anon");
+  }
   http.end();
   Serial.printf("[HTTP] earn-anon %s %dpts → %d\n", itemType.c_str(), pts, code);
 }
@@ -234,6 +377,7 @@ void triggerQRCam() {
   int code = http.GET();
   http.end();
   Serial.printf("[DEV] Triggered QR-CAM scan → HTTP %d\n", code);
+  if (code != 200) logQRCamPing("scan");
 }
 
 void cancelQRCam() {
@@ -245,6 +389,30 @@ void cancelQRCam() {
   int code = http.GET();
   http.end();
   Serial.printf("[DEV] Cancelled QR-CAM scan → HTTP %d\n", code);
+  if (code != 200) logQRCamPing("cancel");
+}
+
+void logQRCamPing(const char* phase) {
+  if (!ensureWiFi()) {
+    Serial.printf("[DEV] QR-CAM /ping during %s → WiFi unavailable\n", phase);
+    return;
+  }
+
+  HTTPClient http;
+  String url = "http://" + String(QR_CAM_IP) + "/ping";
+  http.begin(url);
+  http.setTimeout(3000);
+
+  int code = http.GET();
+  String body = code > 0 ? http.getString() : "";
+  http.end();
+
+  Serial.printf("[DEV] QR-CAM /ping during %s → HTTP %d", phase, code);
+  if (body.length() > 0) {
+    Serial.print(" body=");
+    Serial.print(body);
+  }
+  Serial.println();
 }
 
 // ── HTTP SERVER HANDLERS ──────────────────────────────────────────────────────
@@ -306,7 +474,7 @@ void handleQR() {
   }
 
   String token = doc["token"] | "";
-  token.trim();
+  token = normalizeQrToken(token);
   Serial.print("[HTTP] /qr  token: "); Serial.println(token.substring(0, 20));
 
   server.send(200, "text/plain", "OK");  // Respond fast before blocking API call
@@ -314,12 +482,16 @@ void handleQR() {
   if (token.length() >= 8) {
     if (qrModeActive) {
       // Normal path: Mega triggered a QR scan and QR-CAM found a code
+      int pointsToTransfer = qrScanRequestedPoints;
       qrModeActive = false;
-      apiVerifyQR(token);
+      qrScanActivatedAt = 0;
+      qrScanRequestedPoints = 0;
+      apiVerifyQR(token, pointsToTransfer);
     } else {
       // Token arrived but Mega didn't request a scan (race/stale scan)
       // Notify Mega so the LCD doesn't hang
       Serial.println("[HTTP] /qr  WARNING: token received but qrModeActive=false — sending QR:FAIL");
+      qrScanRequestedPoints = 0;
       toMega("QR:FAIL");
     }
   }
@@ -332,33 +504,42 @@ void handlePing() {
 
 // ── COMMAND PARSER (Mega → DevKit via Serial2) ────────────────────────────────
 void handleMegaCommand(const String& line) {
-  Serial.print("[MEGA→] "); Serial.println(line);
-
-  if (line == "CMD:IDENTIFY_BOTTLE") {
-    triggerBottleCam();
-
-  } else if (line == "CMD:IDENTIFY_CUP") {
-    triggerCupCam();
-
-  } else if (line == "CMD:SCAN_QR") {
-    qrModeActive = true;
-    triggerQRCam();
-
-  } else if (line == "CMD:CANCEL_QR") {
-    qrModeActive = false;
-    cancelQRCam();
-
-  } else if (line.startsWith("CMD:EARN_ANON|")) {
-    // CMD:EARN_ANON|BOTTLE|2
-    String rest = line.substring(14);
-    int sep = rest.indexOf('|');
-    if (sep > 0) {
-      String type = rest.substring(0, sep);
-      int pts = rest.substring(sep + 1).toInt();
-      apiEarnAnon(type, pts);
-    }
+  Serial.print("[MEGA RAW→] "); Serial.println(line);
+  String raw = normalizeMegaCommand(line);
+  if (raw.length() == 0) {
+    Serial.println("[MEGA→] Ignored non-command serial noise");
+    return;
   }
-  // CMD:DISPENSE_LOCAL is handled entirely by Mega — no API call needed
+
+  int start = 0;
+  bool handledAny = false;
+
+  while (true) {
+    int cmdStart = raw.indexOf("CMD:", start);
+    if (cmdStart < 0) {
+      break;
+    }
+
+    int nextCmd = raw.indexOf("CMD:", cmdStart + 4);
+    String segment = (nextCmd < 0)
+      ? raw.substring(cmdStart)
+      : raw.substring(cmdStart, nextCmd);
+
+    String cmd = sanitizeMegaSegment(segment);
+    if (cmd.length() > 0) {
+      handledAny = true;
+      processMegaCommand(cmd);
+    }
+
+    if (nextCmd < 0) {
+      break;
+    }
+    start = nextCmd;
+  }
+
+  if (!handledAny) {
+    Serial.println("[MEGA→] Ignored non-command serial noise");
+  }
 }
 
 // ── SETUP ─────────────────────────────────────────────────────────────────────
@@ -384,6 +565,8 @@ void setup() {
 
   Serial.println("[DEVKIT] HTTP server started on port 80");
   Serial.print("[DEVKIT] DevKit IP: "); Serial.println(WiFi.localIP());
+  Serial.print("[DEVKIT] QR-CAM target IP: "); Serial.println(QR_CAM_IP);
+  logQRCamPing("startup");
   Serial.println("[DEVKIT] Ready. Waiting for Mega commands...");
 }
 

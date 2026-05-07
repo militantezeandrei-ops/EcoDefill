@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Login Screen</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#2f7f33",
+                        "background-light": "#f6f8f6",
+                        "background-dark": "#141e15",
+                    },
+                    fontFamily: {
+                        "display": ["Inter"]
+                    },
+                    borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+        body {
+          min-height: max(884px, 100dvh);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark font-display min-h-screen flex flex-col items-center justify-center p-4">
+<div class="relative w-full max-w-[480px] bg-white dark:bg-zinc-900 rounded-3xl shadow-xl overflow-hidden flex flex-col">
+<div class="flex items-center p-4 pb-2 justify-between">
+<button class="text-slate-900 dark:text-slate-100 flex size-12 shrink-0 items-center justify-center hover:bg-slate-100 dark:hover:bg-zinc-800 rounded-full transition-colors">
+<span class="material-symbols-outlined text-[24px]">arrow_back</span>
+</button>
+<div class="flex-1"></div> 
+</div>
+<div class="flex flex-col items-center px-6 pt-2 pb-6">
+<div class="mb-6 h-24 w-24 rounded-full bg-primary/10 flex items-center justify-center p-4">
+<img alt="PDM Campus Logo" class="object-contain h-full w-full" data-alt="PDM Campus Logo green recycling leaf" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC4886IJI5cLdGvZ1dxN8drtEdk_kczOCe4vjZrsyH1c3z-AobOF6j9a-6P_sl8Hmnx47_D_RfabEXrI10P1GOjL81zkncOw0RSt2SndIuZ-tLF6fgeGLAzZfkz5qsbkd1XMSfz5WfPLPQDVo1ijpaQzeRa-iiOXrILMghcC2H507uAKG7bnz_KoYUrveEQVtCvzeu5K9YfQodvfQ2cP8mNtmRjiqmAiHYAKCjWWrZub0rTrTkWo0hYDGal4A5fL5qfdBKtfOw2cCTW"/>
+</div>
+<h1 class="text-slate-900 dark:text-slate-100 tracking-tight text-[32px] font-bold leading-tight text-center">Welcome Back</h1>
+<p class="text-slate-500 dark:text-slate-400 text-base font-normal leading-normal pt-2 text-center max-w-xs">
+                Log in to continue recycling and earning water refill rewards.
+            </p>
+</div>
+<form class="flex flex-col gap-5 px-6 pb-8 w-full">
+<label class="flex flex-col gap-1.5 w-full">
+<span class="text-slate-900 dark:text-slate-100 text-sm font-semibold leading-normal ml-1">Email Address</span>
+<div class="relative group">
+<span class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 material-symbols-outlined">mail</span>
+<input class="form-input flex w-full rounded-lg text-slate-900 dark:text-white border-none bg-slate-50 dark:bg-zinc-800 focus:ring-2 focus:ring-primary/50 shadow-sm h-14 pl-12 pr-4 text-base placeholder:text-slate-400 dark:placeholder:text-slate-500 transition-all" placeholder="student@pdm.edu.ph" type="email"/>
+</div>
+</label>
+<label class="flex flex-col gap-1.5 w-full">
+<div class="flex justify-between items-center ml-1">
+<span class="text-slate-900 dark:text-slate-100 text-sm font-semibold leading-normal">Password</span>
+<a class="text-primary text-xs font-medium hover:underline" href="#">Forgot Password?</a>
+</div>
+<div class="relative group">
+<span class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 material-symbols-outlined">lock</span>
+<input class="form-input flex w-full rounded-lg text-slate-900 dark:text-white border-none bg-slate-50 dark:bg-zinc-800 focus:ring-2 focus:ring-primary/50 shadow-sm h-14 pl-12 pr-4 text-base placeholder:text-slate-400 dark:placeholder:text-slate-500 transition-all" placeholder="Enter your password" type="password"/>
+<button class="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors" type="button">
+<span class="material-symbols-outlined text-[20px]">visibility_off</span>
+</button>
+</div>
+</label>
+<div class="pt-2">
+<button class="w-full bg-primary hover:bg-primary/90 text-white font-bold text-lg h-14 rounded-lg shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2">
+<span>Login</span>
+<span class="material-symbols-outlined text-[20px]">login</span>
+</button>
+</div>
+<div class="mt-4 text-center">
+<p class="text-slate-500 dark:text-slate-400 text-sm">
+                    Don't have an account? 
+                    <a class="text-primary font-bold hover:underline ml-1" href="#">Create Account</a>
+</p>
+</div>
+</form>
+</div>
+
+</body></html>
