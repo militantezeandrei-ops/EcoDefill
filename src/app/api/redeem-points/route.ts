@@ -31,7 +31,7 @@ export async function POST(req: NextRequest) {
         const user = await prisma.user.findUnique({ where: { id: userId } });
         if (!user) return NextResponse.json({ message: "User not found" }, { status: 404 });
 
-        if (user.balance < amount) {
+        if (user.balance.toNumber() < amount) {
             return NextResponse.json({ message: "Insufficient balance" }, { status: 403 });
         }
 
@@ -48,7 +48,7 @@ export async function POST(req: NextRequest) {
             _sum: { amount: true }
         });
 
-        const currentRedeemed = todaysRedemptions._sum.amount || 0;
+        const currentRedeemed = todaysRedemptions._sum.amount?.toNumber() ?? 0;
 
         if (currentRedeemed + amount > MAX_DAILY_REDEEM) {
             return NextResponse.json({
