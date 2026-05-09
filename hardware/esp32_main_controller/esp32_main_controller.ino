@@ -26,8 +26,8 @@
  *                    "CAM:BOTTLE:INVALID\n"             Not a bottle
  *                    "CAM:CUP:VALID\n"                  Cup confirmed
  *                    "CAM:CUP:INVALID\n"                Not a cup
- *                    "QR:EARN:<pts>\n"                  QR scan → earn result
- *                    "QR:DISPENSE:<ms>\n"               QR scan → redeem result
+ *                    "QR:RECEIVE:<pts>|<name>\n"          QR scan → transfer local points to app
+ *                    "QR:REDEEM:<ms>|<name>|<pts>\n"     QR scan → redeem water result
  *                    "QR:FAIL\n"                        QR rejected
  *
  * WIRING:
@@ -284,23 +284,37 @@ void apiVerifyQR(const String& token, int pointsToTransfer) {
   StaticJsonDocument<512> res;
   if (deserializeJson(res, resp)) { toMega("QR:FAIL"); return; }
 
+  // Student name from backend. Mega LCD will display this.
+  String userName = res["userName"] | "Student";
+  userName.replace("|", " ");     // keep UART separator safe
+  userName.trim();
+  if (userName.length() == 0) userName = "Student";
+
   // ── REDEEM path ───────────────────────────────────────────────────────────
   // Backend returns waterAmount in ml. Convert ml → ms for Mega.
   // ML_PER_POINT = 100, MS_PER_100ML = 2000 → 1 ml = 20 ms
   int waterAmountMl = res["waterAmount"] | 0;
+  int pointsDeducted = res["pointsDeducted"] | 0;
+
   if (waterAmountMl > 0) {
     int dispenseMs = waterAmountMl * 20;  // 100ml = 2000ms (20ms per ml)
-    toMega("QR:DISPENSE:" + String(dispenseMs));
+    int redeemedPts = pointsDeducted;
+    if (redeemedPts < 0) redeemedPts = -redeemedPts;
+    if (redeemedPts <= 0) redeemedPts = waterAmountMl / 100;
+
+    // Format: QR:REDEEM:<dispenseMs>|<studentName>|<redeemedPoints>
+    toMega("QR:REDEEM:" + String(dispenseMs) + "|" + userName + "|" + String(redeemedPts));
     blink(3, 100);
     return;
   }
 
-  // ── EARN path ─────────────────────────────────────────────────────────────
-  // pointsDeducted is negative for EARN (e.g. -2 means +2 earned)
-  int pointsDeducted = res["pointsDeducted"] | 0;
+  // ── RECEIVE / TRANSFER path ───────────────────────────────────────────────
+  // pointsDeducted is negative when points are received by app from machine.
   if (pointsDeducted < 0) {
     int pts = -pointsDeducted;
-    toMega("QR:EARN:" + String(pts));
+
+    // Format: QR:RECEIVE:<points>|<studentName>
+    toMega("QR:RECEIVE:" + String(pts) + "|" + userName);
     blink(2, 80);
     return;
   }
@@ -486,6 +500,8 @@ void handleQR() {
       qrModeActive = false;
       qrScanActivatedAt = 0;
       qrScanRequestedPoints = 0;
+      toMega("QR:FOUND");
+      delay(50);
       apiVerifyQR(token, pointsToTransfer);
     } else {
       // Token arrived but Mega didn't request a scan (race/stale scan)
@@ -504,7 +520,9 @@ void handlePing() {
 
 // ── COMMAND PARSER (Mega → DevKit via Serial2) ────────────────────────────────
 void handleMegaCommand(const String& line) {
-  Serial.print("[MEGA RAW→] "); Serial.println(line);
+  Serial.print("[MEGA RAW→] ");
+  Serial.println(line);
+
   String raw = normalizeMegaCommand(line);
   if (raw.length() == 0) {
     Serial.println("[MEGA→] Ignored non-command serial noise");
@@ -521,11 +539,20 @@ void handleMegaCommand(const String& line) {
     }
 
     int nextCmd = raw.indexOf("CMD:", cmdStart + 4);
+
     String segment = (nextCmd < 0)
-      ? raw.substring(cmdStart)
-      : raw.substring(cmdStart, nextCmd);
+                       ? raw.substring(cmdStart)
+                       : raw.substring(cmdStart, nextCmd);
 
     String cmd = sanitizeMegaSegment(segment);
+
+    cmd.trim();
+
+    int idx = cmd.indexOf("CMD:");
+    if (idx >= 0) {
+      cmd = cmd.substring(idx);
+    }
+
     if (cmd.length() > 0) {
       handledAny = true;
       processMegaCommand(cmd);
@@ -534,6 +561,7 @@ void handleMegaCommand(const String& line) {
     if (nextCmd < 0) {
       break;
     }
+
     start = nextCmd;
   }
 
@@ -549,7 +577,7 @@ void setup() {
   Serial.println("[DEVKIT] EcoDefill v3 booting...");
 
   // Serial2 = UART link to Mega (RX2=GPIO16, TX2=GPIO17)
-  Serial2.begin(115200, SERIAL_8N1, 16, 17);
+  Serial2.begin(9600, SERIAL_8N1, 16, 17);
   Serial2.setTimeout(20);
 
   pinMode(LED_PIN, OUTPUT);
@@ -596,3 +624,4 @@ void loop() {
 
   delay(5);
 }
+  

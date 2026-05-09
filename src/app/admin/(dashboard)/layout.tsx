@@ -8,7 +8,9 @@ export default function AdminDashboardLayout({
 }) {
     return (
         <div className="flex h-screen bg-gray-100 overflow-hidden font-sans">
-            <Sidebar />
+            <div className="hidden md:flex">
+                <Sidebar />
+            </div>
             <div className="flex flex-1 flex-col overflow-hidden">
                 <AdminTopBar />
                 <main className="flex-1 overflow-y-auto px-5 py-5">

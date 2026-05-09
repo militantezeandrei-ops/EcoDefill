@@ -9,27 +9,12 @@ LiquidCrystal_I2C lcd(LCD_ADDR, LCD_COLS, LCD_ROWS);
 
 // SERVO PINS
 #define SRV_BOTTLE_GATE  5
+#define SRV_BOTTLE_EXIT  6
+#define SRV_BOTTLE_BIN   2
+
 #define SRV_CUP_GATE     8
-
-// If servo 2 and servo 3 are physically swapped, flip the relevant flag.
-#define SWAP_BOTTLE_EXIT_BIN true
-#define SWAP_CUP_EXIT_BIN    false
-
-#if SWAP_BOTTLE_EXIT_BIN
-  #define SRV_BOTTLE_EXIT  7
-  #define SRV_BOTTLE_BIN   6
-#else
-  #define SRV_BOTTLE_EXIT  6
-  #define SRV_BOTTLE_BIN   7
-#endif
-
-#if SWAP_CUP_EXIT_BIN
-  #define SRV_CUP_EXIT    10
-  #define SRV_CUP_BIN      9
-#else
-  #define SRV_CUP_EXIT     9
-  #define SRV_CUP_BIN     10
-#endif
+#define SRV_CUP_EXIT     9
+#define SRV_CUP_BIN     10
 
 Servo srvBottleGate, srvBottleExit, srvBottleBin;
 Servo srvCupGate, srvCupExit, srvCupBin;
@@ -55,18 +40,22 @@ Servo srvCupGate, srvCupExit, srvCupBin;
 #define IR_CUP_SLOT      24
 #define IR_CUP_VALID     25
 
-// PAPER SYSTEM
+// PAPER SYSTEM - 1 IR ONLY
 #define IR_PAPER_ENTRY  26
-#define IR_PAPER_VALID  27
-#define PAPER_MOTOR     11
+#define PAPER_ACTIVE    LOW
+#define PAPER_NEEDED    3
+#define PAPER_DEBOUNCE  1200UL
 
 // RELAY PINS
 #define RELAY_PUMP   34
 #define RELAY_SOL1   36
 #define RELAY_SOL2   38
 
-#define RELAY_ON   LOW
-#define RELAY_OFF  HIGH
+#define PUMP_ON   LOW
+#define PUMP_OFF  HIGH
+
+#define SOL1_ON   HIGH
+#define SOL1_OFF  LOW
 
 // BUTTONS
 #define BTN_DISPENSE 30
@@ -131,6 +120,11 @@ unsigned long gateOpenedAt = 0;
 bool bottleSlotArmed = true;
 bool cupSlotArmed = true;
 
+// PAPER SYSTEM
+int paperCount = 0;
+unsigned long lastPaperDetectAt = 0;
+bool paperWasDetected = false;
+
 // BUSY MESSAGE
 unsigned long lastBusyMsgAt = 0;
 bool busyMsgActive = false;
@@ -184,7 +178,8 @@ void lcdShowPendingQrDispense() {
 void devkitSend(const String& cmd) {
   Serial.print(F("[->DEV] "));
   Serial.println(cmd);
-  Serial1.println(cmd);
+  Serial1.print(cmd);
+Serial1.print('\n');
 }
 
 // ULTRASONIC
@@ -207,37 +202,51 @@ bool refillContainerDetected() {
 }
 
 // SERVO FUNCTIONS
-void moveGroup(Servo& a, int pa, Servo& b, int pb) {
-  a.write(pa);
-  b.write(pb);
-  delay(SERVO_DELAY_MS);
-}
-
-void moveServo(Servo& s, int pos) {
+void moveServoSmooth(Servo& s, int pos) {
   s.write(pos);
   delay(SERVO_DELAY_MS);
 }
 
 void openBottleSlot() {
-  Serial.println(F("[SERVO] Bottle slot OPEN"));
-  moveGroup(srvBottleGate, GATE_OPEN, srvBottleBin, SORT_ACTIVE_B);
+  Serial.println(F("[SERVO] Bottle GATE open"));
+  moveServoSmooth(srvBottleGate, GATE_OPEN);
+  delay(200);
+
+  Serial.println(F("[SERVO] Bottle SORT active"));
+  moveServoSmooth(srvBottleBin, SORT_ACTIVE_B);
 }
 
 void closeBottleSlot() {
   Serial.println(F("[SERVO] Bottle slot CLOSE"));
   delay(SERVO_CLOSE_DELAY_MS);
-  moveGroup(srvBottleGate, GATE_CLOSED, srvBottleBin, SORT_IDLE);
+
+  Serial.println(F("[SERVO] Bottle SORT idle"));
+  moveServoSmooth(srvBottleBin, SORT_IDLE);
+  delay(200);
+
+  Serial.println(F("[SERVO] Bottle GATE close"));
+  moveServoSmooth(srvBottleGate, GATE_CLOSED);
 }
 
 void openCupSlot() {
-  Serial.println(F("[SERVO] Cup slot OPEN"));
-  moveGroup(srvCupGate, GATE_OPEN, srvCupBin, SORT_ACTIVE_C);
+  Serial.println(F("[SERVO] Cup GATE open"));
+  moveServoSmooth(srvCupGate, GATE_OPEN);
+  delay(200);
+
+  Serial.println(F("[SERVO] Cup SORT active"));
+  moveServoSmooth(srvCupBin, SORT_ACTIVE_C);
 }
 
 void closeCupSlot() {
   Serial.println(F("[SERVO] Cup slot CLOSE"));
   delay(SERVO_CLOSE_DELAY_MS);
-  moveGroup(srvCupGate, GATE_CLOSED, srvCupBin, SORT_IDLE);
+
+  Serial.println(F("[SERVO] Cup SORT idle"));
+  moveServoSmooth(srvCupBin, SORT_IDLE);
+  delay(200);
+
+  Serial.println(F("[SERVO] Cup GATE close"));
+  moveServoSmooth(srvCupGate, GATE_CLOSED);
 }
 
 void compactBottle() {
@@ -294,19 +303,27 @@ void returnCupInvalid() {
 void dispenseWater(unsigned long ms) {
   lcdShow("  Dispensing Water  ",
           "Please wait...      ",
-          "                    ",
+          "Pump running...     ",
           "                    ");
 
-  digitalWrite(RELAY_SOL1, RELAY_ON);
-  delay(SOL_OPEN_DELAY);
+ digitalWrite(RELAY_PUMP, PUMP_OFF);
+digitalWrite(RELAY_SOL1, SOL1_OFF);
+delay(150);
 
-  digitalWrite(RELAY_PUMP, RELAY_ON);
-  delay(ms);
+digitalWrite(RELAY_SOL1, SOL1_ON);
+delay(SOL_OPEN_DELAY);
 
-  digitalWrite(RELAY_PUMP, RELAY_OFF);
-  delay(SOL_OPEN_DELAY);
+digitalWrite(RELAY_PUMP, PUMP_ON);
+delay(ms);
 
-  digitalWrite(RELAY_SOL1, RELAY_OFF);
+digitalWrite(RELAY_PUMP, PUMP_OFF);
+delay(250);
+
+digitalWrite(RELAY_SOL1, SOL1_OFF);
+delay(250);
+
+digitalWrite(RELAY_PUMP, PUMP_OFF);
+digitalWrite(RELAY_SOL1, SOL1_OFF);
 }
 
 // HANDLE DEVKIT MESSAGES
@@ -318,18 +335,18 @@ void handleDevKit(const String& msg) {
     camPending = false;
     if (machineState != ST_IDENTIFYING || !bottleSlotActive) return;
 
-    sessionPts += 2;
+    sessionPts += 1;
 
     lcdShow("  Bottle Accepted!  ",
             "Sorting item now... ",
-            "+2 Points Earned!   ",
+            "+1 Point Earned!    ",
             "                    ");
 
     compactBottle();
-    devkitSend("CMD:EARN_ANON|BOTTLE|2");
+    devkitSend("CMD:EARN_ANON|BOTTLE|1");
 
     lcdShow("  Bottle Accepted!  ",
-            "+2 Points Earned!   ",
+            "+1 Point Earned!    ",
             "Total: " + String(sessionPts) + " pts",
             "Returning home...   ");
 
@@ -404,35 +421,120 @@ void handleDevKit(const String& msg) {
     lcdIdle();
   }
 
-  else if (msg.startsWith("QR:DISPENSE:")) {
-    int ms = msg.substring(12).toInt();
+  else if (msg == "QR:FOUND") {
+  lcdShow(" QR Code Detected! ",
+          "Please wait...     ",
+          "Verifying account  ",
+          "Do not scan again  ");
+}
 
-    if (ms > 0) {
+  else if (msg.startsWith("QR:REDEEM:")) {
+
+    
+    
+    // Format from DevKit: QR:REDEEM:<dispenseMs>|<studentName>|<redeemedPoints>
+    String data = msg.substring(10);
+    int sep1 = data.indexOf('|');
+    int sep2 = data.indexOf('|', sep1 + 1);
+
+    if (sep1 < 0 || sep2 < 0) {
       scanModeActive = false;
       qrScanStartedAt = 0;
-      pendingQrDispenseMs = (unsigned long)ms;
-      pendingQrDispenseMl = ms / 20;
+      machineState = ST_AWAIT_ITEM;
+      lcdShow(" QR Data Error!     ",
+              "Invalid redeem data ",
+              "Please scan again.  ",
+              "Returning home...   ");
+      delay(1500);
+      lcdIdle();
+      return;
+    }
+
+    int ms = data.substring(0, sep1).toInt();
+    String studentName = data.substring(sep1 + 1, sep2);
+    int redeemedPts = data.substring(sep2 + 1).toInt();
+
+    if (ms > 0) {
+      pendingQrDispenseMs = ms;
+      pendingQrDispenseMl = ms / 20; // DevKit uses 20ms per ml
+
+      scanModeActive = false;
+      qrScanStartedAt = 0;
       machineState = ST_QR_READY;
-      lcdShowPendingQrDispense();
+
+      lcdShow(" QR Redeem Success ",
+              studentName,
+              "Redeem: " + String(redeemedPts) + " pts",
+              "Press [1] dispense ");
     }
   }
 
-  else if (msg.startsWith("QR:EARN:")) {
-    int credited = msg.substring(8).toInt();
+  else if (msg.startsWith("QR:RECEIVE:")) {
+    // Format from DevKit: QR:RECEIVE:<points>|<studentName>
+    String data = msg.substring(11);
+    int sep = data.indexOf('|');
+
+    if (sep < 0) {
+      scanModeActive = false;
+      qrScanStartedAt = 0;
+      machineState = ST_AWAIT_ITEM;
+      lcdShow(" QR Data Error!     ",
+              "Invalid point data  ",
+              "Please scan again.  ",
+              "Returning home...   ");
+      delay(1500);
+      lcdIdle();
+      return;
+    }
+
+    int credited = data.substring(0, sep).toInt();
+    String studentName = data.substring(sep + 1);
 
     sessionPts -= credited;
     if (sessionPts < 0) sessionPts = 0;
 
     scanModeActive = false;
     qrScanStartedAt = 0;
+    clearPendingQrDispense();
     machineState = ST_AWAIT_ITEM;
 
-    lcdShow("Points Transferred! ",
+    lcdShow(" Points Received!   ",
+            studentName,
             String(credited) + " pts sent to app",
-            "Remaining: " + String(sessionPts) + " pts",
-            "Returning home...   ");
+            "Left: " + String(sessionPts) + " pts");
 
-    delay(1500);
+    delay(2500);
+    lcdIdle();
+  }
+
+  // Backward compatibility if DevKit still sends old messages
+  else if (msg.startsWith("QR:DISPENSE:")) {
+    int ms = msg.substring(12).toInt();
+    if (ms > 0) {
+      pendingQrDispenseMs = ms;
+      pendingQrDispenseMl = ms / 20;
+      scanModeActive = false;
+      qrScanStartedAt = 0;
+      machineState = ST_QR_READY;
+      lcdShow(" QR Redeem Success ",
+              "Student",
+              String(pendingQrDispenseMl) + "ml approved",
+              "Press [1] dispense ");
+    }
+  }
+
+  else if (msg.startsWith("QR:EARN:")) {
+    int credited = msg.substring(8).toInt();
+    sessionPts -= credited;
+    if (sessionPts < 0) sessionPts = 0;
+    scanModeActive = false;
+    qrScanStartedAt = 0;
+    machineState = ST_AWAIT_ITEM;
+    lcdShow(" Points Received!   ",
+            "Student",
+            String(credited) + " pts sent to app",
+            "Left: " + String(sessionPts) + " pts");
+    delay(2500);
     lcdIdle();
   }
 
@@ -460,15 +562,16 @@ void onDispensePressed() {
 
   if (pendingQrDispenseMs > 0 && machineState == ST_QR_READY) {
     if (!refillContainerDetected()) {
-      lcdShow(" No Cup Detected!   ",
-              "Place cup/bottle    ",
-              "under nozzle.       ",
+
+  lcdShow(" Waiting for Cup/   ",
+              "Tumbler or Bottle   ",
+              "No cup detected!    ",
               "QR water is waiting ");
 
-      delay(1200);
+      delay(1500);
       lcdShowPendingQrDispense();
       return;
-    }
+}
 
     machineState = ST_DISPENSING;
 
@@ -519,12 +622,12 @@ void onDispensePressed() {
   }
 
   if (!refillContainerDetected()) {
-    lcdShow(" No Cup Detected!   ",
-            "Place cup/bottle    ",
-            "under nozzle.       ",
-            "Returning home...   ");
+    lcdShow(" Waiting for Cup/   ",
+            "Tumbler or Bottle   ",
+            "No cup detected!    ",
+            "Place under nozzle  ");
 
-    delay(1200);
+    delay(1500);
     lcdIdle();
     return;
   }
@@ -616,22 +719,39 @@ void onScanPressed() {
   machineState = ST_SCAN_WAIT;
   qrScanStartedAt = millis();
 
+  // Send current local points too. Backend can use this amount when the QR is for transferring points to the app.
   devkitSend("CMD:SCAN_QR|" + String(sessionPts));
 
-  lcdShow(" Show Your QR Code  ",
-          "Hold QR in front of ",
-          "the camera above.   ",
-          "Press [2] to cancel ");
+  lcdShow(" QR Scanning...    ",
+          "Please wait        ",
+          "Hold QR in camera  ",
+          "Do not move QR     ");
 }
 
-// IR CHECKING
+// UPDATED IR CHECKING
+// Bottle and cup logic copied/improved from second code
 void checkIR() {
   if (scanModeActive || machineState == ST_SCAN_WAIT) return;
+
+  bool bottleValidLow = digitalRead(IR_BOTTLE_VALID) == LOW;
+  bool cupValidLow    = digitalRead(IR_CUP_VALID) == LOW;
+
+  bool validationBusy = bottleValidLow || cupValidLow;
 
   if (digitalRead(IR_BOTTLE_SLOT) == HIGH) bottleSlotArmed = true;
   if (digitalRead(IR_CUP_SLOT) == HIGH) cupSlotArmed = true;
 
   if (machineState == ST_AWAIT_ITEM) {
+
+    // Prevent opening another gate if item is still inside validation chamber
+    if (validationBusy) {
+      lcdShow(" Validation Busy    ",
+              "Item still inside   ",
+              "Please wait...      ",
+              "                    ");
+      return;
+    }
+
     bool botSlotLow = digitalRead(IR_BOTTLE_SLOT) == LOW;
     bool cupSlotLow = digitalRead(IR_CUP_SLOT) == LOW;
 
@@ -667,9 +787,7 @@ void checkIR() {
   }
 
   if (machineState == ST_GATE_OPEN) {
-    bool validLow = bottleSlotActive
-      ? digitalRead(IR_BOTTLE_VALID) == LOW
-      : digitalRead(IR_CUP_VALID) == LOW;
+    bool validLow = bottleSlotActive ? bottleValidLow : cupValidLow;
 
     if (validLow) {
       camPending = true;
@@ -713,6 +831,44 @@ void checkIR() {
   }
 }
 
+void checkPaperIR() {
+  if (machineState != ST_AWAIT_ITEM || scanModeActive) return;
+
+  bool paperDetected = digitalRead(IR_PAPER_ENTRY) == PAPER_ACTIVE;
+
+  if (paperDetected && !paperWasDetected &&
+      millis() - lastPaperDetectAt > PAPER_DEBOUNCE) {
+
+    paperWasDetected = true;
+    lastPaperDetectAt = millis();
+    paperCount++;
+
+    lcdShow(" Paper Detected!    ",
+            "Count: " + String(paperCount) + "/3",
+            "Please wait...      ",
+            "Insert next paper   ");
+
+    delay(800);
+
+    if (paperCount >= PAPER_NEEDED) {
+      paperCount = 0;
+      sessionPts++;
+
+      lcdShow(" Paper Accepted!    ",
+              "+1 Point Earned     ",
+              "Total: " + String(sessionPts) + " pts",
+              "Returning home...   ");
+
+      delay(1500);
+      lcdIdle();
+    }
+  }
+
+  if (!paperDetected) {
+    paperWasDetected = false;
+  }
+}
+
 // SERIAL READER
 void readSerial(HardwareSerial& port, String& buf,
                 void (*handler)(const String&)) {
@@ -733,7 +889,7 @@ void readSerial(HardwareSerial& port, String& buf,
 // SETUP
 void setup() {
   Serial.begin(115200);
-  Serial1.begin(115200);
+  Serial1.begin(9600);
 
   // 3-pin button modules:
   // S/OUT -> Arduino pin
@@ -749,11 +905,7 @@ void setup() {
   pinMode(IR_CUP_SLOT,    INPUT_PULLUP);
   pinMode(IR_CUP_VALID,   INPUT_PULLUP);
 
-  pinMode(IR_PAPER_ENTRY, INPUT);
-  pinMode(IR_PAPER_VALID, INPUT);
-
-  pinMode(PAPER_MOTOR, OUTPUT);
-  digitalWrite(PAPER_MOTOR, HIGH);
+  pinMode(IR_PAPER_ENTRY, INPUT_PULLUP);
 
   pinMode(ULTRASONIC_TRIG, OUTPUT);
   pinMode(ULTRASONIC_ECHO, INPUT);
@@ -762,9 +914,12 @@ void setup() {
   pinMode(RELAY_SOL1, OUTPUT);
   pinMode(RELAY_SOL2, OUTPUT);
 
-  digitalWrite(RELAY_PUMP, RELAY_OFF);
-  digitalWrite(RELAY_SOL1, RELAY_OFF);
-  digitalWrite(RELAY_SOL2, RELAY_OFF);
+  digitalWrite(RELAY_PUMP, PUMP_OFF);
+digitalWrite(RELAY_SOL1, SOL1_OFF);
+digitalWrite(RELAY_SOL2, SOL1_OFF);
+
+  // Safety delay: keep pump/solenoids OFF during relay startup
+  delay(300);
 
   srvBottleGate.attach(SRV_BOTTLE_GATE);
   srvBottleGate.write(GATE_CLOSED);
@@ -792,7 +947,8 @@ void setup() {
 
   delay(SERVO_DELAY_MS);
 
-  lcd.begin(LCD_COLS, LCD_ROWS);
+  // FIXED LCD BEGIN
+ lcd.begin(LCD_COLS, LCD_ROWS);
   lcd.backlight();
   lcd.clear();
 
@@ -814,6 +970,8 @@ void setup() {
 // LOOP
 void loop() {
   readSerial(Serial1, devBuf, handleDevKit);
+
+  checkPaperIR();
 
   // DISPENSE BUTTON - 3-pin module stable debounce
   static bool lastStableDispense = BTN_RELEASED;
@@ -919,4 +1077,10 @@ void loop() {
       lcdIdle();
     }
   }
+  // SAFETY: pump and solenoid must stay OFF when not dispensing
+  if (machineState != ST_DISPENSING) {
+  digitalWrite(RELAY_PUMP, PUMP_OFF);
+  digitalWrite(RELAY_SOL1, SOL1_OFF);
+}
+
 }

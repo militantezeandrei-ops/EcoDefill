@@ -90,7 +90,9 @@ export async function apiClient<T>(
             (typeof navigator === "undefined" || navigator.onLine)
         ) {
             await clearStoredAuth();
-            window.location.href = "/login";
+            // Redirect to admin login if current path is admin, otherwise to regular login
+            const isAdminPath = window.location.pathname.startsWith("/admin");
+            window.location.href = isAdminPath ? "/admin/login" : "/login";
         }
 
         const message =
