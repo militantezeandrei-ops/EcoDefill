@@ -3,23 +3,31 @@
 import { ReactNode, useEffect } from "react";
 import { AdminBottomNav } from "@/components/layout/AdminBottomNav";
 import { useAuth } from "@/hooks/useAuth";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 
 export default function AdminLayout({ children }: { children: ReactNode }) {
     const { isAuthenticated, isLoading, user } = useAuth();
     const router = useRouter();
+    const pathname = usePathname();
 
     useEffect(() => {
-        if (!isLoading) {
+        const isPublicRoute = pathname === "/admin/login" || pathname === "/admin/forgot-password";
+
+        if (!isLoading && !isPublicRoute) {
             if (!isAuthenticated) {
-                router.push("/login");
+                router.push("/admin/login");
             } else if (user?.role !== "ADMIN") {
                 router.push("/dashboard");
             }
         }
-    }, [isAuthenticated, isLoading, user, router]);
+    }, [isAuthenticated, isLoading, user, router, pathname]);
 
-    if (isLoading || !isAuthenticated || user?.role !== "ADMIN") return null;
+    const isPublicRoute = pathname === "/admin/login" || pathname === "/admin/forgot-password";
+
+    if (isLoading) return null;
+    if (!isPublicRoute && (!isAuthenticated || user?.role !== "ADMIN")) return null;
+
+    if (isPublicRoute) return <>{children}</>;
 
     return (
         <div className="bg-background-light dark:bg-background-dark min-h-screen font-display">
