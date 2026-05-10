@@ -48,7 +48,7 @@ export default function Sidebar() {
     };
 
     return (
-        <aside className="flex h-screen w-64 shrink-0 flex-col bg-white border-r border-gray-200 text-gray-900 shadow-sm z-40">
+        <aside className="hidden md:flex h-screen w-64 shrink-0 flex-col bg-white border-r border-gray-200 text-gray-900 shadow-sm z-40">
             {/* Brand */}
             <div className="flex items-center gap-3 px-6 pt-8 pb-8">
                 <div className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-blue-600 to-emerald-500 p-0.5 shadow-lg shadow-blue-500/20">

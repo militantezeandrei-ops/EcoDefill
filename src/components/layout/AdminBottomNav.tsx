@@ -12,7 +12,7 @@ export function AdminBottomNav() {
     ];
 
     return (
-        <div className="fixed bottom-0 w-full max-w-md bg-white dark:bg-zinc-900 border-t border-gray-100 dark:border-zinc-800 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] z-50 left-1/2 -translate-x-1/2">
+        <div className="fixed bottom-0 w-full max-w-md bg-white dark:bg-zinc-900 border-t border-gray-100 dark:border-zinc-800 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] z-50 left-1/2 -translate-x-1/2 md:hidden">
             <div className={`grid grid-cols-${navItems.length} h-16`}>
                 {navItems.map((item) => {
                     const isActive = pathname === item.path;

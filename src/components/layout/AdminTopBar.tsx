@@ -38,19 +38,19 @@ export function AdminTopBar() {
                         <span className="material-symbols-outlined text-[20px]">school</span>
                     </div>
                     <div className="flex flex-col">
-                        <h2 className="text-[16px] font-black tracking-tight text-gray-900 leading-none">
+                        <h2 className="text-[14px] md:text-[16px] font-black tracking-tight text-gray-900 leading-none truncate max-w-[150px] md:max-w-none">
                             Pambayang Dalubhasaan ng Marilao
                         </h2>
-                        <span className="text-[10px] font-bold uppercase tracking-[0.25em] text-emerald-600 mt-1.5">
+                        <span className="text-[9px] md:text-[10px] font-bold uppercase tracking-[0.25em] text-emerald-600 mt-1 md:mt-1.5">
                             EcoDefill Admin System
                         </span>
                     </div>
                 </div>
 
-                <div className="h-8 w-px bg-gray-100" />
+                <div className="hidden lg:block h-8 w-px bg-gray-100" />
 
                 {/* Live Clock & Date */}
-                <div className="flex items-center gap-8">
+                <div className="hidden lg:flex items-center gap-8">
                     <div className="flex items-center gap-2.5 text-gray-400">
                         <Calendar className="h-4 w-4" />
                         <span className="text-[14px] font-bold tracking-tight text-gray-500">{formatDate(time)}</span>
