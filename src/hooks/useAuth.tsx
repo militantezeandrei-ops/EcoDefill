@@ -53,13 +53,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         };
     }, []);
 
-    const login = async (newToken: string, newUser: User) => {
+    const login = async (newToken: string, newUser: User, redirectPath: string = "/dashboard") => {
         await setStoredAuth(newToken, newUser);
         setToken(newToken);
         setUser(newUser);
 
         // Redirect logic
-        router.push("/dashboard");
+        router.push(redirectPath);
     };
 
     const logout = async () => {

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { apiClient } from "@/lib/api";
+import { useAuth } from "@/hooks/useAuth";
 import { showToast } from "@/lib/toast";
 
 const OFFLINE_LOGIN_MESSAGE = "No internet connection. Turn on Wi-Fi or mobile data, then try again.";
@@ -14,6 +15,7 @@ export default function AdminLogin() {
     const [password, setPassword] = useState("");
     const [loading, setLoading] = useState(false);
     const [formError, setFormError] = useState<string>("");
+    const { login } = useAuth();
     const router = useRouter();
 
     useEffect(() => {
@@ -30,14 +32,14 @@ export default function AdminLogin() {
         setLoading(true);
 
         try {
-            await apiClient("/api/admin/login", {
+            const data = await apiClient<{ token: string; user: any }>("/api/admin/login", {
                 method: "POST",
                 body: JSON.stringify({ email, password }),
                 skipAuthRedirect: true,
             });
 
             await showToast({ text: "Login successful.", type: "success" });
-            router.push("/admin/dashboard");
+            await login(data.token, data.user, "/admin/dashboard");
         } catch (err: unknown) {
             const rawMessage = err instanceof Error ? err.message : "Something went wrong";
             setFormError(
