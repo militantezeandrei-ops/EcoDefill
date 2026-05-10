@@ -17,7 +17,7 @@ interface AuthContextType {
     token: string | null;
     isAuthenticated: boolean;
     isLoading: boolean;
-    login: (token: string, user: User) => Promise<void>;
+    login: (token: string, user: User, redirectPath?: string) => Promise<void>;
     logout: () => Promise<void>;
     updateUserBalance: (newBalance: number) => void;
 }
