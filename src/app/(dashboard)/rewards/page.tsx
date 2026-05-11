@@ -3,7 +3,7 @@
 export default function RewardsGuidePage() {
     const earningItems = [
         { icon: "recycling", color: "emerald", label: "1 Plastic Bottle", rate: 1 },
-        { icon: "local_cafe", color: "orange", label: "2 Plastic Cups", rate: 1 },
+        { icon: "local_cafe", color: "orange", label: "1 Plastic Cup", rate: 1 },
         { icon: "description", color: "blue", label: "3 Module Papers", rate: 1 },
     ];
 
