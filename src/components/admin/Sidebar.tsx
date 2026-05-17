@@ -83,6 +83,9 @@ export default function Sidebar() {
                                     <Link
                                         key={item.href}
                                         href={item.href}
+                                        prefetch={true}
+                                        onMouseEnter={() => router.prefetch(item.href)}
+                                        onFocus={() => router.prefetch(item.href)}
                                         className={`group relative flex items-center gap-3 rounded-2xl px-4 py-3 text-[14px] font-bold transition-all duration-200 ${
                                             isActive
                                                 ? "bg-blue-600 text-white shadow-lg shadow-blue-600/20"
@@ -127,4 +130,3 @@ export default function Sidebar() {
         </aside>
     );
 }
-

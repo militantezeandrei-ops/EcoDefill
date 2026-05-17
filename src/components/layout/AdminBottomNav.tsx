@@ -1,10 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 
 export function AdminBottomNav() {
     const pathname = usePathname();
+    const router = useRouter();
 
     const navItems = [
         { path: "/admin/dashboard", icon: "dashboard", label: "Dashboard" },
@@ -20,6 +21,9 @@ export function AdminBottomNav() {
                         <Link
                             key={item.path}
                             href={item.path}
+                            prefetch={true}
+                            onTouchStart={() => router.prefetch(item.path)}
+                            onMouseEnter={() => router.prefetch(item.path)}
                             className={`flex flex-col items-center justify-center gap-1 transition-colors ${isActive ? 'text-primary' : 'text-slate-400 dark:text-slate-500 hover:text-primary'}`}
                         >
                             <span className={`material-symbols-outlined text-[24px] ${isActive ? 'font-variation-settings-fill' : ''}`}>

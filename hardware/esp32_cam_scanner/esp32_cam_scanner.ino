@@ -17,7 +17,7 @@
  * NO UART WIRING TO MEGA NEEDED — fully wireless.
  *
  * STATIC IP CONFIG:
- *   This CAM uses static IP 192.168.1.120 on the hotspot network.
+ *   This CAM uses static IP 192.168.100.120 on the WiFi LAN.
  *   (Dev Kit firmware references this IP as QR_CAM_IP)
  *
  * LIBRARIES (install via Library Manager):
@@ -35,18 +35,18 @@
 #include "esp_camera.h"
 
 // ── USER CONFIG ───────────────────────────────────────────────────────────────
-const char* WIFI_SSID     = "ZTE_2.4G_iWhgQR"; // ← Same as Dev Kit
-const char* WIFI_PASSWORD = "v3WSQWKw";        // ← Same as Dev Kit
-const char* DEVKIT_IP     = "192.168.1.100";         // ← Dev Kit IP on hotspot
+const char* WIFI_SSID     = "Free"; // Same as Dev Kit
+const char* WIFI_PASSWORD = "1234pogi";        // Same as Dev Kit
+const char* DEVKIT_IP     = "192.168.100.100";  // Dev Kit IP on WiFi LAN
 
 // Static IP for QR CAM
-IPAddress local_IP(192, 168, 1, 120);   // Referenced in Dev Kit as QR_CAM_IP
-IPAddress gateway(192, 168, 1, 1);
+IPAddress local_IP(192, 168, 100, 120);   // Referenced in Dev Kit as QR_CAM_IP
+IPAddress gateway(192, 168, 100, 1);      // Real hotspot gateway (confirmed)
 IPAddress subnet(255, 255, 255, 0);
 
 // ── CONFIG ────────────────────────────────────────────────────────────────────
 const unsigned long WIFI_TIMEOUT_MS    = 20000;
-const unsigned long SCAN_COOLDOWN_MS   = 3000;   // Ignore duplicate QR within 3s
+const unsigned long SCAN_COOLDOWN_MS   = 3000;   // FIX: shorter cooldown for smoother repeated scans
 
 // ── STATE ─────────────────────────────────────────────────────────────────────
 WebServer            server(80);
@@ -87,7 +87,6 @@ void postQRToken(const String& token) {
 // GET /scan — Dev Kit calls this to activate QR scanning
 void handleScan() {
   scanActive = true;
-  lastPayload = "";  // Reset duplicate filter
   Serial.println("[QR] Scan activated by Dev Kit");
   server.send(200, "text/plain", "SCAN_STARTED");
 }
@@ -203,6 +202,8 @@ void loop() {
         Serial.println(payload.substring(0, 20));
 
         postQRToken(payload);
+      } else {
+        Serial.println("[QR] Duplicate token ignored");
       }
     }
   }
