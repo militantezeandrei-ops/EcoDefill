@@ -1,8 +1,38 @@
-import { Settings as SettingsIcon, Bell, Shield, Monitor } from "lucide-react";
+"use client";
 
-export const dynamic = "force-dynamic";
+import { Settings as SettingsIcon, Bell, Monitor } from "lucide-react";
+import { useState, useEffect } from "react";
+import { showToast } from "@/lib/toast";
 
 export default function SettingsPage() {
+    const [toggles, setToggles] = useState({
+        requireReport: true,
+        showTips: true,
+        autoRefresh: false,
+        newUserAlerts: true,
+        machineOfflineAlerts: true,
+        dailySummary: false,
+    });
+
+    // Load initial settings
+    useEffect(() => {
+        const savedSettings = localStorage.getItem("admin_settings");
+        if (savedSettings) {
+            try {
+                setToggles(JSON.parse(savedSettings));
+            } catch (e) {
+                console.error("Failed to load settings:", e);
+            }
+        }
+    }, []);
+
+    const handleToggle = (key: keyof typeof toggles) => {
+        const updated = { ...toggles, [key]: !toggles[key] };
+        setToggles(updated);
+        localStorage.setItem("admin_settings", JSON.stringify(updated));
+        showToast({ text: "Setting updated successfully.", type: "success" });
+    };
+
     const settingSections = [
         {
             title: "General",
@@ -11,9 +41,9 @@ export default function SettingsPage() {
             iconBg: "bg-blue-500/10",
             iconColor: "text-blue-500",
             items: [
-                { label: "Require daily report generation", enabled: true },
-                { label: "Show eco-tips on transaction page", enabled: true },
-                { label: "Auto-refresh dashboard data", enabled: false },
+                { label: "Require daily report generation", key: "requireReport" as const },
+                { label: "Show eco-tips on transaction page", key: "showTips" as const },
+                { label: "Auto-refresh dashboard data", key: "autoRefresh" as const },
             ],
         },
         {
@@ -23,24 +53,16 @@ export default function SettingsPage() {
             iconBg: "bg-amber-500/10",
             iconColor: "text-amber-500",
             items: [
-                { label: "New user registration alerts", enabled: true },
-                { label: "Machine offline notifications", enabled: true },
-                { label: "Daily recycling summary", enabled: false },
-            ],
-        },
-        {
-            title: "Security",
-            desc: "Authentication and session management.",
-            icon: Shield,
-            iconBg: "bg-rose-500/10",
-            iconColor: "text-rose-500",
-            items: [
-                { label: "Two-factor authentication", enabled: false },
-                { label: "Session timeout after 30 minutes", enabled: true },
-                { label: "Restrict admin IP ranges", enabled: false },
+                { label: "New user registration alerts", key: "newUserAlerts" as const },
+                { label: "Machine offline notifications", key: "machineOfflineAlerts" as const },
+                { label: "Daily recycling summary", key: "dailySummary" as const },
             ],
         },
     ];
+
+    const handleSaveAdminProfile = () => {
+        showToast({ text: "Admin profile updated successfully.", type: "success" });
+    };
 
     return (
         <div className="space-y-8">
@@ -49,7 +71,7 @@ export default function SettingsPage() {
                 <p className="mt-1 text-base text-gray-400">Manage your admin panel preferences and system configuration.</p>
             </div>
 
-            <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+            <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
                 {settingSections.map((section) => {
                     const Icon = section.icon;
                     return (
@@ -66,15 +88,20 @@ export default function SettingsPage() {
                                 </div>
                             </div>
                             <div className="divide-y divide-gray-50 px-6">
-                                {section.items.map((item) => (
-                                    <div key={item.label} className="flex items-center justify-between py-4">
-                                        <span className="text-[15px] font-medium text-gray-700">{item.label}</span>
-                                        {/* Toggle switch (cosmetic) */}
-                                        <div className={`relative h-6 w-11 cursor-pointer rounded-full transition-colors ${item.enabled ? "bg-emerald-500" : "bg-gray-200"}`}>
-                                            <div className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow-sm transition-transform ${item.enabled ? "translate-x-5" : "translate-x-0.5"}`} />
+                                {section.items.map((item) => {
+                                    const enabled = toggles[item.key];
+                                    return (
+                                        <div key={item.label} className="flex items-center justify-between py-4">
+                                            <span className="text-[15px] font-medium text-gray-700">{item.label}</span>
+                                            <button
+                                                onClick={() => handleToggle(item.key)}
+                                                className={`relative h-6 w-11 cursor-pointer rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-500/25 ${enabled ? "bg-emerald-500" : "bg-gray-200"}`}
+                                            >
+                                                <div className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow-sm transition-transform ${enabled ? "translate-x-5" : "translate-x-0.5"}`} />
+                                            </button>
                                         </div>
-                                    </div>
-                                ))}
+                                    );
+                                })}
                             </div>
                         </div>
                     );
@@ -109,7 +136,10 @@ export default function SettingsPage() {
                             className="mt-1.5 block w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-2.5 text-base text-gray-900 transition-colors focus:border-emerald-300 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/10"
                         />
                     </div>
-                    <button className="mt-2 rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-600 px-5 py-2.5 text-base font-bold text-white shadow-sm shadow-emerald-500/20 transition-all hover:shadow-md hover:-translate-y-0.5">
+                    <button
+                        onClick={handleSaveAdminProfile}
+                        className="mt-2 rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-600 px-5 py-2.5 text-base font-bold text-white shadow-sm shadow-emerald-500/20 transition-all hover:shadow-md hover:-translate-y-0.5"
+                    >
                         Save Changes
                     </button>
                 </div>

@@ -93,31 +93,34 @@ export default async function ReportsPage() {
             reportKey: "user-activity",
             title: "User Activity Report",
             tag: "Community",
-            tagColor: "bg-white/20 text-white border border-white/30",
+            tagColor: "bg-white/25 text-white border border-white/35",
             desc: "Comprehensive analysis of user registrations, engagement metrics, and regional participation trends across the network.",
             bg: "bg-[#2563EB]",
             textColor: "text-white",
-            descColor: "text-white/80",
+            descColor: "text-white/85",
+            btnTextColor: "text-[#2563EB] hover:text-[#1d4ed8]",
         },
         {
             reportKey: "recycling-performance",
             title: "Recycling Performance",
             tag: "Sustainability",
-            tagColor: "bg-white/20 text-white border border-white/30",
+            tagColor: "bg-white/25 text-white border border-white/35",
             desc: "Detailed breakdown of collected material types and weights. Monitor progress towards environmental sustainability goals.",
             bg: "bg-[#059669]",
             textColor: "text-white",
-            descColor: "text-white/80",
+            descColor: "text-white/85",
+            btnTextColor: "text-[#059669] hover:text-[#047857]",
         },
         {
             reportKey: "transaction-history",
             title: "Transaction History",
             tag: "Finance",
-            tagColor: "bg-white/20 text-white border border-white/30",
+            tagColor: "bg-white/25 text-white border border-white/35",
             desc: "Audited log of all refill station transactions, revenue generation, and reward redemption activities for the selected period.",
             bg: "bg-[#7C3AED]",
             textColor: "text-white",
-            descColor: "text-white/80",
+            descColor: "text-white/85",
+            btnTextColor: "text-[#7C3AED] hover:text-[#6d28d9]",
         },
     ];
 
@@ -138,9 +141,9 @@ export default async function ReportsPage() {
                 <div className="flex items-center gap-3">
                     <a
                         href="/api/admin/reports/export?type=all"
-                        className="flex items-center gap-2 rounded-xl bg-gray-900 px-4 py-2 text-[12px] font-black uppercase tracking-wider text-white shadow-sm transition-colors hover:bg-blue-600"
+                        className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-gray-900 to-slate-800 px-5 py-2.5 text-[12px] font-black uppercase tracking-wider text-white shadow-md shadow-gray-900/10 transition-all hover:-translate-y-0.5 hover:shadow-lg hover:from-blue-600 hover:to-blue-700"
                     >
-                        <FileText className="h-4 w-4" />
+                        <FileText className="h-4.5 w-4.5" />
                         Export All PDF
                     </a>
                     <div className="flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-2 shadow-sm">
@@ -184,7 +187,7 @@ export default async function ReportsPage() {
                             <p className={`mt-2 text-base leading-relaxed ${r.descColor}`}>{r.desc}</p>
                             <a
                                 href={`/api/admin/reports/export?type=${r.reportKey}`}
-                                className="mt-4 flex items-center gap-2 text-sm font-bold text-white/70 transition-colors hover:text-white"
+                                className={`mt-5 inline-flex items-center gap-2 rounded-xl bg-white px-4 py-2.5 text-xs font-black uppercase tracking-wider shadow-sm transition-all hover:-translate-y-0.5 hover:bg-gray-50 hover:shadow-md ${r.btnTextColor}`}
                             >
                                 <Download className="h-4 w-4" />
                                 Export PDF

@@ -33,6 +33,7 @@
 
 #include "esp_camera.h"
 #include <Arduino.h>
+#include <ctype.h>
 #include <WiFi.h>
 #include <WebServer.h>
 #include <HTTPClient.h>
@@ -74,8 +75,7 @@ IPAddress subnet(255, 255, 255, 0);
 #define EI_CAMERA_RAW_FRAME_BUFFER_ROWS  240
 #define EI_CAMERA_FRAME_BYTE_SIZE        3
 
-// Detection label from the new model
-static const char* CUP_VALID_LABEL = "valid";
+static constexpr float CUP_DECISION_THRESHOLD = 0.50f;
 
 // ── STATE ─────────────────────────────────────────────────────────────────────
 WebServer server(80);
@@ -118,6 +118,9 @@ void    postResult(const char* result, uint32_t requestId);
 bool    eiCameraInit();
 bool    eiCameraCapture(uint32_t imgWidth, uint32_t imgHeight, uint8_t* outBuf);
 static int eiCameraGetData(size_t offset, size_t length, float* outPtr);
+bool    labelContainsIgnoreCase(const char* label, const char* needle);
+bool    isCupAcceptedLabel(const char* label);
+void    printModelLabels();
 
 // ── SENSOR TUNING ─────────────────────────────────────────────────────────────
 void tuneSensor() {
@@ -264,6 +267,7 @@ bool runCupInference() {
 
   bool detected = false;
   uint32_t validCount = 0;
+  uint32_t printedCount = 0;
 
   Serial.println("[CUP] Bounding boxes:");
   for (uint32_t i = 0; i < result.bounding_boxes_count; i++) {
@@ -272,22 +276,63 @@ bool runCupInference() {
 
     Serial.printf("[CUP]   %s (%.3f) x=%u y=%u w=%u h=%u\n",
                   bb.label, bb.value, bb.x, bb.y, bb.width, bb.height);
+    printedCount++;
 
-    if (strcmp(bb.label, CUP_VALID_LABEL) == 0 &&
-        bb.value >= EI_CLASSIFIER_OBJECT_DETECTION_THRESHOLD) {
+    if (isCupAcceptedLabel(bb.label) && bb.value >= CUP_DECISION_THRESHOLD) {
       detected = true;
       validCount++;
     }
   }
 
-  if (result.bounding_boxes_count == 0) {
+  if (printedCount == 0) {
     Serial.println("[CUP]   (no detections)");
   }
 
-  Serial.printf("[CUP] Decision: %s  (valid boxes: %lu)\n",
+  Serial.printf("[CUP] Decision: %s  (accepted boxes: %lu threshold %.2f)\n",
                 detected ? "CUP" : "NONE",
-                (unsigned long)validCount);
+                (unsigned long)validCount,
+                CUP_DECISION_THRESHOLD);
   return detected;
+}
+
+bool labelContainsIgnoreCase(const char* label, const char* needle) {
+  if (label == nullptr || needle == nullptr) {
+    return false;
+  }
+
+  for (const char* p = label; *p != '\0'; ++p) {
+    const char* h = p;
+    const char* n = needle;
+
+    while (*h != '\0' && *n != '\0' &&
+           tolower(static_cast<unsigned char>(*h)) ==
+             tolower(static_cast<unsigned char>(*n))) {
+      ++h;
+      ++n;
+    }
+
+    if (*n == '\0') {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+bool isCupAcceptedLabel(const char* label) {
+  return !labelContainsIgnoreCase(label, "invalid") &&
+         !labelContainsIgnoreCase(label, "reject") &&
+         !labelContainsIgnoreCase(label, "background") &&
+         !labelContainsIgnoreCase(label, "none") &&
+         !labelContainsIgnoreCase(label, "bottle") &&
+         !labelContainsIgnoreCase(label, "pet");
+}
+
+void printModelLabels() {
+  Serial.println("[CUP] Model labels:");
+  for (uint16_t i = 0; i < EI_CLASSIFIER_LABEL_COUNT; ++i) {
+    Serial.printf("[CUP]   %u: %s\n", i, ei_classifier_inferencing_categories[i]);
+  }
 }
 
 // ── POST RESULT TO DEV KIT ────────────────────────────────────────────────────
@@ -394,6 +439,8 @@ void setup() {
                 EI_CLASSIFIER_LABEL_COUNT);
   Serial.printf("[CUP] Detection threshold: %.2f\n",
                 EI_CLASSIFIER_OBJECT_DETECTION_THRESHOLD);
+  Serial.printf("[CUP] Decision threshold: %.2f\n", CUP_DECISION_THRESHOLD);
+  printModelLabels();
   Serial.println("[CUP] HTTP server started on port 80");
   Serial.println("[CUP] Ready — waiting for /identify from Dev Kit");
 }

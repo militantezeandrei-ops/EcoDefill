@@ -26,6 +26,7 @@
  */
 
 #include <Arduino.h>
+#include <ctype.h>
 #include <WiFi.h>
 #include <WebServer.h>
 #include <HTTPClient.h>
@@ -33,7 +34,11 @@
 
 #include "esp_camera.h"
 #include "img_converters.h"
+#if __has_include(<valid-items_inferencing.h>)
 #include <valid-items_inferencing.h>
+#else
+#include "EcoDefill_inferencing.h"
+#endif
 #include "edge-impulse-sdk/dsp/image/image.hpp"
 
 // USER CONFIG
@@ -68,7 +73,7 @@ IPAddress subnet(255, 255, 255, 0);
 static constexpr uint32_t EI_CAMERA_RAW_FRAME_BUFFER_COLS = 320;
 static constexpr uint32_t EI_CAMERA_RAW_FRAME_BUFFER_ROWS = 240;
 static constexpr uint32_t EI_CAMERA_FRAME_BYTE_SIZE = 3;
-static constexpr const char* EI_TARGET_LABEL = "Pet Bottle";
+static constexpr float BOTTLE_DECISION_THRESHOLD = 0.60f;
 static constexpr bool EDGE_IMPULSE_DEBUG_NN = false;
 WebServer server(80);
 const unsigned long WIFI_TIMEOUT_MS = 20000;
@@ -81,6 +86,9 @@ bool ensureSnapshotBuffer();
 bool captureAndClassifyBottle(bool* detected);
 bool captureImage(uint8_t* out_buf);
 int eiCameraGetData(size_t offset, size_t length, float* out_ptr);
+bool labelContainsIgnoreCase(const char* label, const char* needle);
+bool isRejectBottleLabel(const char* label);
+void printModelLabels();
 
 bool initCamera() {
   camera_config_t config = {};
@@ -223,6 +231,7 @@ bool captureAndClassifyBottle(bool* detected) {
 
   bool found_target = false;
   uint32_t found_count = 0;
+  uint32_t printed_count = 0;
 
   Serial.println("[BOTTLE] Bounding boxes:");
   for (uint32_t i = 0; i < result.bounding_boxes_count; ++i) {
@@ -238,8 +247,9 @@ bool captureAndClassifyBottle(bool* detected) {
                   bb.y,
                   bb.width,
                   bb.height);
+    ++printed_count;
 
-    if (strcmp(bb.label, EI_TARGET_LABEL) == 0) {
+    if (bb.value >= BOTTLE_DECISION_THRESHOLD && !isRejectBottleLabel(bb.label)) {
       found_target = true;
       ++found_count;
     }
@@ -251,12 +261,13 @@ bool captureAndClassifyBottle(bool* detected) {
 
   *detected = found_target;
 
-  if (found_count == 0) {
+  if (printed_count == 0) {
     Serial.println("[BOTTLE]   No objects detected");
   }
 
-  Serial.printf("[BOTTLE] Pet Bottle detections: %u -> %s\n",
+  Serial.printf("[BOTTLE] Accepted detections: %u (threshold %.2f) -> %s\n",
                 found_count,
+                BOTTLE_DECISION_THRESHOLD,
                 *detected ? "BOTTLE" : "NONE");
 
   return true;
@@ -278,6 +289,44 @@ int eiCameraGetData(size_t offset, size_t length, float* out_ptr) {
   }
 
   return 0;
+}
+
+bool labelContainsIgnoreCase(const char* label, const char* needle) {
+  if (label == nullptr || needle == nullptr) {
+    return false;
+  }
+
+  for (const char* p = label; *p != '\0'; ++p) {
+    const char* h = p;
+    const char* n = needle;
+
+    while (*h != '\0' && *n != '\0' &&
+           tolower(static_cast<unsigned char>(*h)) ==
+             tolower(static_cast<unsigned char>(*n))) {
+      ++h;
+      ++n;
+    }
+
+    if (*n == '\0') {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+bool isRejectBottleLabel(const char* label) {
+  return labelContainsIgnoreCase(label, "invalid") ||
+         labelContainsIgnoreCase(label, "reject") ||
+         labelContainsIgnoreCase(label, "background") ||
+         labelContainsIgnoreCase(label, "none");
+}
+
+void printModelLabels() {
+  Serial.println("[BOTTLE] Model labels:");
+  for (uint16_t i = 0; i < EI_CLASSIFIER_LABEL_COUNT; ++i) {
+    Serial.printf("[BOTTLE]   %u: %s\n", i, ei_classifier_inferencing_categories[i]);
+  }
 }
 
 void doIdentify(uint32_t requestId) {
@@ -397,6 +446,14 @@ void setup() {
   server.begin();
 
   Serial.println("[BOTTLE] HTTP server started on port 80");
+  Serial.printf("[BOTTLE] Model: %s input=%dx%d labels=%d threshold=%.2f decision=%.2f\n",
+                EI_CLASSIFIER_PROJECT_NAME,
+                EI_CLASSIFIER_INPUT_WIDTH,
+                EI_CLASSIFIER_INPUT_HEIGHT,
+                EI_CLASSIFIER_LABEL_COUNT,
+                EI_CLASSIFIER_OBJECT_DETECTION_THRESHOLD,
+                BOTTLE_DECISION_THRESHOLD);
+  printModelLabels();
   Serial.println("[BOTTLE] Ready - waiting for /identify requests from Dev Kit");
 }
 
