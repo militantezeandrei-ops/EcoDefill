@@ -1,6 +1,7 @@
 import prisma from "@/lib/prisma";
 import { Search } from "lucide-react";
 import UsersAccordion from "@/components/admin/UsersAccordion";
+import AutoRefresh from "@/components/admin/AutoRefresh";
 
 export const dynamic = "force-dynamic";
 
@@ -160,6 +161,7 @@ export default async function UsersPage() {
 
     return (
         <div className="space-y-6">
+            <AutoRefresh intervalMs={5000} />
             <div className="flex items-center justify-between">
                 <div>
                     <h2 className="text-3xl font-bold text-gray-900">User List</h2>

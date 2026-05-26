@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 import { Recycle } from "lucide-react";
 import DashboardContent from "./DashboardContent";
+import AutoRefresh from "@/components/admin/AutoRefresh";
 
 export const dynamic = "force-dynamic";
 
@@ -55,6 +56,7 @@ function DashboardSkeleton() {
 export default function DashboardPage({ searchParams }: { searchParams: any }) {
     return (
         <Suspense fallback={<DashboardSkeleton />}>
+            <AutoRefresh intervalMs={5000} />
             <DashboardContent searchParams={searchParams} />
         </Suspense>
     );
