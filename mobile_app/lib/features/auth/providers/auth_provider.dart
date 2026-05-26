@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ecodefill_mobile/core/network/api_client.dart';
 import 'package:ecodefill_mobile/core/storage/secure_storage.dart';
 import 'package:ecodefill_mobile/core/storage/local_cache.dart';
+import 'package:ecodefill_mobile/features/shell/providers/shell_provider.dart';
 
 class AuthState {
   final bool isLoading;
@@ -76,12 +77,15 @@ class AuthState {
 }
 
 class AuthNotifier extends StateNotifier<AuthState> {
-  AuthNotifier() : super(AuthState()) {
+  final Ref _ref;
+
+  AuthNotifier(this._ref) : super(AuthState()) {
     _checkBootAuth();
     // Watch logout stream from API Client
     ApiClient.instance.logoutStream.listen((logout) {
       if (logout) {
         state = AuthState(isAuthenticated: false);
+        _ref.read(shellNavigationProvider.notifier).state = 0;
       }
     });
   }
@@ -202,6 +206,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
         email: userEmail,
       );
 
+      _ref.read(shellNavigationProvider.notifier).state = 0;
       await fetchUserBalance();
     } catch (e) {
       state = state.copyWith(
@@ -324,6 +329,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
       await SecureStorage.instance.clearAuth();
       await LocalCache.instance.clearCache();
       state = AuthState(isAuthenticated: false);
+      _ref.read(shellNavigationProvider.notifier).state = 0;
       return true;
     } catch (e) {
       state = state.copyWith(
@@ -338,6 +344,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
     await SecureStorage.instance.clearAuth();
     await LocalCache.instance.clearCache();
     state = AuthState(isAuthenticated: false);
+    _ref.read(shellNavigationProvider.notifier).state = 0;
   }
 
   Future<void> refreshBalance() async {
@@ -376,5 +383,5 @@ class AuthNotifier extends StateNotifier<AuthState> {
 }
 
 final authProvider = StateNotifierProvider<AuthNotifier, AuthState>((ref) {
-  return AuthNotifier();
+  return AuthNotifier(ref);
 });
