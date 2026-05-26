@@ -219,7 +219,7 @@ export function AdminTopBar() {
                                                         {student.email}
                                                     </p>
                                                     <p className="text-[10px] text-gray-400 truncate mt-0.5">
-                                                        {student.course || "N/A"} {student.yearLevel ? `${student.yearLevel} Year` : ""} {student.section ? `- ${student.section}` : ""}
+                                                        {student.course || "N/A"} {student.yearLevel ? `${student.yearLevel.replace(/[^0-9]/g, '')} Year` : ""} {student.section ? `- ${student.section}` : ""}
                                                     </p>
                                                     <p className="text-[9px] font-bold text-emerald-600 mt-1">
                                                         {timeAgo(student.createdAt)}

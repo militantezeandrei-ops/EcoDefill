@@ -51,6 +51,121 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
 
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
+  bool _agreeToTerms = false;
+
+  void _showTermsDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        title: const Row(
+          children: [
+            Icon(Icons.description_outlined, color: AppTheme.primaryEmerald),
+            SizedBox(width: 8),
+            Text('Terms of Service', style: TextStyle(fontWeight: FontWeight.w900)),
+          ],
+        ),
+        content: const SingleChildScrollView(
+          child: ListBody(
+            children: [
+              Text(
+                '1. Acceptance of Terms',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+              ),
+              SizedBox(height: 4),
+              Text(
+                'By creating an account on EcoDefill, you agree to comply with and be bound by these terms. This app is dedicated to promoting recycling in our campus community.',
+                style: TextStyle(fontSize: 13, height: 1.4),
+              ),
+              SizedBox(height: 12),
+              Text(
+                '2. Point System and Rewards',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+              ),
+              SizedBox(height: 4),
+              Text(
+                'EcoDefill awards points based on verified recycling activities at designated campus recycling stations. Points carry no monetary value, are non-transferable, and may only be redeemed for water at authorized EcoDefill dispensers.',
+                style: TextStyle(fontSize: 13, height: 1.4),
+              ),
+              SizedBox(height: 12),
+              Text(
+                '3. Fair Use & Prohibited Activities',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+              ),
+              SizedBox(height: 4),
+              Text(
+                'Any attempt to exploit QR code generation, manipulate verified recycling transaction history, or use multiple accounts to game leaderboard rankings will result in immediate account suspension and referral to school administration.',
+                style: TextStyle(fontSize: 13, height: 1.4),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Close', style: TextStyle(color: AppTheme.primaryEmerald, fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showPrivacyDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        title: const Row(
+          children: [
+            Icon(Icons.privacy_tip_outlined, color: AppTheme.accentBlue),
+            SizedBox(width: 8),
+            Text('Privacy Policy', style: TextStyle(fontWeight: FontWeight.w900)),
+          ],
+        ),
+        content: const SingleChildScrollView(
+          child: ListBody(
+            children: [
+              Text(
+                '1. Information We Collect',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+              ),
+              SizedBox(height: 4),
+              Text(
+                'We collect registration details including your full name, institutional email address, course, year, and section. We also log your recycling transactions, points earned, and water redemptions.',
+                style: TextStyle(fontSize: 13, height: 1.4),
+              ),
+              SizedBox(height: 12),
+              Text(
+                '2. How We Use Data',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+              ),
+              SizedBox(height: 4),
+              Text(
+                'Your data is processed locally and securely on our campus servers to display leaderboard rankings, manage your account balance, and improve campus waste-management programs. Your course rankings are publicly visible on the leaderboard.',
+                style: TextStyle(fontSize: 13, height: 1.4),
+              ),
+              SizedBox(height: 12),
+              Text(
+                '3. Security & Caching',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+              ),
+              SizedBox(height: 4),
+              Text(
+                'Your credentials and JWT access tokens are stored in secure local keychain/keystore environments using encrypted storage. Session profiles are cached offline for seamless offline-first access.',
+                style: TextStyle(fontSize: 13, height: 1.4),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Close', style: TextStyle(color: AppTheme.accentBlue, fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+  }
 
   @override
   void dispose() {
@@ -125,6 +240,16 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   void _submit() async {
     _codeController.text = _boxControllers.map((c) => c.text).join();
     if (_formKey.currentState!.validate()) {
+      if (!_agreeToTerms) {
+        DynamicIslandNotification.show(
+          context,
+          title: 'Agreement Required',
+          subtitle: 'You must agree to the Terms of Service & Privacy Policy.',
+          icon: Icons.info_outline_rounded,
+          type: NotificationType.warning,
+        );
+        return;
+      }
       if (_codeController.text.trim().length != 6) {
         DynamicIslandNotification.show(
           context,
@@ -152,7 +277,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
             verificationCode: _codeController.text.trim(),
             fullName: _fullNameController.text.trim(),
             course: _selectedCourse,
-            yearLevel: _selectedYearLevel,
+            yearLevel: _selectedYearLevel != null ? _selectedYearLevel!.replaceAll(RegExp(r'[^0-9]'), '') : null,
             section: _selectedSection ?? '',
           );
       
@@ -538,7 +663,66 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                           ),
                         ],
                       ),
-                      const SizedBox(height: 28),
+                      const SizedBox(height: 20),
+
+                      // Terms & Privacy Checkbox
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          Checkbox(
+                            value: _agreeToTerms,
+                            activeColor: AppTheme.primaryEmerald,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            onChanged: (value) {
+                              setState(() {
+                                _agreeToTerms = value ?? false;
+                              });
+                            },
+                          ),
+                          Expanded(
+                            child: Wrap(
+                              crossAxisAlignment: WrapCrossAlignment.center,
+                              children: [
+                                const Text(
+                                  'I agree to the ',
+                                  style: TextStyle(fontSize: 12, color: AppTheme.textMuted),
+                                ),
+                                InkWell(
+                                  onTap: _showTermsDialog,
+                                  child: const Text(
+                                    'Terms of Service',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold,
+                                      color: AppTheme.primaryEmerald,
+                                      decoration: TextDecoration.underline,
+                                    ),
+                                  ),
+                                ),
+                                const Text(
+                                  ' and ',
+                                  style: TextStyle(fontSize: 12, color: AppTheme.textMuted),
+                                ),
+                                InkWell(
+                                  onTap: _showPrivacyDialog,
+                                  child: const Text(
+                                    'Privacy Policy',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold,
+                                      color: AppTheme.accentBlue,
+                                      decoration: TextDecoration.underline,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 20),
 
                       // Register Button
                       ElevatedButton(
