@@ -6,9 +6,9 @@ class ApiClient {
   ApiClient._privateConstructor() {
     _dio = Dio(
       BaseOptions(
-        // Local Server (192.168.0.105)
-        baseUrl: 'http://192.168.0.105:3000',
-        // Production: baseUrl: 'https://eco-defill.vercel.app',
+        // Production Server
+        baseUrl: 'https://eco-defill.vercel.app',
+        // Local: baseUrl: 'http://192.168.0.105:3000',
         connectTimeout: const Duration(seconds: 15),
         receiveTimeout: const Duration(seconds: 15),
         headers: {
