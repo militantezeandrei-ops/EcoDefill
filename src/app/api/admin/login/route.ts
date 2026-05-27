@@ -39,7 +39,13 @@ export async function POST(req: NextRequest) {
 
         const response = NextResponse.json({
             message: "Success",
-            user: { id: user.id, email: user.email, role: user.role }
+            token,
+            user: { 
+                id: user.id, 
+                email: user.email, 
+                role: user.role,
+                balance: Number(user.balance)
+            }
         });
 
         // Set HttpOnly cookie for admin session

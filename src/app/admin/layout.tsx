@@ -10,9 +10,9 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
     const router = useRouter();
     const pathname = usePathname();
 
-    const isPublicRoute = pathname === "/admin/login" || pathname === "/admin/forgot-password";
-
     useEffect(() => {
+        const isPublicRoute = pathname === "/admin/login" || pathname === "/admin/forgot-password";
+
         if (!isLoading && !isPublicRoute) {
             if (!isAuthenticated) {
                 router.push("/admin/login");
@@ -20,16 +20,18 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
                 router.push("/dashboard");
             }
         }
-    }, [isAuthenticated, isLoading, user, router, isPublicRoute]);
+    }, [isAuthenticated, isLoading, user, router, pathname]);
 
-    // Don't show protected children while loading or unauthorized
-    if (!isPublicRoute && (isLoading || !isAuthenticated || user?.role !== "ADMIN")) {
-        return null;
-    }
+    const isPublicRoute = pathname === "/admin/login" || pathname === "/admin/forgot-password";
+
+    if (isLoading) return null;
+    if (!isPublicRoute && (!isAuthenticated || user?.role !== "ADMIN")) return null;
+
+    if (isPublicRoute) return <>{children}</>;
 
     return (
         <div className="bg-background-light dark:bg-background-dark min-h-screen font-display">
-            <div className="relative flex min-h-screen w-full flex-col overflow-x-hidden bg-slate-50 dark:bg-zinc-900">
+            <div className="relative flex min-h-screen w-full flex-col overflow-x-hidden bg-slate-50 dark:bg-zinc-900 pb-16 md:pb-0">
                 <div className="flex-1 flex flex-col h-full bg-slate-50 dark:bg-zinc-950">
                     {children}
                 </div>

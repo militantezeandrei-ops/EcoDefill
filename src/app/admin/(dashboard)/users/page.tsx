@@ -1,8 +1,9 @@
 import prisma from "@/lib/prisma";
 import { Search } from "lucide-react";
 import UsersAccordion from "@/components/admin/UsersAccordion";
+import AutoRefresh from "@/components/admin/AutoRefresh";
 
-export const revalidate = 15;
+export const dynamic = "force-dynamic";
 
 export default async function UsersPage() {
     const users = await prisma.user.findMany({
@@ -42,6 +43,10 @@ export default async function UsersPage() {
         const courseName = u.course || "Others";
         
         let yearLevel = u.yearLevel;
+        if (yearLevel) {
+            yearLevel = yearLevel.replace(/[^0-9]/g, '');
+        }
+        
         // Inference: If yearLevel is missing (Unknown Year), try to pull it from Section
         if (!yearLevel && u.section && courseName === "BSIT") {
             if (u.section === "C") {
@@ -156,6 +161,7 @@ export default async function UsersPage() {
 
     return (
         <div className="space-y-6">
+            <AutoRefresh intervalMs={5000} />
             <div className="flex items-center justify-between">
                 <div>
                     <h2 className="text-3xl font-bold text-gray-900">User List</h2>

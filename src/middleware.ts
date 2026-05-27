@@ -22,8 +22,10 @@ export function middleware(request: NextRequest) {
             // Decode the JWT payload safely in the Edge Runtime
             const payload = token.split('.')[1];
             if (!payload) throw new Error("Invalid token format");
-            
-            const decoded = JSON.parse(atob(payload));
+
+            const base64 = payload.replace(/-/g, '+').replace(/_/g, '/');
+            const padded = base64.padEnd(base64.length + (4 - base64.length % 4) % 4, '=');
+            const decoded = JSON.parse(atob(padded));
             if (!decoded || decoded.role !== 'ADMIN') {
                 return NextResponse.redirect(new URL('/admin/login', request.url));
             }

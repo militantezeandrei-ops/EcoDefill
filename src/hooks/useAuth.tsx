@@ -17,7 +17,7 @@ interface AuthContextType {
     token: string | null;
     isAuthenticated: boolean;
     isLoading: boolean;
-    login: (token: string, user: User) => Promise<void>;
+    login: (token: string, user: User, redirectPath?: string) => Promise<void>;
     logout: () => Promise<void>;
     updateUserBalance: (newBalance: number) => void;
 }
@@ -53,13 +53,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         };
     }, []);
 
-    const login = async (newToken: string, newUser: User) => {
+    const login = async (newToken: string, newUser: User, redirectPath: string = "/dashboard") => {
         await setStoredAuth(newToken, newUser);
         setToken(newToken);
         setUser(newUser);
 
         // Redirect logic
-        router.push("/dashboard");
+        router.push(redirectPath);
     };
 
     const logout = async () => {

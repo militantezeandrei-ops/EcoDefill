@@ -8,25 +8,25 @@
  * ROLE:
  *   1. Connect to hotspot WiFi.
  *   2. Listen for trigger from ESP32 Dev Kit via HTTP GET /identify.
- *   3. Capture frame and run Edge Impulse bottle classification.
- *   4. POST result JSON to Dev Kit: POST http://<DEVKIT_IP>/detect
- *      Body: { "cam": "BOTTLE", "result": "BOTTLE" } or
- *            { "cam": "BOTTLE", "result": "NONE" }
+ *   3. Capture a frame, run Edge Impulse bottle detection, and POST result JSON:
+ *      Body: { "cam": "BOTTLE", "result": "BOTTLE", "rid": 17 } or
+ *            { "cam": "BOTTLE", "result": "NONE",   "rid": 17 }
  *
  * NO UART WIRING TO MEGA NEEDED - fully wireless.
  *
  * STATIC IP CONFIG:
- *   This CAM uses static IP 192.168.1.110 on the hotspot network.
- *   Change DEVKIT_IP to match your Dev Kit's actual IP on the hotspot.
+ *   This CAM uses static IP 192.168.100.110 on the WiFi LAN.
+ *   Change DEVKIT_IP to match your Dev Kit's actual IP on the LAN.
  *
  * LIBRARIES:
  *   esp_camera  (bundled with ESP32 Arduino core)
  *   ArduinoJson by Benoit Blanchon (v6 or v7)
  *   WebServer   (bundled with ESP32 Arduino core)
- *   Vendored Edge Impulse Arduino export in edge_impulse_model/
+ *   Edge Impulse Arduino export installed as valid-items_inferencing
  */
 
 #include <Arduino.h>
+#include <ctype.h>
 #include <WiFi.h>
 #include <WebServer.h>
 #include <HTTPClient.h>
@@ -34,16 +34,21 @@
 
 #include "esp_camera.h"
 #include "img_converters.h"
-#include "ei_model_wrapper.h"
+#if __has_include(<valid-items_inferencing.h>)
+#include <valid-items_inferencing.h>
+#else
+#include "EcoDefill_inferencing.h"
+#endif
+#include "edge-impulse-sdk/dsp/image/image.hpp"
 
 // USER CONFIG
-const char* WIFI_SSID     = "ZTE_2.4G_iWhgQR";
-const char* WIFI_PASSWORD = "v3WSQWKw";
-const char* DEVKIT_IP     = "192.168.1.100";
+const char* WIFI_SSID     = "Free";
+const char* WIFI_PASSWORD = "1234pogi";
+const char* DEVKIT_IP     = "192.168.100.100";
 
-// Static IP for this CAM on the hotspot
-IPAddress local_IP(192, 168, 1, 110);
-IPAddress gateway(192, 168, 1, 1);
+// Static IP for this CAM on the WiFi LAN
+IPAddress local_IP(192, 168, 100, 110);
+IPAddress gateway(192, 168, 100, 1);   // Real hotspot gateway (confirmed)
 IPAddress subnet(255, 255, 255, 0);
 
 // CAMERA PIN MAP (AI Thinker)
@@ -68,21 +73,22 @@ IPAddress subnet(255, 255, 255, 0);
 static constexpr uint32_t EI_CAMERA_RAW_FRAME_BUFFER_COLS = 320;
 static constexpr uint32_t EI_CAMERA_RAW_FRAME_BUFFER_ROWS = 240;
 static constexpr uint32_t EI_CAMERA_FRAME_BYTE_SIZE = 3;
-static constexpr const char* EI_BOTTLE_LABEL = "bottle";
+static constexpr float BOTTLE_DECISION_THRESHOLD = 0.60f;
 static constexpr bool EDGE_IMPULSE_DEBUG_NN = false;
-
-// STATE
 WebServer server(80);
 const unsigned long WIFI_TIMEOUT_MS = 20000;
 static uint8_t* snapshot_buf = nullptr;
 static bool camera_ready = false;
 
 // Forward declarations
-void postResult(const char* result);
+void postResult(const char* result, uint32_t requestId);
 bool ensureSnapshotBuffer();
 bool captureAndClassifyBottle(bool* detected);
 bool captureImage(uint8_t* out_buf);
 int eiCameraGetData(size_t offset, size_t length, float* out_ptr);
+bool labelContainsIgnoreCase(const char* label, const char* needle);
+bool isRejectBottleLabel(const char* label);
+void printModelLabels();
 
 bool initCamera() {
   camera_config_t config = {};
@@ -223,18 +229,29 @@ bool captureAndClassifyBottle(bool* detected) {
                 result.timing.classification,
                 result.timing.anomaly);
 
-  size_t top_index = 0;
-  float top_value = result.classification[0].value;
+  bool found_target = false;
+  uint32_t found_count = 0;
+  uint32_t printed_count = 0;
 
-  Serial.println("[BOTTLE] Classification scores:");
-  for (size_t i = 0; i < EI_CLASSIFIER_LABEL_COUNT; ++i) {
-    const float value = result.classification[i].value;
-    const char* label = ei_classifier_inferencing_categories[i];
-    Serial.printf("[BOTTLE]   %s: %.5f\n", label, value);
+  Serial.println("[BOTTLE] Bounding boxes:");
+  for (uint32_t i = 0; i < result.bounding_boxes_count; ++i) {
+    const ei_impulse_result_bounding_box_t& bb = result.bounding_boxes[i];
+    if (bb.value <= 0.0f) {
+      continue;
+    }
 
-    if (value > top_value) {
-      top_value = value;
-      top_index = i;
+    Serial.printf("[BOTTLE]   %s: %.5f [x=%u, y=%u, w=%u, h=%u]\n",
+                  bb.label,
+                  bb.value,
+                  bb.x,
+                  bb.y,
+                  bb.width,
+                  bb.height);
+    ++printed_count;
+
+    if (bb.value >= BOTTLE_DECISION_THRESHOLD && !isRejectBottleLabel(bb.label)) {
+      found_target = true;
+      ++found_count;
     }
   }
 
@@ -242,12 +259,15 @@ bool captureAndClassifyBottle(bool* detected) {
   Serial.printf("[BOTTLE] Anomaly score: %.5f\n", result.anomaly);
 #endif
 
-  const char* top_label = ei_classifier_inferencing_categories[top_index];
-  *detected = (strcmp(top_label, EI_BOTTLE_LABEL) == 0);
+  *detected = found_target;
 
-  Serial.printf("[BOTTLE] Top-1: %s (%.5f) -> %s\n",
-                top_label,
-                top_value,
+  if (printed_count == 0) {
+    Serial.println("[BOTTLE]   No objects detected");
+  }
+
+  Serial.printf("[BOTTLE] Accepted detections: %u (threshold %.2f) -> %s\n",
+                found_count,
+                BOTTLE_DECISION_THRESHOLD,
                 *detected ? "BOTTLE" : "NONE");
 
   return true;
@@ -271,8 +291,47 @@ int eiCameraGetData(size_t offset, size_t length, float* out_ptr) {
   return 0;
 }
 
-void doIdentify() {
-  Serial.println("[BOTTLE] Capture requested...");
+bool labelContainsIgnoreCase(const char* label, const char* needle) {
+  if (label == nullptr || needle == nullptr) {
+    return false;
+  }
+
+  for (const char* p = label; *p != '\0'; ++p) {
+    const char* h = p;
+    const char* n = needle;
+
+    while (*h != '\0' && *n != '\0' &&
+           tolower(static_cast<unsigned char>(*h)) ==
+             tolower(static_cast<unsigned char>(*n))) {
+      ++h;
+      ++n;
+    }
+
+    if (*n == '\0') {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+bool isRejectBottleLabel(const char* label) {
+  return labelContainsIgnoreCase(label, "invalid") ||
+         labelContainsIgnoreCase(label, "reject") ||
+         labelContainsIgnoreCase(label, "background") ||
+         labelContainsIgnoreCase(label, "none");
+}
+
+void printModelLabels() {
+  Serial.println("[BOTTLE] Model labels:");
+  for (uint16_t i = 0; i < EI_CLASSIFIER_LABEL_COUNT; ++i) {
+    Serial.printf("[BOTTLE]   %u: %s\n", i, ei_classifier_inferencing_categories[i]);
+  }
+}
+
+void doIdentify(uint32_t requestId) {
+  Serial.printf("[BOTTLE] Forced capture requested (rid=%lu)...\n",
+                static_cast<unsigned long>(requestId));
 
   camera_fb_t* warmup = esp_camera_fb_get();
   if (warmup) {
@@ -283,14 +342,14 @@ void doIdentify() {
   bool detected = false;
   if (!captureAndClassifyBottle(&detected)) {
     Serial.println("[BOTTLE] Inference failed - returning NONE");
-    postResult("NONE");
+    postResult("NONE", requestId);
     return;
   }
 
-  postResult(detected ? "BOTTLE" : "NONE");
+  postResult(detected ? "BOTTLE" : "NONE", requestId);
 }
 
-void postResult(const char* result) {
+void postResult(const char* result, uint32_t requestId) {
   HTTPClient http;
   String url = "http://" + String(DEVKIT_IP) + "/detect";
   http.begin(url);
@@ -300,18 +359,25 @@ void postResult(const char* result) {
   StaticJsonDocument<64> doc;
   doc["cam"] = "BOTTLE";
   doc["result"] = result;
+  doc["rid"] = requestId;
 
   String body;
   serializeJson(doc, body);
 
   int code = http.POST(body);
   http.end();
-  Serial.printf("[BOTTLE] POST /detect -> %d (result=%s)\n", code, result);
+  Serial.printf("[BOTTLE] POST /detect -> %d (result=%s rid=%lu)\n",
+                code,
+                result,
+                static_cast<unsigned long>(requestId));
 }
 
 void handleIdentify() {
+  uint32_t requestId = server.hasArg("rid")
+    ? static_cast<uint32_t>(server.arg("rid").toInt())
+    : 0;
   server.send(200, "text/plain", "OK");
-  doIdentify();
+  doIdentify(requestId);
 }
 
 void handlePing() {
@@ -380,6 +446,14 @@ void setup() {
   server.begin();
 
   Serial.println("[BOTTLE] HTTP server started on port 80");
+  Serial.printf("[BOTTLE] Model: %s input=%dx%d labels=%d threshold=%.2f decision=%.2f\n",
+                EI_CLASSIFIER_PROJECT_NAME,
+                EI_CLASSIFIER_INPUT_WIDTH,
+                EI_CLASSIFIER_INPUT_HEIGHT,
+                EI_CLASSIFIER_LABEL_COUNT,
+                EI_CLASSIFIER_OBJECT_DETECTION_THRESHOLD,
+                BOTTLE_DECISION_THRESHOLD);
+  printModelLabels();
   Serial.println("[BOTTLE] Ready - waiting for /identify requests from Dev Kit");
 }
 
@@ -392,3 +466,7 @@ void loop() {
 
   delay(5);
 }
+
+#if EI_CLASSIFIER_OBJECT_DETECTION != 1
+#error "This sketch expects an Edge Impulse object detection export."
+#endif

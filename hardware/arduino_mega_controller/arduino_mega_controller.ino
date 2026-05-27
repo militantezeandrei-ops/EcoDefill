@@ -10,7 +10,7 @@ LiquidCrystal_I2C lcd(LCD_ADDR, LCD_COLS, LCD_ROWS);
 // SERVO PINS
 #define SRV_BOTTLE_GATE  5
 #define SRV_BOTTLE_EXIT  6
-#define SRV_BOTTLE_BIN   2
+#define SRV_BOTTLE_BIN   3   // Was pin 2 (INT4 interrupt pin — conflicts with Servo timer on Mega)
 
 #define SRV_CUP_GATE     8
 #define SRV_CUP_EXIT     9
@@ -21,7 +21,7 @@ Servo srvCupGate, srvCupExit, srvCupBin;
 
 // SERVO ANGLES
 #define GATE_OPEN       80
-#define GATE_CLOSED      0
+#define GATE_CLOSED     10   // 10° min (0° is outside valid PWM range for many servos)
 #define SORT_ACTIVE_B   40
 #define SORT_ACTIVE_C  140
 #define SORT_IDLE       90
@@ -30,9 +30,9 @@ Servo srvCupGate, srvCupExit, srvCupBin;
 
 #define EXIT_HOLD_MS   1200UL
 #define EXIT_OPEN       90
-#define EXIT_CLOSED      0
+#define EXIT_CLOSED     10   // 10° min (safe minimum)
 #define BIN_OPEN        90
-#define BIN_CLOSED       0
+#define BIN_CLOSED      10   // 10° min (safe minimum)
 
 // IR SENSOR PINS
 #define IR_BOTTLE_SLOT   22
@@ -70,12 +70,13 @@ Servo srvCupGate, srvCupExit, srvCupBin;
 
 // TIMING
 #define CAM_TIMEOUT_MS          9000UL
-#define GATE_STAGE_TIMEOUT_MS   2000UL
+#define GATE_STAGE_TIMEOUT_MS   4000UL
 #define SOL_OPEN_DELAY          80UL
 #define BUSY_MSG_COOLDOWN_MS    2000UL
 #define BUSY_MSG_SHOW_MS        900UL
 #define SCAN_PRESS_GUARD_MS     2500UL
 #define SCAN_CANCEL_GUARD_MS    2000UL
+#define QR_SCAN_REARM_MS        3000UL
 #define DISPENSE_GUARD_MS       2500UL
 #define QR_SCAN_TIMEOUT_MS      15000UL
 
@@ -110,6 +111,8 @@ String lastLcdRow[4] = {"", "", "", ""};
 unsigned long lastScanPressAt = 0;
 unsigned long lastDispensePressAt = 0;
 unsigned long qrScanStartedAt = 0;
+unsigned long scanButtonBlockedUntil = 0;
+bool scanButtonReleaseRequired = false;
 
 // CAMERA
 bool camPending = false;
@@ -172,6 +175,13 @@ void lcdShowPendingQrDispense() {
           String(pendingQrDispenseMl) + "ml approved     ",
           "Place cup, press[1]",
           "to dispense water  ");
+}
+
+void blockScanButton(bool requireRelease) {
+  scanButtonBlockedUntil = millis() + QR_SCAN_REARM_MS;
+  if (requireRelease && digitalRead(BTN_SCAN) == BTN_PRESSED) {
+    scanButtonReleaseRequired = true;
+  }
 }
 
 // DEVKIT
@@ -422,22 +432,21 @@ void handleDevKit(const String& msg) {
   }
 
   else if (msg == "QR:FOUND") {
-  lcdShow(" QR Code Detected! ",
-          "Please wait...     ",
-          "Verifying account  ",
-          "Do not scan again  ");
-}
+    blockScanButton(true);
+    lcdShow(" QR Code Detected! ",
+            "Please wait...     ",
+            "Verifying account  ",
+            "Do not scan again  ");
+  }
 
   else if (msg.startsWith("QR:REDEEM:")) {
-
-    
-    
     // Format from DevKit: QR:REDEEM:<dispenseMs>|<studentName>|<redeemedPoints>
     String data = msg.substring(10);
     int sep1 = data.indexOf('|');
     int sep2 = data.indexOf('|', sep1 + 1);
 
     if (sep1 < 0 || sep2 < 0) {
+      blockScanButton(true);
       scanModeActive = false;
       qrScanStartedAt = 0;
       machineState = ST_AWAIT_ITEM;
@@ -455,6 +464,7 @@ void handleDevKit(const String& msg) {
     int redeemedPts = data.substring(sep2 + 1).toInt();
 
     if (ms > 0) {
+      blockScanButton(true);
       pendingQrDispenseMs = ms;
       pendingQrDispenseMl = ms / 20; // DevKit uses 20ms per ml
 
@@ -475,6 +485,7 @@ void handleDevKit(const String& msg) {
     int sep = data.indexOf('|');
 
     if (sep < 0) {
+      blockScanButton(true);
       scanModeActive = false;
       qrScanStartedAt = 0;
       machineState = ST_AWAIT_ITEM;
@@ -493,6 +504,7 @@ void handleDevKit(const String& msg) {
     sessionPts -= credited;
     if (sessionPts < 0) sessionPts = 0;
 
+    blockScanButton(true);
     scanModeActive = false;
     qrScanStartedAt = 0;
     clearPendingQrDispense();
@@ -511,6 +523,7 @@ void handleDevKit(const String& msg) {
   else if (msg.startsWith("QR:DISPENSE:")) {
     int ms = msg.substring(12).toInt();
     if (ms > 0) {
+      blockScanButton(true);
       pendingQrDispenseMs = ms;
       pendingQrDispenseMl = ms / 20;
       scanModeActive = false;
@@ -527,6 +540,7 @@ void handleDevKit(const String& msg) {
     int credited = msg.substring(8).toInt();
     sessionPts -= credited;
     if (sessionPts < 0) sessionPts = 0;
+    blockScanButton(true);
     scanModeActive = false;
     qrScanStartedAt = 0;
     machineState = ST_AWAIT_ITEM;
@@ -539,6 +553,7 @@ void handleDevKit(const String& msg) {
   }
 
   else if (msg == "QR:FAIL") {
+    blockScanButton(true);
     scanModeActive = false;
     qrScanStartedAt = 0;
     machineState = ST_AWAIT_ITEM;
@@ -662,6 +677,8 @@ void onDispensePressed() {
 // QR SCAN BUTTON ACTION
 void onScanPressed() {
   if ((millis() - lastScanPressAt) < SCAN_PRESS_GUARD_MS) return;
+  if (millis() < scanButtonBlockedUntil) return;
+  if (scanButtonReleaseRequired) return;
   lastScanPressAt = millis();
 
   if (scanModeActive || machineState == ST_SCAN_WAIT) {
@@ -718,6 +735,7 @@ void onScanPressed() {
   scanModeActive = true;
   machineState = ST_SCAN_WAIT;
   qrScanStartedAt = millis();
+  blockScanButton(true);
 
   // Send current local points too. Backend can use this amount when the QR is for transferring points to the app.
   devkitSend("CMD:SCAN_QR|" + String(sessionPts));
@@ -1012,6 +1030,10 @@ void loop() {
     if (rawScan != lastStableScan) {
       lastStableScan = rawScan;
 
+      if (lastStableScan == BTN_RELEASED) {
+        scanButtonReleaseRequired = false;
+      }
+
       if (lastStableScan == BTN_PRESSED) {
         Serial.println(F("[BTN] QR PRESSED"));
         onScanPressed();
@@ -1079,8 +1101,7 @@ void loop() {
   }
   // SAFETY: pump and solenoid must stay OFF when not dispensing
   if (machineState != ST_DISPENSING) {
-  digitalWrite(RELAY_PUMP, PUMP_OFF);
-  digitalWrite(RELAY_SOL1, SOL1_OFF);
-}
-
+    digitalWrite(RELAY_PUMP, PUMP_OFF);
+    digitalWrite(RELAY_SOL1, SOL1_OFF);
+  }
 }

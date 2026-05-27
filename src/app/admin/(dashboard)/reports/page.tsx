@@ -90,31 +90,37 @@ export default async function ReportsPage() {
 
     const reportCards = [
         {
+            reportKey: "user-activity",
             title: "User Activity Report",
             tag: "Community",
-            tagColor: "bg-white/20 text-white border border-white/30",
+            tagColor: "bg-white/25 text-white border border-white/35",
             desc: "Comprehensive analysis of user registrations, engagement metrics, and regional participation trends across the network.",
             bg: "bg-[#2563EB]",
             textColor: "text-white",
-            descColor: "text-white/80",
+            descColor: "text-white/85",
+            btnTextColor: "text-[#2563EB] hover:text-[#1d4ed8]",
         },
         {
+            reportKey: "recycling-performance",
             title: "Recycling Performance",
             tag: "Sustainability",
-            tagColor: "bg-white/20 text-white border border-white/30",
+            tagColor: "bg-white/25 text-white border border-white/35",
             desc: "Detailed breakdown of collected material types and weights. Monitor progress towards environmental sustainability goals.",
             bg: "bg-[#059669]",
             textColor: "text-white",
-            descColor: "text-white/80",
+            descColor: "text-white/85",
+            btnTextColor: "text-[#059669] hover:text-[#047857]",
         },
         {
+            reportKey: "transaction-history",
             title: "Transaction History",
             tag: "Finance",
-            tagColor: "bg-white/20 text-white border border-white/30",
+            tagColor: "bg-white/25 text-white border border-white/35",
             desc: "Audited log of all refill station transactions, revenue generation, and reward redemption activities for the selected period.",
             bg: "bg-[#7C3AED]",
             textColor: "text-white",
-            descColor: "text-white/80",
+            descColor: "text-white/85",
+            btnTextColor: "text-[#7C3AED] hover:text-[#6d28d9]",
         },
     ];
 
@@ -132,10 +138,19 @@ export default async function ReportsPage() {
                     <h2 className="text-2xl font-bold text-gray-900">Environmental Reports</h2>
                     <p className="mt-0.5 text-[13px] text-gray-400">Generate, analyze, and export sustainability performance data.</p>
                 </div>
-                <div className="flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-2 shadow-sm">
-                    <span className="text-[12px] font-bold text-gray-500 uppercase tracking-wider">Last Generated</span>
-                    <span className="text-[13px] font-black text-gray-900">Live</span>
-                    <div className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                <div className="flex items-center gap-3">
+                    <a
+                        href="/api/admin/reports/export?type=all"
+                        className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-gray-900 to-slate-800 px-5 py-2.5 text-[12px] font-black uppercase tracking-wider text-white shadow-md shadow-gray-900/10 transition-all hover:-translate-y-0.5 hover:shadow-lg hover:from-blue-600 hover:to-blue-700"
+                    >
+                        <FileText className="h-4.5 w-4.5" />
+                        Export All PDF
+                    </a>
+                    <div className="flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-2 shadow-sm">
+                        <span className="text-[12px] font-bold text-gray-500 uppercase tracking-wider">Last Generated</span>
+                        <span className="text-[13px] font-black text-gray-900">Live</span>
+                        <div className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                    </div>
                 </div>
             </div>
 
@@ -170,10 +185,13 @@ export default async function ReportsPage() {
                             <span className={`rounded-full px-2.5 py-1 text-[12px] font-bold uppercase tracking-wider ${r.tagColor}`}>{r.tag}</span>
                             <h3 className={`mt-3 text-lg font-bold ${r.textColor}`}>{r.title}</h3>
                             <p className={`mt-2 text-base leading-relaxed ${r.descColor}`}>{r.desc}</p>
-                            <button className="mt-4 flex items-center gap-2 text-sm font-bold text-white/70 transition-colors hover:text-white">
+                            <a
+                                href={`/api/admin/reports/export?type=${r.reportKey}`}
+                                className={`mt-5 inline-flex items-center gap-2 rounded-xl bg-white px-4 py-2.5 text-xs font-black uppercase tracking-wider shadow-sm transition-all hover:-translate-y-0.5 hover:bg-gray-50 hover:shadow-md ${r.btnTextColor}`}
+                            >
                                 <Download className="h-4 w-4" />
-                                Export Report
-                            </button>
+                                Export PDF
+                            </a>
                         </div>
                     </div>
                 ))}
