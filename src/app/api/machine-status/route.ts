@@ -54,3 +54,46 @@ export async function GET(req: Request) {
         return NextResponse.json({ error: 'Failed to retrieve machine status' }, { status: 500 });
     }
 }
+
+export async function POST(req: Request) {
+    try {
+        const { machineId, status, waterLevel } = await req.json();
+
+        if (!machineId) {
+            return NextResponse.json({ error: 'Missing machineId' }, { status: 400 });
+        }
+
+        const currentStatus = status || 'ONLINE';
+        const currentMessage = waterLevel || 'Unknown';
+
+        // Find the latest log for this machine
+        const latestLog = await prisma.machineLog.findFirst({
+            where: { machineId },
+            orderBy: { createdAt: 'desc' }
+        });
+
+        if (latestLog && latestLog.status === currentStatus && latestLog.message === currentMessage) {
+            // Heartbeat: update the timestamp of the existing record
+            await prisma.machineLog.update({
+                where: { id: latestLog.id },
+                data: { createdAt: new Date() }
+            });
+        } else {
+            // State change or first status: create a new log entry
+            await prisma.machineLog.create({
+                data: {
+                    machineId,
+                    status: currentStatus,
+                    message: currentMessage,
+                    pingMs: 0
+                }
+            });
+        }
+
+        return NextResponse.json({ success: true });
+    } catch (error) {
+        console.error("Machine Status POST Error:", error);
+        return NextResponse.json({ error: 'Failed to update machine status' }, { status: 500 });
+    }
+}
+

@@ -10,9 +10,9 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
     const router = useRouter();
     const pathname = usePathname();
 
-    useEffect(() => {
-        const isPublicRoute = pathname === "/admin/login" || pathname === "/admin/forgot-password";
+    const isPublicRoute = pathname === "/admin/login" || pathname === "/admin/forgot-password";
 
+    useEffect(() => {
         if (!isLoading && !isPublicRoute) {
             if (!isAuthenticated) {
                 router.push("/admin/login");
@@ -20,9 +20,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
                 router.push("/dashboard");
             }
         }
-    }, [isAuthenticated, isLoading, user, router, pathname]);
-
-    const isPublicRoute = pathname === "/admin/login" || pathname === "/admin/forgot-password";
+    }, [isAuthenticated, isLoading, user, router, isPublicRoute]);
 
     if (isLoading) return null;
     if (!isPublicRoute && (!isAuthenticated || user?.role !== "ADMIN")) return null;
@@ -42,4 +40,3 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
         </div>
     );
 }
-

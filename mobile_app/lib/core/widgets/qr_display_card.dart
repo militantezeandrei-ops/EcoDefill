@@ -21,17 +21,17 @@ class QrDisplayCard extends StatelessWidget {
   /// The raw string value encoded into the QR code.
   final String token;
 
-  /// Accent colour applied to the card border and outer glow.
+  /// Accent colour (kept for parameter compatibility).
   final Color accentColor;
 
-  /// Fixed QR content area size – used in both the card SizedBox and QrImageView.
-  static const double qrSize = 240.0;
+  /// Fixed QR content area size – exactly matches the old capacitor size (220).
+  static const double qrSize = 220.0;
 
-  /// Card padding – must stay identical in both usages.
-  static const double cardPadding = 24.0;
+  /// Card padding – exactly matches p-4 (16).
+  static const double cardPadding = 16.0;
 
-  /// Card corner radius – must stay identical in both usages.
-  static const double cardRadius = 32.0;
+  /// Card corner radius – exactly matches rounded-2xl (16).
+  static const double cardRadius = 16.0;
 
   @override
   Widget build(BuildContext context) {
@@ -40,20 +40,8 @@ class QrDisplayCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(cardRadius),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.04),
-            blurRadius: 24,
-            offset: const Offset(0, 8),
-          ),
-          BoxShadow(
-            color: accentColor.withOpacity(0.06),
-            blurRadius: 40,
-            offset: const Offset(0, 16),
-          ),
-        ],
         border: Border.all(
-          color: accentColor.withOpacity(0.12),
+          color: const Color(0xFFE2E8F0), // border-slate-200
           width: 1,
         ),
       ),
@@ -64,14 +52,16 @@ class QrDisplayCard extends StatelessWidget {
           data: token,
           version: QrVersions.auto,
           size: qrSize,
-          gapless: false,
+          gapless: true,
+          padding: EdgeInsets.zero,
+          errorCorrectionLevel: QrErrorCorrectLevel.M,
           eyeStyle: const QrEyeStyle(
             eyeShape: QrEyeShape.square,
-            color: AppTheme.textDark,
+            color: Colors.black, // Pure black for instant recognition
           ),
           dataModuleStyle: const QrDataModuleStyle(
             dataModuleShape: QrDataModuleShape.square,
-            color: AppTheme.textDark,
+            color: Colors.black, // Pure black for instant recognition
           ),
         ),
       ),

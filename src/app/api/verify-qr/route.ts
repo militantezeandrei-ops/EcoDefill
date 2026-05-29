@@ -45,7 +45,8 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: 'QR code has expired.' }, { status: 400 });
         }
 
-        // 3. For REDEEM types, handle MachineSession and final claim inside a transaction
+        // 3. For REDEEM types, validate MachineSession before entering the transaction
+        let session: { id: string; jti: string; machineId: string; amountToDispense: unknown; status: string } | null = null;
         let decoded: any;
         if (qrToken.type === "REDEEM") {
             try {
@@ -55,7 +56,7 @@ export async function POST(req: Request) {
                 return NextResponse.json({ error: 'Stored session data is invalid.' }, { status: 500 });
             }
 
-            const session = await prisma.machineSession.findUnique({
+            session = await prisma.machineSession.findUnique({
                 where: { jti: decoded.jti }
             });
 
@@ -66,8 +67,6 @@ export async function POST(req: Request) {
             if (session.machineId !== machineId) {
                 return NextResponse.json({ error: 'Invalid Machine ID.' }, { status: 400 });
             }
-
-            // Mark the QR token and session as used within the transaction later
         }
 
         // 3. Process Transaction Atomically
@@ -102,20 +101,20 @@ export async function POST(req: Request) {
                     }
                 });
 
-                // Mark machine session as APPROVED for the ESP32 to pick up
-                const session = await tx.machineSession.findUnique({ where: { jti: decoded.jti } });
-                if (session) {
-                    await tx.machineSession.update({
-                        where: { id: session.id },
-                        data: { status: 'APPROVED' }
-                    });
-
-                    txResult = {
-                        userName: user.fullName || user.email?.split('@')[0] || 'Student',
-                        pointsDeducted: Number(qrToken.amount),
-                        waterAmount: Number(session.amountToDispense),
-                    };
+                // Mark machine session as APPROVED — reuse the already-fetched session
+                if (!session) {
+                    throw new Error('Session missing in transaction');
                 }
+                await tx.machineSession.update({
+                    where: { id: session.id },
+                    data: { status: 'APPROVED' }
+                });
+
+                txResult = {
+                    userName: user.fullName || user.email?.split('@')[0] || 'Student',
+                    pointsDeducted: Number(qrToken.amount),
+                    waterAmount: Number(session.amountToDispense),
+                };
             } else if (qrToken.type === "EARN") {
                 // Earn tokens stay reusable; usedAt marks the latest successful scan.
                 await tx.qrToken.update({

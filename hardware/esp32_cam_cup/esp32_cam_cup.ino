@@ -20,8 +20,8 @@
  *   above EI_CLASSIFIER_OBJECT_DETECTION_THRESHOLD (0.5).
  *
  * LIBRARY:
- *   Install cup_inferencing from:
- *   ei-cup-arduino-1.0.1-impulse-#1/cup_inferencing
+ *   Install cupcup_inferencing from:
+ *   ei-cupcup-arduino-1.0.1-impulse-#1/cupcup_inferencing
  *   (add as .zip or copy folder to Arduino libraries directory)
  *
  * NO UART WIRING TO MEGA NEEDED - fully wireless.
@@ -38,7 +38,7 @@
 #include <WebServer.h>
 #include <HTTPClient.h>
 #include <ArduinoJson.h>
-#include <cup_inferencing.h>
+#include <cupcup_inferencing.h>
 #include "edge-impulse-sdk/dsp/image/image.hpp"
 
 // ── USER CONFIG ───────────────────────────────────────────────────────────────
@@ -76,6 +76,8 @@ IPAddress subnet(255, 255, 255, 0);
 #define EI_CAMERA_FRAME_BYTE_SIZE        3
 
 static constexpr float CUP_DECISION_THRESHOLD = 0.50f;
+// Detection label from the new model
+static const char* CUP_VALID_LABEL = "Valid";
 
 // ── STATE ─────────────────────────────────────────────────────────────────────
 WebServer server(80);
@@ -278,7 +280,8 @@ bool runCupInference() {
                   bb.label, bb.value, bb.x, bb.y, bb.width, bb.height);
     printedCount++;
 
-    if (isCupAcceptedLabel(bb.label) && bb.value >= CUP_DECISION_THRESHOLD) {
+    if ((strcmp(bb.label, CUP_VALID_LABEL) == 0 || isCupAcceptedLabel(bb.label)) && 
+        bb.value >= CUP_DECISION_THRESHOLD) {
       detected = true;
       validCount++;
     }
@@ -334,7 +337,6 @@ void printModelLabels() {
     Serial.printf("[CUP]   %u: %s\n", i, ei_classifier_inferencing_categories[i]);
   }
 }
-
 // ── POST RESULT TO DEV KIT ────────────────────────────────────────────────────
 void postResult(const char* result, uint32_t requestId) {
   HTTPClient http;
@@ -458,7 +460,7 @@ void loop() {
 
 // ── COMPILE GUARD ─────────────────────────────────────────────────────────────
 #if !defined(EI_CLASSIFIER_SENSOR) || EI_CLASSIFIER_SENSOR != EI_CLASSIFIER_SENSOR_CAMERA
-#error "Invalid model for current sensor — ensure cup_inferencing library is installed"
+#error "Invalid model for current sensor — ensure cupcup_inferencing library is installed"
 #endif
 
 #if EI_CLASSIFIER_OBJECT_DETECTION != 1

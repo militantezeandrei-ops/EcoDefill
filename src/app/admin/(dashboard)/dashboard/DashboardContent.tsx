@@ -1,6 +1,6 @@
 import Link from "next/link";
 import prisma from "@/lib/prisma";
-import { Users, Target, Droplet, Activity, TrendingUp, Recycle } from "lucide-react";
+import { Users, Target, Droplet, Activity, TrendingUp, Recycle, Waves } from "lucide-react";
 import DashboardCharts from "@/components/admin/DashboardCharts";
 import { getCourseRanking } from "@/lib/course-ranking";
 export default async function DashboardContent({ searchParams }: { searchParams: any }) {
@@ -34,6 +34,7 @@ export default async function DashboardContent({ searchParams }: { searchParams:
         latestFive,
         todaysRedeemsAgg,
         leaderboard,
+        latestMachineLog,
     ] = await Promise.all([
         prisma.user.count({ where: { role: "STUDENT" } }),
         prisma.transaction.aggregate({ _sum: { amount: true }, where: { type: "EARN", createdAt: { gte: today } } }),
@@ -57,7 +58,27 @@ export default async function DashboardContent({ searchParams }: { searchParams:
             where: { type: "REDEEM", status: "SUCCESS", createdAt: { gte: today } } 
         }),
         getCourseRanking(),
+        prisma.machineLog.findFirst({
+            where: {
+                OR: [
+                    { machineId: "MACHINE_01" },
+                    { machineId: "ESP32-CAM-01" }
+                ]
+            },
+            orderBy: { createdAt: "desc" }
+        })
     ]);
+
+    let latestLog = latestMachineLog;
+    if (!latestLog) {
+        latestLog = await prisma.machineLog.findFirst({
+            orderBy: { createdAt: "desc" }
+        });
+    }
+    const waterLevel = latestLog?.message || "Unknown";
+    const lastUpdatedStr = latestLog
+        ? new Date(latestLog.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        : "N/A";
 
     const todaysPoints = Number(todaysPointsAgg._sum.amount || 0);
     const todaysRedeems = Number(todaysRedeemsAgg?._sum.amount || 0); // Added
@@ -156,6 +177,36 @@ export default async function DashboardContent({ searchParams }: { searchParams:
             iconBg: machineHealth > 80 ? "bg-emerald-50" : "bg-red-50",
             iconColor: machineHealth > 80 ? "text-emerald-600" : "text-red-600",
         },
+        {
+            title: "Water Tank Level",
+            value: waterLevel,
+            sub: `Updated: ${lastUpdatedStr}`,
+            icon: Waves,
+            bg: "bg-white",
+            valueColor: waterLevel === "Full Tank Water" 
+                ? "text-blue-600" 
+                : waterLevel === "Half Full" 
+                    ? "text-amber-500" 
+                    : waterLevel === "Low Water"
+                        ? "text-rose-600 animate-pulse font-black"
+                        : "text-gray-500",
+            titleColor: "text-gray-400",
+            subColor: "text-gray-500",
+            iconBg: waterLevel === "Full Tank Water" 
+                ? "bg-blue-50" 
+                : waterLevel === "Half Full" 
+                    ? "bg-amber-50" 
+                    : waterLevel === "Low Water"
+                        ? "bg-rose-50 border border-rose-100 animate-bounce"
+                        : "bg-gray-50",
+            iconColor: waterLevel === "Full Tank Water" 
+                ? "text-blue-500" 
+                : waterLevel === "Half Full" 
+                    ? "text-amber-500" 
+                    : waterLevel === "Low Water"
+                        ? "text-rose-500"
+                        : "text-gray-400",
+        },
     ];
 
     // Waste material cards
@@ -230,8 +281,8 @@ export default async function DashboardContent({ searchParams }: { searchParams:
                 </div>
             </div>
 
-            {/* Stats Grid — 4 columns (Very Compact) */}
-            <div className="grid grid-cols-2 gap-5 lg:grid-cols-4">
+            {/* Stats Grid — 5 columns (Compact) */}
+            <div className="grid grid-cols-2 gap-5 lg:grid-cols-5">
                 {statCards.map((card, i) => {
                     const Icon = card.icon;
                     return (

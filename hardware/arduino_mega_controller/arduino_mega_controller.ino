@@ -68,6 +68,13 @@ Servo srvCupGate, srvCupExit, srvCupBin;
 #define ULTRASONIC_ECHO  33
 #define REFILL_DETECT_CM 12
 
+// WATER LEVEL SENSOR (TANK WATER LEVEL)
+#define WATER_LEVEL_TRIG 40
+#define WATER_LEVEL_ECHO 41
+#define TANK_FULL_MAX_CM 15
+#define TANK_HALF_MAX_CM 35
+
+
 // TIMING
 #define CAM_TIMEOUT_MS          9000UL
 #define GATE_STAGE_TIMEOUT_MS   4000UL
@@ -210,6 +217,35 @@ bool refillContainerDetected() {
   long d = getDistanceCM();
   return (d > 0 && d <= REFILL_DETECT_CM);
 }
+
+// WATER LEVEL SENSOR FUNCTIONS
+long getTankWaterLevelCM() {
+  digitalWrite(WATER_LEVEL_TRIG, LOW);
+  delayMicroseconds(2);
+
+  digitalWrite(WATER_LEVEL_TRIG, HIGH);
+  delayMicroseconds(10);
+
+  digitalWrite(WATER_LEVEL_TRIG, LOW);
+
+  long dur = pulseIn(WATER_LEVEL_ECHO, HIGH, 30000);
+  return (dur == 0) ? 999 : dur * 0.034 / 2;
+}
+
+String getWaterLevelCategory() {
+  long d = getTankWaterLevelCM();
+  if (d <= 0 || d >= 999) {
+    return "Low Water";
+  }
+  if (d < TANK_FULL_MAX_CM) {
+    return "Full Tank Water";
+  } else if (d < TANK_HALF_MAX_CM) {
+    return "Half Full";
+  } else {
+    return "Low Water";
+  }
+}
+
 
 // SERVO FUNCTIONS
 void moveServoSmooth(Servo& s, int pos) {
@@ -433,13 +469,16 @@ void handleDevKit(const String& msg) {
 
   else if (msg == "QR:FOUND") {
     blockScanButton(true);
-    lcdShow(" QR Code Detected! ",
-            "Please wait...     ",
-            "Verifying account  ",
-            "Do not scan again  ");
-  }
+  lcdShow(" QR Code Detected! ",
+          "Please wait...     ",
+          "Verifying account  ",
+          "Do not scan again  ");
+}
 
   else if (msg.startsWith("QR:REDEEM:")) {
+
+    
+    
     // Format from DevKit: QR:REDEEM:<dispenseMs>|<studentName>|<redeemedPoints>
     String data = msg.substring(10);
     int sep1 = data.indexOf('|');
@@ -928,6 +967,9 @@ void setup() {
   pinMode(ULTRASONIC_TRIG, OUTPUT);
   pinMode(ULTRASONIC_ECHO, INPUT);
 
+  pinMode(WATER_LEVEL_TRIG, OUTPUT);
+  pinMode(WATER_LEVEL_ECHO, INPUT);
+
   pinMode(RELAY_PUMP, OUTPUT);
   pinMode(RELAY_SOL1, OUTPUT);
   pinMode(RELAY_SOL2, OUTPUT);
@@ -988,6 +1030,13 @@ digitalWrite(RELAY_SOL2, SOL1_OFF);
 // LOOP
 void loop() {
   readSerial(Serial1, devBuf, handleDevKit);
+
+  static unsigned long lastWaterLevelSendAt = 0;
+  #define WATER_LEVEL_SEND_INTERVAL_MS 10000UL
+  if (millis() - lastWaterLevelSendAt >= WATER_LEVEL_SEND_INTERVAL_MS) {
+    lastWaterLevelSendAt = millis();
+    devkitSend("CMD:WATER_LEVEL|" + getWaterLevelCategory());
+  }
 
   checkPaperIR();
 

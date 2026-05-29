@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ecodefill_mobile/core/network/api_client.dart';
@@ -315,109 +316,129 @@ class _QrScanScreenState extends ConsumerState<QrScanScreen>
     );
   }
 
-  // ── Build ──────────────────────────────────────────────────────────────────
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.backgroundLight,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded,
-              color: AppTheme.textDark),
-          onPressed: () {
-            _pollTimer?.cancel();
-            Navigator.of(context).pop();
-          },
-        ),
-        title: Text(
-          _appBarTitle,
-          style: const TextStyle(
-              color: AppTheme.textDark,
-              fontWeight: FontWeight.w900,
-              fontSize: 20),
-        ),
-        centerTitle: true,
-      ),
+      backgroundColor: Colors.transparent,
       body: Stack(
         children: [
-          // Decorative accent blob
-          Positioned(
-            top: -100,
-            right: -100,
+          // Background dim overlay
+          Positioned.fill(
             child: Container(
-              width: 300,
-              height: 300,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: _accent.withOpacity(0.06),
-              ),
+              color: Colors.black.withOpacity(0.65),
             ),
           ),
+          // Backdrop blur filter
+          Positioned.fill(
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 4, sigmaY: 4), // backdrop-blur-sm
+              child: const SizedBox.shrink(),
+            ),
+          ),
+          // Centered modal
+          Center(
+            child: SingleChildScrollView(
+              child: Container(
+                margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+                padding: const EdgeInsets.all(28), // p-7 = 28px
+                constraints: const BoxConstraints(maxWidth: 384), // max-w-sm = 384px
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(24), // rounded-3xl
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.15),
+                      blurRadius: 24,
+                      offset: const Offset(0, 10),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // ── Close Button ──
+                    Align(
+                      alignment: Alignment.topRight,
+                      child: InkWell(
+                        onTap: () {
+                          _pollTimer?.cancel();
+                          Navigator.of(context).pop();
+                        },
+                        borderRadius: BorderRadius.circular(100),
+                        child: Container(
+                          width: 36,
+                          height: 36,
+                          decoration: const BoxDecoration(
+                            color: Color(0xFFF1F5F9), // slate-100
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.close,
+                            color: Color(0xFF64748B), // slate-500
+                            size: 20,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
 
-          SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  // ── Title ──────────────────────────────────────────────
-                  Text(
-                    _title,
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.w900,
-                        color: AppTheme.textDark),
-                  ),
-                  const SizedBox(height: 10),
-                  Text(
-                    _subtitle,
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(
-                        fontSize: 14,
-                        color: AppTheme.textMuted,
-                        height: 1.4),
-                  ),
-                  const SizedBox(height: 40),
+                    // ── Title ──
+                    Text(
+                      widget.mode == QrScanMode.receivePoints
+                          ? "Scan at Station"
+                          : "Scan QR to Dispense",
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF0F172A), // slate-900
+                      ),
+                    ),
+                    const SizedBox(height: 4),
 
-                  // ── QR card – always centred, always 240×240 ───────────
-                  Center(
-                    child: QrDisplayCard(
+                    // ── Subtitle ──
+                    Text(
+                      widget.mode == QrScanMode.receivePoints
+                          ? "Position this QR code in front of the scanner"
+                          : "Show this code to the machine camera",
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        fontSize: 13,
+                        color: Color(0xFF64748B), // slate-500
+                        height: 1.4,
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+
+                    // ── QR Display Card (Sized to 220, pure black) ──
+                    QrDisplayCard(
                       token: widget.token,
                       accentColor: _accent,
                     ),
-                  ),
+                    const SizedBox(height: 16),
 
-                  const SizedBox(height: 40),
-
-                  // ── Status indicator ───────────────────────────────────
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      SizedBox(
-                        width: 14,
-                        height: 14,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: _accent,
-                        ),
+                    // ── Bottom Active Pill ──
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: widget.mode == QrScanMode.receivePoints
+                            ? const Color(0xFFECFDF5) // emerald-50
+                            : const Color(0xFFEFF6FF), // blue-50
+                        borderRadius: BorderRadius.circular(100),
                       ),
-                      const SizedBox(width: 12),
-                      Text(
-                        _statusText,
+                      child: Text(
+                        "QR Code Active",
                         style: TextStyle(
-                          fontSize: 14,
+                          fontSize: 13,
                           fontWeight: FontWeight.bold,
-                          color: _accent.withOpacity(0.85),
+                          color: widget.mode == QrScanMode.receivePoints
+                              ? const Color(0xFF10B981) // emerald-500
+                              : const Color(0xFF3B82F6), // blue-500
                         ),
                       ),
-                    ],
-                  ),
-                ],
+                    ),
+                  ],
+                ),
               ),
             ),
           ),

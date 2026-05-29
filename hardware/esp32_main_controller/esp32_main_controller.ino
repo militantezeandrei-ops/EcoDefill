@@ -261,6 +261,10 @@ void processMegaCommand(const String& cmd) {
       int pts = rest.substring(sep + 1).toInt();
       apiEarnAnon(type, pts);
     }
+  } else if (cmd.startsWith("CMD:WATER_LEVEL|")) {
+    String level = cmd.substring(16);
+    level.trim();
+    apiUpdateWaterLevel(level);
   } else {
     Serial.println("[MEGA→] Ignored unrecognized command");
   }
@@ -391,6 +395,32 @@ void apiEarnAnon(const String& itemType, int pts) {
   http.end();
   Serial.printf("[HTTP] earn-anon %s %dpts → %d\n", itemType.c_str(), pts, code);
 }
+
+// ── BACKEND: UPDATE WATER LEVEL ───────────────────────────────────────────────
+void apiUpdateWaterLevel(const String& level) {
+  if (!ensureWiFi()) return;
+
+  WiFiClientSecure client; client.setInsecure();
+  HTTPClient http;
+  http.begin(client, String(SERVER_BASE_URL) + "/api/machine-status");
+  http.addHeader("Content-Type", "application/json");
+  http.setTimeout(HTTP_TIMEOUT_MS);
+
+  StaticJsonDocument<256> req;
+  req["machineId"]  = MACHINE_ID;
+  req["status"]     = "ONLINE";
+  req["waterLevel"] = level;
+  String body; serializeJson(req, body);
+
+  int code = http.POST(body);
+  if (code <= 0) {
+    logHttpTransportFailure("update-water-level", http, code);
+    logBackendReachability("update-water-level");
+  }
+  http.end();
+  Serial.printf("[HTTP] update-water-level %s → %d\n", level.c_str(), code);
+}
+
 
 // ── QR-CAM TRIGGER (tell QR-CAM to scan) ─────────────────────────────────────
 // ── ITEM CAM TRIGGERS ───────────────────────────────────────────────────────

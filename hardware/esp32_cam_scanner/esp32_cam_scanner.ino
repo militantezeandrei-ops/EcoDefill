@@ -145,6 +145,7 @@ void setup() {
   delay(2000);  // Wait before camera init (WiFi stack settling)
 
   Serial.println("[QR] Starting QR reader (camera)...");
+  reader.debug = true; // Enable quirc/camera debug logging in the library
   reader.setup();
   reader.begin();
   tuneSensor();

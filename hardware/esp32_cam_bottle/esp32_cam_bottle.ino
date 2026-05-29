@@ -15,7 +15,11 @@
  * NO UART WIRING TO MEGA NEEDED - fully wireless.
  *
  * STATIC IP CONFIG:
+<<<<<<< Updated upstream
  *   This CAM uses static IP 192.168.100.110 on the WiFi LAN.
+=======
+ *   This CAM uses static IP 192.168.1.110 on the WiFi LAN.
+>>>>>>> Stashed changes
  *   Change DEVKIT_IP to match your Dev Kit's actual IP on the LAN.
  *
  * LIBRARIES:
@@ -34,11 +38,15 @@
 
 #include "esp_camera.h"
 #include "img_converters.h"
+<<<<<<< Updated upstream
 #if __has_include(<valid-items_inferencing.h>)
 #include <valid-items_inferencing.h>
 #else
 #include "EcoDefill_inferencing.h"
 #endif
+=======
+#include <valid-items_inferencing.h>
+>>>>>>> Stashed changes
 #include "edge-impulse-sdk/dsp/image/image.hpp"
 
 // USER CONFIG
@@ -73,7 +81,11 @@ IPAddress subnet(255, 255, 255, 0);
 static constexpr uint32_t EI_CAMERA_RAW_FRAME_BUFFER_COLS = 320;
 static constexpr uint32_t EI_CAMERA_RAW_FRAME_BUFFER_ROWS = 240;
 static constexpr uint32_t EI_CAMERA_FRAME_BYTE_SIZE = 3;
+<<<<<<< Updated upstream
 static constexpr float BOTTLE_DECISION_THRESHOLD = 0.60f;
+=======
+static constexpr const char* EI_TARGET_LABEL = "Pet Bottle";
+>>>>>>> Stashed changes
 static constexpr bool EDGE_IMPULSE_DEBUG_NN = false;
 WebServer server(80);
 const unsigned long WIFI_TIMEOUT_MS = 20000;
@@ -231,7 +243,10 @@ bool captureAndClassifyBottle(bool* detected) {
 
   bool found_target = false;
   uint32_t found_count = 0;
+<<<<<<< Updated upstream
   uint32_t printed_count = 0;
+=======
+>>>>>>> Stashed changes
 
   Serial.println("[BOTTLE] Bounding boxes:");
   for (uint32_t i = 0; i < result.bounding_boxes_count; ++i) {
@@ -247,9 +262,14 @@ bool captureAndClassifyBottle(bool* detected) {
                   bb.y,
                   bb.width,
                   bb.height);
+<<<<<<< Updated upstream
     ++printed_count;
 
     if (bb.value >= BOTTLE_DECISION_THRESHOLD && !isRejectBottleLabel(bb.label)) {
+=======
+
+    if (strcmp(bb.label, EI_TARGET_LABEL) == 0) {
+>>>>>>> Stashed changes
       found_target = true;
       ++found_count;
     }
@@ -260,6 +280,7 @@ bool captureAndClassifyBottle(bool* detected) {
 #endif
 
   *detected = found_target;
+<<<<<<< Updated upstream
 
   if (printed_count == 0) {
     Serial.println("[BOTTLE]   No objects detected");
@@ -268,6 +289,15 @@ bool captureAndClassifyBottle(bool* detected) {
   Serial.printf("[BOTTLE] Accepted detections: %u (threshold %.2f) -> %s\n",
                 found_count,
                 BOTTLE_DECISION_THRESHOLD,
+=======
+
+  if (found_count == 0) {
+    Serial.println("[BOTTLE]   No objects detected");
+  }
+
+  Serial.printf("[BOTTLE] Pet Bottle detections: %u -> %s\n",
+                found_count,
+>>>>>>> Stashed changes
                 *detected ? "BOTTLE" : "NONE");
 
   return true;
@@ -291,6 +321,7 @@ int eiCameraGetData(size_t offset, size_t length, float* out_ptr) {
   return 0;
 }
 
+<<<<<<< Updated upstream
 bool labelContainsIgnoreCase(const char* label, const char* needle) {
   if (label == nullptr || needle == nullptr) {
     return false;
@@ -329,6 +360,8 @@ void printModelLabels() {
   }
 }
 
+=======
+>>>>>>> Stashed changes
 void doIdentify(uint32_t requestId) {
   Serial.printf("[BOTTLE] Forced capture requested (rid=%lu)...\n",
                 static_cast<unsigned long>(requestId));

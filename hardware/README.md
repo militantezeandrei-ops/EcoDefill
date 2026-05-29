@@ -328,7 +328,7 @@ Before uploading, verify:
 
 | Endpoint | Used By | Purpose |
 |:---------|:--------|:--------|
-| `POST /detect` | Bottle/Cup CAMs | Send item detection result |
+| `POST /detect` | Bottle/Cup CAMs | Send item detection result with request ID |
 | `POST /qr` | QR CAM | Send scanned QR token |
 | `GET /ping` | Any CAM | Connectivity check |
 
@@ -336,12 +336,13 @@ Before uploading, verify:
 
 | Device | Endpoint | Purpose |
 |:-------|:---------|:--------|
-| Bottle CAM | `GET /identify` | Capture and classify bottle |
-| Cup CAM | `GET /identify` | Capture and classify cup |
+| Bottle CAM | `GET /identify?rid=<id>` | Capture and classify bottle for one request |
+| Cup CAM | `GET /identify?rid=<id>` | Capture and classify cup for one request |
 | QR CAM | `GET /scan` | Start scanning |
 | QR CAM | `GET /cancel` | Stop scanning |
 | All CAMs | `GET /ping` | Connectivity check |
 
+<<<<<<< Updated upstream
 ## 13. Expected Runtime Flow
 
 The system operates using a combined mechanical and point-logic state machine. 
@@ -382,6 +383,28 @@ Used to either save local points to the app, or redeem points from the app for w
     4. LCD displays `Redeemed! Dispensing...` and the water is dispensed.
 
 ## 14. Bring-Up Checklist
+=======
+## 9. Expected Runtime Flow
+
+1. Mega detects an item at the slot IR sensor
+2. Mega opens the appropriate gate
+3. Chamber IR sensor confirms the item is in position
+4. Mega sends `CMD:IDENTIFY_BOTTLE` or `CMD:IDENTIFY_CUP` to the DevKit
+5. DevKit calls the correct CAM over Wi-Fi
+6. CAM posts `BOTTLE`, `CUP`, or `NONE` back to the DevKit with the same request ID
+7. DevKit sends `CAM:...` result back to Mega
+8. Mega sorts the item and updates points
+
+QR flow:
+
+1. Mega sends `CMD:SCAN_QR`
+2. DevKit calls QR CAM `/scan`
+3. QR CAM posts token to DevKit `/qr`
+4. DevKit verifies token with backend
+5. DevKit sends `QR:EARN:<pts>`, `QR:DISPENSE:<ms>`, or `QR:FAIL` back to Mega
+
+## 10. Bring-Up Checklist
+>>>>>>> Stashed changes
 
 - Flash all five boards with the matching firmware in this folder
 - Confirm all ESP32 boards boot and join the same Wi-Fi network
