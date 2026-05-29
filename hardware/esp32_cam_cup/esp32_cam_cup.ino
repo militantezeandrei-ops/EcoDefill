@@ -75,7 +75,7 @@ IPAddress subnet(255, 255, 255, 0);
 #define EI_CAMERA_RAW_FRAME_BUFFER_ROWS  240
 #define EI_CAMERA_FRAME_BYTE_SIZE        3
 
-static constexpr float CUP_DECISION_THRESHOLD = 0.50f;
+static constexpr float CUP_DECISION_THRESHOLD = 0.30f;
 // Detection label from the new model
 static const char* CUP_VALID_LABEL = "Valid";
 
