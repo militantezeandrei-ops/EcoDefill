@@ -69,8 +69,8 @@ Servo srvCupGate, srvCupExit, srvCupBin;
 #define REFILL_DETECT_CM 12
 
 // WATER LEVEL SENSOR (TANK WATER LEVEL)
-#define WATER_LEVEL_TRIG 40
-#define WATER_LEVEL_ECHO 41
+#define WATER_LEVEL_TRIG 40 //rx
+#define WATER_LEVEL_ECHO 41 //tx
 #define TANK_FULL_MAX_CM 15
 #define TANK_HALF_MAX_CM 35
 
