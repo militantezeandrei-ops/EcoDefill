@@ -280,7 +280,7 @@ bool runCupInference() {
                   bb.label, bb.value, bb.x, bb.y, bb.width, bb.height);
     printedCount++;
 
-    if ((strcmp(bb.label, CUP_VALID_LABEL) == 0 || isCupAcceptedLabel(bb.label)) && 
+    if ((isExactValidCupLabel(bb.label) || isCupAcceptedLabel(bb.label)) && 
         bb.value >= CUP_DECISION_THRESHOLD) {
       detected = true;
       validCount++;
@@ -322,6 +322,24 @@ bool labelContainsIgnoreCase(const char* label, const char* needle) {
   return false;
 }
 
+bool isExactValidCupLabel(const char* label) {
+  if (label == nullptr) return false;
+  int len = strlen(label);
+  if (len == 5) {
+    return tolower((unsigned char)label[0]) == 'v' &&
+           tolower((unsigned char)label[1]) == 'a' &&
+           tolower((unsigned char)label[2]) == 'l' &&
+           tolower((unsigned char)label[3]) == 'i' &&
+           tolower((unsigned char)label[4]) == 'd';
+  }
+  if (len == 3) {
+    return tolower((unsigned char)label[0]) == 'c' &&
+           tolower((unsigned char)label[1]) == 'u' &&
+           tolower((unsigned char)label[2]) == 'p';
+  }
+  return false;
+}
+
 bool isCupAcceptedLabel(const char* label) {
   return !labelContainsIgnoreCase(label, "invalid") &&
          !labelContainsIgnoreCase(label, "reject") &&
@@ -330,6 +348,7 @@ bool isCupAcceptedLabel(const char* label) {
          !labelContainsIgnoreCase(label, "bottle") &&
          !labelContainsIgnoreCase(label, "pet");
 }
+
 
 void printModelLabels() {
   Serial.println("[CUP] Model labels:");
