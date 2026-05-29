@@ -1,6 +1,6 @@
 import Link from "next/link";
 import prisma from "@/lib/prisma";
-import { Users, Target, Droplet, Activity, TrendingUp, Recycle, Waves } from "lucide-react";
+import { Users, Target, Droplet, Activity, TrendingUp, Recycle, Cylinder } from "lucide-react";
 import DashboardCharts from "@/components/admin/DashboardCharts";
 import { getCourseRanking } from "@/lib/course-ranking";
 export default async function DashboardContent({ searchParams }: { searchParams: any }) {
@@ -75,7 +75,8 @@ export default async function DashboardContent({ searchParams }: { searchParams:
             orderBy: { createdAt: "desc" }
         });
     }
-    const waterLevel = latestLog?.message || "Unknown";
+    const waterLevelRaw = latestLog?.message || "Unknown";
+    const waterLevel = (waterLevelRaw === "Full Tank" || waterLevelRaw === "Full Tank Water") ? "Full Tank" : "Low";
     const lastUpdatedStr = latestLog
         ? new Date(latestLog.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
         : "N/A";
@@ -181,31 +182,19 @@ export default async function DashboardContent({ searchParams }: { searchParams:
             title: "Water Tank Level",
             value: waterLevel,
             sub: `Updated: ${lastUpdatedStr}`,
-            icon: Waves,
+            icon: Cylinder,
             bg: "bg-white",
-            valueColor: waterLevel === "Full Tank Water" 
-                ? "text-blue-600" 
-                : waterLevel === "Half Full" 
-                    ? "text-amber-500" 
-                    : waterLevel === "Low Water"
-                        ? "text-rose-600 animate-pulse font-black"
-                        : "text-gray-500",
+            valueColor: waterLevel === "Full Tank" 
+                ? "text-blue-600 font-black animate-in fade-in" 
+                : "text-rose-600 animate-pulse font-black",
             titleColor: "text-gray-400",
             subColor: "text-gray-500",
-            iconBg: waterLevel === "Full Tank Water" 
+            iconBg: waterLevel === "Full Tank" 
                 ? "bg-blue-50" 
-                : waterLevel === "Half Full" 
-                    ? "bg-amber-50" 
-                    : waterLevel === "Low Water"
-                        ? "bg-rose-50 border border-rose-100 animate-bounce"
-                        : "bg-gray-50",
-            iconColor: waterLevel === "Full Tank Water" 
+                : "bg-rose-50 border border-rose-100 animate-bounce",
+            iconColor: waterLevel === "Full Tank" 
                 ? "text-blue-500" 
-                : waterLevel === "Half Full" 
-                    ? "text-amber-500" 
-                    : waterLevel === "Low Water"
-                        ? "text-rose-500"
-                        : "text-gray-400",
+                : "text-rose-500",
         },
     ];
 

@@ -71,8 +71,7 @@ Servo srvCupGate, srvCupExit, srvCupBin;
 // WATER LEVEL SENSOR (TANK WATER LEVEL)
 #define WATER_LEVEL_TRIG 40 //rx
 #define WATER_LEVEL_ECHO 41 //tx
-#define TANK_FULL_MAX_CM 15
-#define TANK_HALF_MAX_CM 35
+#define TANK_FULL_MAX_CM 25
 
 
 // TIMING
@@ -234,16 +233,14 @@ long getTankWaterLevelCM() {
 
 String getWaterLevelCategory() {
   long d = getTankWaterLevelCM();
-  if (d <= 0 || d >= 999) {
-    return "Low Water";
+  Serial.print(F("[SENSOR] Tank water level: "));
+  Serial.print(d);
+  Serial.println(F(" cm"));
+
+  if (d <= 0 || d >= 999 || d >= TANK_FULL_MAX_CM) {
+    return "Low";
   }
-  if (d < TANK_FULL_MAX_CM) {
-    return "Full Tank Water";
-  } else if (d < TANK_HALF_MAX_CM) {
-    return "Half Full";
-  } else {
-    return "Low Water";
-  }
+  return "Full Tank";
 }
 
 
