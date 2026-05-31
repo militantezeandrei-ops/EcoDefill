@@ -10,6 +10,9 @@ export async function POST(req: Request) {
         if (!userId) {
             const count = Number(amount || 1);
             const materialType = (itemType || "BOTTLE").toUpperCase();
+            
+            // 3 papers = 1 point, other items = 1 point each
+            const pointsEarned = materialType === "PAPER" ? Math.floor(count / 3) : count;
 
             // Create both RecyclingLog and Transaction atomically
             const result = await prisma.$transaction(async (tx) => {
@@ -18,7 +21,7 @@ export async function POST(req: Request) {
                         machineId: machineId || "MACHINE_01",
                         materialType,
                         count,
-                        pointsEarned: count,
+                        pointsEarned,
                         waterDispensed: 0,
                         isWalkIn: true,
                         status: "SUCCESS",
@@ -28,7 +31,7 @@ export async function POST(req: Request) {
                 const transaction = await tx.transaction.create({
                     data: {
                         userId: null,
-                        amount: count,
+                        amount: pointsEarned,
                         type: "EARN",
                         materialType,
                         count,

@@ -948,6 +948,8 @@ void checkPaperIR() {
               "Total: " + String(sessionPts) + " pts",
               "Returning home...   ");
 
+      devkitSend("CMD:EARN_ANON|PAPER|3");
+
       delay(1500);
       lcdIdle();
     }
