@@ -168,6 +168,24 @@ export default async function DashboardContent({ searchParams }: { searchParams:
             iconBg: "bg-blue-50",
             iconColor: "text-blue-600",
         },
+        {
+            title: "Water Tank Level",
+            value: waterLevel,
+            sub: `Updated: ${lastUpdatedStr}`,
+            icon: Cylinder,
+            bg: "bg-white",
+            valueColor: waterLevel === "Full Tank" 
+                ? "text-blue-600 font-black animate-in fade-in" 
+                : "text-rose-600 animate-pulse font-black",
+            titleColor: "text-gray-400",
+            subColor: "text-gray-500",
+            iconBg: waterLevel === "Full Tank" 
+                ? "bg-blue-50" 
+                : "bg-rose-50 border border-rose-100 animate-bounce",
+            iconColor: waterLevel === "Full Tank" 
+                ? "text-blue-500" 
+                : "text-rose-500",
+        },
     ];
 
     // Waste material cards
@@ -242,8 +260,8 @@ export default async function DashboardContent({ searchParams }: { searchParams:
                 </div>
             </div>
 
-            {/* Stats Grid — 3 columns */}
-            <div className="grid grid-cols-1 gap-5 md:grid-cols-3">
+            {/* Stats Grid — 4 columns */}
+            <div className="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-4">
                 {statCards.map((card, i) => {
                     const Icon = card.icon;
                     return (
