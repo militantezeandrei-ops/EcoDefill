@@ -56,22 +56,6 @@ class _QrScanScreenState extends ConsumerState<QrScanScreen>
       ? AppTheme.primaryEmerald
       : AppTheme.accentBlue;
 
-  String get _title => widget.mode == QrScanMode.receivePoints
-      ? 'Scan at Station'
-      : 'Scan to Dispense';
-
-  String get _subtitle => widget.mode == QrScanMode.receivePoints
-      ? 'Position this QR code in front of the scanner on the EcoDefill station to initiate the recycling session.'
-      : 'Align this QR code with the scanner on the EcoDefill dispenser machine to receive ${widget.waterAmount} water.';
-
-  String get _statusText => widget.mode == QrScanMode.receivePoints
-      ? 'Waiting for scanner...'
-      : 'Awaiting connection...';
-
-  String get _appBarTitle => widget.mode == QrScanMode.receivePoints
-      ? 'Receive Points'
-      : 'Redeem Water';
-
   @override
   void initState() {
     super.initState();
@@ -410,7 +394,7 @@ class _QrScanScreenState extends ConsumerState<QrScanScreen>
                     ),
                     const SizedBox(height: 20),
 
-                    // ── QR Display Card (Sized to 220, pure black) ──
+                    // ── QR Display Card ──
                     QrDisplayCard(
                       token: widget.token,
                       accentColor: _accent,

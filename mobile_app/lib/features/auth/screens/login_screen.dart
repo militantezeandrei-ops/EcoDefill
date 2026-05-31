@@ -79,27 +79,22 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       // Logo / Header Section
                       Center(
                         child: Container(
-                          width: 80,
-                          height: 80,
+                          width: 130,
+                          height: 130,
                           decoration: BoxDecoration(
-                            gradient: const LinearGradient(
-                              colors: [AppTheme.primaryEmerald, AppTheme.darkEmerald],
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                            ),
-                            borderRadius: BorderRadius.circular(24),
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(28),
                             boxShadow: [
                               BoxShadow(
-                                color: AppTheme.primaryEmerald.withOpacity(0.3),
+                                color: Colors.black.withOpacity(0.06),
                                 blurRadius: 16,
                                 offset: const Offset(0, 8),
                               )
                             ],
-                          ),
-                          child: const Icon(
-                            Icons.recycling_rounded,
-                            color: Colors.white,
-                            size: 40,
+                            image: const DecorationImage(
+                              image: AssetImage('assets/images/logo.jpg'),
+                              fit: BoxFit.contain,
+                            ),
                           ),
                         ),
                       ),

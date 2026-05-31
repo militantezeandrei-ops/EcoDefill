@@ -80,6 +80,9 @@ String serial2Buf  = "";
 bool   qrModeActive = false;   // True when Mega wants QR scan
 unsigned long qrScanActivatedAt = 0;
 int qrScanRequestedPoints = 0;
+int qrSessionBottles = 0;
+int qrSessionCups = 0;
+int qrSessionPapers = 0;
 String lastQrToken = "";
 unsigned long lastQrTokenAt = 0;
 bool restartPending = false;
@@ -237,9 +240,35 @@ void processMegaCommand(const String& cmd) {
     qrModeActive = true;
     qrScanActivatedAt = millis();
     qrScanRequestedPoints = 0;
-    int sep = cmd.indexOf('|');
-    if (sep > 0) {
-      qrScanRequestedPoints = cmd.substring(sep + 1).toInt();
+    qrSessionBottles = 0;
+    qrSessionCups = 0;
+    qrSessionPapers = 0;
+
+    // Parse: CMD:SCAN_QR|points|bottles|cups|papers
+    int firstSep = cmd.indexOf('|');
+    if (firstSep > 0) {
+      String rest = cmd.substring(firstSep + 1);
+      int secondSep = rest.indexOf('|');
+      if (secondSep > 0) {
+        qrScanRequestedPoints = rest.substring(0, secondSep).toInt();
+        String rest2 = rest.substring(secondSep + 1);
+        int thirdSep = rest2.indexOf('|');
+        if (thirdSep > 0) {
+          qrSessionBottles = rest2.substring(0, thirdSep).toInt();
+          String rest3 = rest2.substring(thirdSep + 1);
+          int fourthSep = rest3.indexOf('|');
+          if (fourthSep > 0) {
+            qrSessionCups = rest3.substring(0, fourthSep).toInt();
+            qrSessionPapers = rest3.substring(fourthSep + 1).toInt();
+          } else {
+            qrSessionCups = rest3.toInt();
+          }
+        } else {
+          qrSessionBottles = rest2.toInt();
+        }
+      } else {
+        qrScanRequestedPoints = rest.toInt();
+      }
     }
     triggerQRCam();
 
@@ -251,6 +280,9 @@ void processMegaCommand(const String& cmd) {
     qrModeActive = false;
     qrScanActivatedAt = 0;
     qrScanRequestedPoints = 0;
+    qrSessionBottles = 0;
+    qrSessionCups = 0;
+    qrSessionPapers = 0;
     cancelQRCam();
 
   } else if (cmd.startsWith("CMD:EARN_ANON|")) {
@@ -265,6 +297,24 @@ void processMegaCommand(const String& cmd) {
     String level = cmd.substring(16);
     level.trim();
     apiUpdateWaterLevel(level);
+  } else if (cmd.startsWith("CMD:WALKIN_DISPENSE|")) {
+    // Parse: CMD:WALKIN_DISPENSE|bottles|cups|papers
+    String rest = cmd.substring(20);
+    int firstSep = rest.indexOf('|');
+    if (firstSep > 0) {
+      int bottles = rest.substring(0, firstSep).toInt();
+      String rest2 = rest.substring(firstSep + 1);
+      int secondSep = rest2.indexOf('|');
+      if (secondSep > 0) {
+        int cups = rest2.substring(0, secondSep).toInt();
+        int papers = rest2.substring(secondSep + 1).toInt();
+
+        // Log them to the database
+        apiMachineWalkin("BOTTLE", bottles);
+        apiMachineWalkin("CUP", cups);
+        apiMachineWalkin("PAPER", papers);
+      }
+    }
   } else {
     Serial.println("[MEGA→] Ignored unrecognized command");
   }
@@ -293,10 +343,13 @@ void apiVerifyQR(const String& token, int pointsToTransfer) {
   http.addHeader("Content-Type", "application/json");
   http.setTimeout(HTTP_TIMEOUT_MS);
 
-  StaticJsonDocument<256> req;
+  StaticJsonDocument<384> req;
   req["token"]     = token;
   req["machineId"] = MACHINE_ID;
   req["amount"]    = pointsToTransfer;
+  if (qrSessionBottles > 0) req["bottles"] = qrSessionBottles;
+  if (qrSessionCups > 0) req["cups"] = qrSessionCups;
+  if (qrSessionPapers > 0) req["papers"] = qrSessionPapers;
   String body; serializeJson(req, body);
 
   Serial.print("[HTTP] POST verify-qr: "); Serial.println(body);
@@ -421,7 +474,29 @@ void apiUpdateWaterLevel(const String& level) {
   Serial.printf("[HTTP] update-water-level %s → %d\n", level.c_str(), code);
 }
 
+// ── BACKEND: MACHINE WALKIN LOG ──────────────────────────────────────────────
+void apiMachineWalkin(const String& materialType, int count) {
+  if (count <= 0) return;
+  if (!ensureWiFi()) return;
 
+  WiFiClientSecure client; client.setInsecure();
+  HTTPClient http;
+  http.begin(client, String(SERVER_BASE_URL) + "/api/machine-walkin");
+  http.addHeader("Content-Type", "application/json");
+  http.setTimeout(HTTP_TIMEOUT_MS);
+
+  StaticJsonDocument<256> req;
+  req["machineId"]    = MACHINE_ID;
+  req["materialType"] = materialType;
+  req["count"]        = count;
+  String body; serializeJson(req, body);
+
+  Serial.printf("[HTTP] POST machine-walkin: %s\n", body.c_str());
+  int code = http.POST(body);
+  String resp = code > 0 ? http.getString() : "";
+  http.end();
+  Serial.printf("[HTTP] machine-walkin → %d %s\n", code, resp.c_str());
+}
 // ── QR-CAM TRIGGER (tell QR-CAM to scan) ─────────────────────────────────────
 // ── ITEM CAM TRIGGERS ───────────────────────────────────────────────────────
 // GET /identify on Bottle CAM — CAM captures, analyzes, POSTs result back here

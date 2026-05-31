@@ -24,12 +24,18 @@ export default async function TransactionsPage() {
     }>();
 
     for (const tx of transactions) {
-        const dateKey = tx.createdAt.toISOString().split("T")[0];
+        const txDateInManila = new Date(tx.createdAt.toLocaleString("en-US", { timeZone: "Asia/Manila" }));
+        const yyyy = txDateInManila.getFullYear();
+        const mm = String(txDateInManila.getMonth() + 1).padStart(2, "0");
+        const dd = String(txDateInManila.getDate()).padStart(2, "0");
+        const dateKey = `${yyyy}-${mm}-${dd}`;
+
         const label = tx.createdAt.toLocaleDateString("en-US", {
             weekday: "long",
             year: "numeric",
             month: "long",
             day: "numeric",
+            timeZone: "Asia/Manila",
         });
 
         if (!groupMap.has(dateKey)) {

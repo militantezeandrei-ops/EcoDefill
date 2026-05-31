@@ -3,23 +3,30 @@ import prisma from "@/lib/prisma";
 import { Users, Target, Droplet, Activity, TrendingUp, Recycle, Cylinder } from "lucide-react";
 import DashboardCharts from "@/components/admin/DashboardCharts";
 import { getCourseRanking } from "@/lib/course-ranking";
+function getStartOfDayInManila(date: Date = new Date()): Date {
+    const manilaStr = date.toLocaleString("en-US", { timeZone: "Asia/Manila" });
+    const d = new Date(manilaStr);
+    d.setHours(0, 0, 0, 0);
+    d.setHours(d.getHours() - 8);
+    return d;
+}
+
 export default async function DashboardContent({ searchParams }: { searchParams: any }) {
     const filter = (searchParams?.filter as string) || "week";
 
     const now = new Date();
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    const today = getStartOfDayInManila(now);
 
-    const filterDate = new Date();
-    if (filter === "today") {
-        filterDate.setHours(0, 0, 0, 0);
-    } else if (filter === "month") {
+    let filterDate = new Date(today);
+    if (filter === "month") {
         filterDate.setDate(filterDate.getDate() - 30);
+    } else if (filter === "today") {
+        filterDate = today;
     } else {
         // week default
-        filterDate.setDate(now.getDate() - 7);
+        filterDate.setDate(filterDate.getDate() - 7);
     }
-    filterDate.setHours(0, 0, 0, 0);
+
 
     const [
         totalUsers,
@@ -28,8 +35,6 @@ export default async function DashboardContent({ searchParams }: { searchParams:
         bottlesAgg,
         cupsAgg,
         paperAgg,
-        healthyMachines,
-        allMachines,
         allRecentTransactions,
         latestFive,
         todaysRedeemsAgg,
@@ -42,8 +47,6 @@ export default async function DashboardContent({ searchParams }: { searchParams:
         prisma.transaction.aggregate({ _sum: { count: true }, where: { type: "EARN", materialType: "BOTTLE", status: "SUCCESS" } }),
         prisma.transaction.aggregate({ _sum: { count: true }, where: { type: "EARN", materialType: "CUP", status: "SUCCESS" } }),
         prisma.transaction.aggregate({ _sum: { count: true }, where: { type: "EARN", materialType: "PAPER", status: "SUCCESS" } }),
-        prisma.machineLog.count({ where: { status: "ONLINE" } }),
-        prisma.machineLog.count(),
         prisma.transaction.findMany({
             where: { createdAt: { gte: filterDate } },
             select: { amount: true, createdAt: true, type: true },
@@ -88,7 +91,6 @@ export default async function DashboardContent({ searchParams }: { searchParams:
     const bottles = bottlesAgg._sum.count || 0;
     const cups = cupsAgg._sum.count || 0;
     const paper = paperAgg._sum.count || 0;
-    const machineHealth = allMachines > 0 ? Math.round((healthyMachines / allMachines) * 100) : 100;
 
     // Build chart data
     const days = filter === "today" 
@@ -166,36 +168,6 @@ export default async function DashboardContent({ searchParams }: { searchParams:
             iconBg: "bg-blue-50",
             iconColor: "text-blue-600",
         },
-        {
-            title: "Machine Health",
-            value: `${machineHealth}%`,
-            sub: `${healthyMachines}/${allMachines} online`,
-            icon: Activity,
-            bg: "bg-white",
-            valueColor: machineHealth > 80 ? "text-emerald-600" : "text-red-600",
-            titleColor: "text-gray-400",
-            subColor: "text-gray-500",
-            iconBg: machineHealth > 80 ? "bg-emerald-50" : "bg-red-50",
-            iconColor: machineHealth > 80 ? "text-emerald-600" : "text-red-600",
-        },
-        {
-            title: "Water Tank Level",
-            value: waterLevel,
-            sub: `Updated: ${lastUpdatedStr}`,
-            icon: Cylinder,
-            bg: "bg-white",
-            valueColor: waterLevel === "Full Tank" 
-                ? "text-blue-600 font-black animate-in fade-in" 
-                : "text-rose-600 animate-pulse font-black",
-            titleColor: "text-gray-400",
-            subColor: "text-gray-500",
-            iconBg: waterLevel === "Full Tank" 
-                ? "bg-blue-50" 
-                : "bg-rose-50 border border-rose-100 animate-bounce",
-            iconColor: waterLevel === "Full Tank" 
-                ? "text-blue-500" 
-                : "text-rose-500",
-        },
     ];
 
     // Waste material cards
@@ -270,8 +242,8 @@ export default async function DashboardContent({ searchParams }: { searchParams:
                 </div>
             </div>
 
-            {/* Stats Grid — 5 columns (Compact) */}
-            <div className="grid grid-cols-2 gap-5 lg:grid-cols-5">
+            {/* Stats Grid — 3 columns */}
+            <div className="grid grid-cols-1 gap-5 md:grid-cols-3">
                 {statCards.map((card, i) => {
                     const Icon = card.icon;
                     return (
@@ -409,10 +381,10 @@ export default async function DashboardContent({ searchParams }: { searchParams:
                                     {tx.type}
                                 </span>
                                 <span className="w-[20%] text-[11px] font-bold text-gray-400 uppercase">
-                                    {new Date(tx.createdAt).toLocaleDateString([], { month: 'short', day: '2-digit' })}
+                                    {new Date(tx.createdAt).toLocaleDateString("en-US", { month: 'short', day: '2-digit', timeZone: 'Asia/Manila' })}
                                 </span>
                                 <span className="w-[20%] text-[11px] font-bold text-gray-400 uppercase tracking-tight">
-                                    {new Date(tx.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                    {new Date(tx.createdAt).toLocaleTimeString("en-US", { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Manila' })}
                                 </span>
                                 <p className={`w-[15%] text-right text-[14px] font-black ${tx.type === "EARN" ? "text-emerald-600" : "text-blue-600"}`}>
                                     {tx.type === "EARN" ? "+" : "-"}{Number(tx.amount).toFixed(1).replace(/\.0$/, '')}

@@ -4,7 +4,7 @@ import jwt from 'jsonwebtoken';
 
 export async function POST(req: Request) {
     try {
-        const { token, machineId, amount } = await req.json();
+        const { token, machineId, amount, bottles, cups, papers } = await req.json();
 
         if (!token || !machineId) {
             return NextResponse.json({ error: 'Missing token or machineId' }, { status: 400 });
@@ -155,14 +155,79 @@ export async function POST(req: Request) {
                     data: { balance: { increment: pointsToProcess } }
                 });
 
+                // Determine dominant material type for the Transaction record
+                let dominantMaterial: string | null = null;
+                let totalItemsCount = 0;
+
+                const bCount = Number(bottles || 0);
+                const cCount = Number(cups || 0);
+                const pCount = Number(papers || 0); // sheets of paper
+                const paperPoints = Math.floor(pCount / 3);
+
+                if (bCount > 0 || cCount > 0 || paperPoints > 0) {
+                    totalItemsCount = bCount + cCount + pCount;
+                    if (bCount >= cCount && bCount >= paperPoints) {
+                        dominantMaterial = "BOTTLE";
+                    } else if (cCount >= bCount && cCount >= paperPoints) {
+                        dominantMaterial = "CUP";
+                    } else {
+                        dominantMaterial = "PAPER";
+                    }
+                }
+
                 // Log transaction
                 await tx.transaction.create({
                     data: {
                         userId: user.id,
                         amount: pointsToProcess,
-                        type: 'EARN'
+                        type: 'EARN',
+                        materialType: dominantMaterial,
+                        count: totalItemsCount > 0 ? totalItemsCount : pointsToProcess,
                     }
                 });
+
+                // Create detailed RecyclingLog entries for each material
+                if (bCount > 0) {
+                    await tx.recyclingLog.create({
+                        data: {
+                            machineId,
+                            userId: user.id,
+                            materialType: "BOTTLE",
+                            count: bCount,
+                            pointsEarned: bCount,
+                            isWalkIn: false,
+                            status: "SUCCESS"
+                        }
+                    });
+                }
+
+                if (cCount > 0) {
+                    await tx.recyclingLog.create({
+                        data: {
+                            machineId,
+                            userId: user.id,
+                            materialType: "CUP",
+                            count: cCount,
+                            pointsEarned: cCount,
+                            isWalkIn: false,
+                            status: "SUCCESS"
+                        }
+                    });
+                }
+
+                if (pCount > 0) {
+                    await tx.recyclingLog.create({
+                        data: {
+                            machineId,
+                            userId: user.id,
+                            materialType: "PAPER",
+                            count: pCount,
+                            pointsEarned: paperPoints,
+                            isWalkIn: false,
+                            status: "SUCCESS"
+                        }
+                    });
+                }
 
                 txResult = {
                     userName: user.fullName || user.email?.split('@')[0] || 'Student',

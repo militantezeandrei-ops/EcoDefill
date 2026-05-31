@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ecodefill_mobile/features/auth/providers/auth_provider.dart';
 import 'package:ecodefill_mobile/core/theme/app_theme.dart';
+import 'package:ecodefill_mobile/core/widgets/dynamic_island_notification.dart';
 
 class ResetPasswordScreen extends ConsumerStatefulWidget {
   final String email;
@@ -35,14 +36,24 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
           );
       
       if (success && mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Password updated successfully. You can now log in with your new password.'),
-            backgroundColor: AppTheme.primaryEmerald,
-          ),
+        DynamicIslandNotification.show(
+          context,
+          title: 'Password Reset',
+          subtitle: 'Password updated successfully!',
+          icon: Icons.check_circle_rounded,
+          type: NotificationType.success,
         );
         ref.read(authProvider.notifier).clearError();
         Navigator.of(context).popUntil((route) => route.isFirst);
+      } else if (mounted) {
+        final errorMsg = ref.read(authProvider).error ?? 'Failed to reset password.';
+        DynamicIslandNotification.show(
+          context,
+          title: 'Reset Failed',
+          subtitle: errorMsg,
+          icon: Icons.error_outline_rounded,
+          type: NotificationType.error,
+        );
       }
     }
   }
@@ -149,34 +160,7 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
                       ),
                       const SizedBox(height: 32),
 
-                      // Error Alert Banner
-                      if (authState.error != null) ...[
-                        Container(
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: Colors.red.shade50,
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(color: Colors.red.shade100),
-                          ),
-                          child: Row(
-                            children: [
-                              Icon(Icons.error_outline, color: Colors.red.shade600),
-                              const SizedBox(width: 10),
-                              Expanded(
-                                child: Text(
-                                  authState.error!,
-                                  style: TextStyle(
-                                    color: Colors.red.shade700,
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                      ],
+
 
                       // Email Field (Read-only)
                       TextFormField(

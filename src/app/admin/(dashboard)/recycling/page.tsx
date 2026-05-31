@@ -55,18 +55,18 @@ export default async function RecyclingPage() {
     ];
 
     const formatDateHeader = (date: Date) => {
-        const now = new Date();
-        const d = new Date(date);
-        d.setHours(0, 0, 0, 0);
-        now.setHours(0, 0, 0, 0);
-        const diff = (now.getTime() - d.getTime()) / (1000 * 60 * 60 * 24);
+        const manilaNow = new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Manila" }));
+        const manilaDate = new Date(new Date(date).toLocaleString("en-US", { timeZone: "Asia/Manila" }));
+        manilaNow.setHours(0, 0, 0, 0);
+        manilaDate.setHours(0, 0, 0, 0);
+        const diff = Math.round((manilaNow.getTime() - manilaDate.getTime()) / (1000 * 60 * 60 * 24));
         if (diff === 0) return "Today";
         if (diff === 1) return "Yesterday";
-        return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+        return manilaDate.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
     };
 
     const formatTime = (date: Date) =>
-        date.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true });
+        date.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true, timeZone: "Asia/Manila" });
 
     const groupedLogs = logs.reduce((acc: Record<string, typeof logs>, log) => {
         const key = formatDateHeader(log.createdAt);

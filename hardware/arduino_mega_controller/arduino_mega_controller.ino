@@ -106,6 +106,9 @@ State machineState = ST_IDLE;
 
 // SESSION
 int sessionPts = 0;
+int sessionBottles = 0;
+int sessionCups = 0;
+int sessionPapers = 0;
 bool bottleSlotActive = false;
 bool scanModeActive = false;
 
@@ -386,7 +389,7 @@ void handleDevKit(const String& msg) {
             "                    ");
 
     compactBottle();
-    devkitSend("CMD:EARN_ANON|BOTTLE|1");
+    sessionBottles += 1;
 
     lcdShow("  Bottle Accepted!  ",
             "+1 Point Earned!    ",
@@ -431,7 +434,7 @@ void handleDevKit(const String& msg) {
             "                    ");
 
     compactCup();
-    devkitSend("CMD:EARN_ANON|CUP|1");
+    sessionCups += 1;
 
     lcdShow("   Cup Accepted!    ",
             "+1 Point Earned!    ",
@@ -539,6 +542,9 @@ void handleDevKit(const String& msg) {
 
     sessionPts -= credited;
     if (sessionPts < 0) sessionPts = 0;
+    sessionBottles = 0;
+    sessionCups = 0;
+    sessionPapers = 0;
 
     blockScanButton(true);
     scanModeActive = false;
@@ -576,6 +582,9 @@ void handleDevKit(const String& msg) {
     int credited = msg.substring(8).toInt();
     sessionPts -= credited;
     if (sessionPts < 0) sessionPts = 0;
+    sessionBottles = 0;
+    sessionCups = 0;
+    sessionPapers = 0;
     blockScanButton(true);
     scanModeActive = false;
     qrScanStartedAt = 0;
@@ -694,6 +703,31 @@ void onDispensePressed() {
           String(ptsToUse) + " pts used",
           "Please wait...      ");
 
+  // Determine walk-in materials breakdown to report to ESP32
+  int bLog = min(sessionBottles, ptsToUse);
+  int remPts = ptsToUse - bLog;
+  sessionBottles -= bLog;
+  if (sessionBottles < 0) sessionBottles = 0;
+
+  int cLog = 0;
+  if (remPts > 0) {
+    cLog = min(sessionCups, remPts);
+    remPts -= cLog;
+    sessionCups -= cLog;
+    if (sessionCups < 0) sessionCups = 0;
+  }
+
+  int pLog = 0;
+  if (remPts > 0) {
+    pLog = min(sessionPapers / 3, remPts);
+    remPts -= pLog;
+    sessionPapers -= pLog * 3;
+    if (sessionPapers < 0) sessionPapers = 0;
+  }
+
+  // Send walk-in dispense logging command to ESP32
+  devkitSend("CMD:WALKIN_DISPENSE|" + String(bLog) + "|" + String(cLog) + "|" + String(pLog));
+
   dispenseWater(ms);
 
   sessionPts -= ptsToUse;
@@ -774,7 +808,7 @@ void onScanPressed() {
   blockScanButton(true);
 
   // Send current local points too. Backend can use this amount when the QR is for transferring points to the app.
-  devkitSend("CMD:SCAN_QR|" + String(sessionPts));
+  devkitSend("CMD:SCAN_QR|" + String(sessionPts) + "|" + String(sessionBottles) + "|" + String(sessionCups) + "|" + String(sessionPapers));
 
   lcdShow(" QR Scanning...    ",
           "Please wait        ",
@@ -896,6 +930,7 @@ void checkPaperIR() {
     paperWasDetected = true;
     lastPaperDetectAt = millis();
     paperCount++;
+    sessionPapers++;
 
     lcdShow(" Paper Detected!    ",
             "Count: " + String(paperCount) + "/3",

@@ -85,7 +85,7 @@ export default function TransactionAccordion({ groups }: { groups: DayGroup[] })
                                         {group.transactions.map((tx, rowIdx) => (
                                             <tr key={tx.id} className={`transition-colors hover:bg-blue-50/20 ${rowIdx % 2 === 0 ? "bg-white" : "bg-gray-50/40"}`}>
                                                 <td className="px-5 py-2.5 text-[13px] font-medium text-gray-500">
-                                                    {new Date(tx.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                                                    {new Date(tx.createdAt).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Manila" })}
                                                 </td>
                                                 <td className="px-5 py-2.5">
                                                     <div className="flex items-center gap-2">

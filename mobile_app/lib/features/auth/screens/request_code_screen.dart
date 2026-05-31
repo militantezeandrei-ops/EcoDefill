@@ -4,6 +4,7 @@ import 'package:ecodefill_mobile/features/auth/providers/auth_provider.dart';
 import 'package:ecodefill_mobile/core/theme/app_theme.dart';
 import 'package:ecodefill_mobile/features/auth/screens/register_screen.dart';
 import 'package:ecodefill_mobile/features/auth/screens/reset_password_screen.dart';
+import 'package:ecodefill_mobile/core/widgets/dynamic_island_notification.dart';
 
 class RequestCodeScreen extends ConsumerStatefulWidget {
   final String purpose; // 'register' or 'reset_password'
@@ -31,11 +32,12 @@ class _RequestCodeScreenState extends ConsumerState<RequestCodeScreen> {
       
       final success = await notifier.requestVerificationCode(email, widget.purpose);
       if (success && mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Verification code sent successfully. Please check your email.'),
-            backgroundColor: AppTheme.primaryEmerald,
-          ),
+        DynamicIslandNotification.show(
+          context,
+          title: widget.purpose == 'register' ? 'Register' : 'Reset Password',
+          subtitle: 'Verification code sent to your email!',
+          icon: Icons.mark_email_read_rounded,
+          type: NotificationType.success,
         );
         
         if (widget.purpose == 'register') {
@@ -53,6 +55,15 @@ class _RequestCodeScreenState extends ConsumerState<RequestCodeScreen> {
             ),
           );
         }
+      } else if (mounted) {
+        final errorMsg = ref.read(authProvider).error ?? 'Failed to send verification code.';
+        DynamicIslandNotification.show(
+          context,
+          title: 'Request Failed',
+          subtitle: errorMsg,
+          icon: Icons.error_outline_rounded,
+          type: NotificationType.error,
+        );
       }
     }
   }
@@ -163,34 +174,7 @@ class _RequestCodeScreenState extends ConsumerState<RequestCodeScreen> {
                       ),
                       const SizedBox(height: 40),
 
-                      // Error Alert Banner
-                      if (authState.error != null) ...[
-                        Container(
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: Colors.red.shade50,
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(color: Colors.red.shade100),
-                          ),
-                          child: Row(
-                            children: [
-                              Icon(Icons.error_outline, color: Colors.red.shade600),
-                              const SizedBox(width: 10),
-                              Expanded(
-                                child: Text(
-                                  authState.error!,
-                                  style: TextStyle(
-                                    color: Colors.red.shade700,
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                      ],
+
 
                       // Email Input Box
                       TextFormField(
