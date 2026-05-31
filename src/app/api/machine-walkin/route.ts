@@ -42,17 +42,31 @@ export async function POST(req: NextRequest) {
         const pointsEarned = Math.min(rawPoints, MAX_POINTS_PER_WALKIN);
         const waterDispensed = pointsEarned * ML_PER_POINT; // e.g. 5 pts = 500ml
 
-        const log = await prisma.recyclingLog.create({
-            data: {
-                machineId,
-                // userId intentionally omitted — NULL in DB = walk-in / no account
-                materialType,
-                count,
-                pointsEarned,
-                waterDispensed,
-                isWalkIn: true,
-                status: "SUCCESS",
-            },
+        const { log } = await prisma.$transaction(async (tx) => {
+            const log = await tx.recyclingLog.create({
+                data: {
+                    machineId,
+                    materialType,
+                    count,
+                    pointsEarned,
+                    waterDispensed,
+                    isWalkIn: true,
+                    status: "SUCCESS",
+                },
+            });
+
+            await tx.transaction.create({
+                data: {
+                    userId: null,
+                    amount: pointsEarned,
+                    type: "EARN",
+                    materialType,
+                    count,
+                    status: "SUCCESS",
+                }
+            });
+
+            return { log };
         });
 
         return NextResponse.json({

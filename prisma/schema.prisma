@@ -1,9 +1,3 @@
-// -----------------------------------------------------------------------------
-// EcoDefill Database Schema
-// -----------------------------------------------------------------------------
-// PRIMARY SOURCE OF TRUTH: Modify only after human review.
-// DO NOT RUN MIGRATIONS SILENTLY.
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -14,59 +8,53 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
-enum Role {
-  STUDENT
-  ADMIN
-}
-
 /// Represents both Students and Admin accounts.
 /// Balance is stored in 'points' where 1 point typically equals 100ml.
 model User {
-  id           String        @id @default(uuid()) @db.Uuid
-  email        String        @unique @db.VarChar(255)
-  fullName     String?       // E.g. "Juan Dela Cruz"
-  passwordHash String
-  role         Role          @default(STUDENT)
-  balance      Decimal       @default(0) @db.Decimal(10, 2) // total stored points (1 point = 100ml)
-  course       String?       @db.VarChar(50) // E.g. "BSIT"
-  yearLevel    String?       @db.VarChar(10) // E.g. "1", "2", "3", "4"
-  section      String?       @db.VarChar(10) // E.g. "3A"
-  hasSeenGuide Boolean       @default(false)
-  createdAt    DateTime      @default(now()) @db.Timestamptz
-  updatedAt    DateTime      @updatedAt @db.Timestamptz
-
-  transactions    Transaction[]
-  qrTokens        QrToken[]
+  email           String           @unique @db.VarChar(255)
+  fullName        String?
+  passwordHash    String
+  balance         Decimal          @default(0) @db.Decimal(10, 2)
+  course          String?          @db.VarChar(50)
+  yearLevel       String?          @db.VarChar(10)
+  section         String?          @db.VarChar(10)
+  createdAt       DateTime         @default(now()) @db.Timestamptz(6)
+  updatedAt       DateTime         @updatedAt @db.Timestamptz(6)
+  id              String           @id @default(uuid()) @db.Uuid
+  hasSeenGuide    Boolean          @default(false)
+  role            Role             @default(STUDENT)
   machineSessions MachineSession[]
+  qrTokens        QrToken[]
   recyclingLogs   RecyclingLog[]
+  transactions    Transaction[]
 
   @@index([email])
 }
 
 model VerificationCode {
-  id         String   @id @default(uuid()) @db.Uuid
-  email      String   @db.VarChar(255)
-  codeHash   String
-  purpose    String   @db.VarChar(30) // REGISTER | RESET_PASSWORD
-  expiresAt  DateTime @db.Timestamptz
-  used       Boolean  @default(false)
-  createdAt  DateTime @default(now()) @db.Timestamptz
-  usedAt     DateTime? @db.Timestamptz
+  id        String    @id @default(uuid()) @db.Uuid
+  email     String    @db.VarChar(255)
+  codeHash  String
+  purpose   String    @db.VarChar(30)
+  expiresAt DateTime  @db.Timestamptz(6)
+  used      Boolean   @default(false)
+  createdAt DateTime  @default(now()) @db.Timestamptz(6)
+  usedAt    DateTime? @db.Timestamptz(6)
 
   @@index([email, purpose, expiresAt])
 }
 
 /// Records all point-related events (EARN from recycling, REDEEM for water).
 model Transaction {
+  type         String   @db.VarChar(20)
+  amount       Decimal  @db.Decimal(10, 2)
+  materialType String?  @db.VarChar(20)
+  count        Int?
+  status       String   @default("SUCCESS") @db.VarChar(20)
+  createdAt    DateTime @default(now()) @db.Timestamptz(6)
   id           String   @id @default(uuid()) @db.Uuid
-  userId       String   @db.Uuid
-  user         User     @relation(fields: [userId], references: [id])
-  type         String   @db.VarChar(20) // "EARN" or "REDEEM"
-  amount       Decimal  @db.Decimal(10, 2) // point amount
-  materialType String?  @db.VarChar(20) // Optional: BOTTLE, CUP, PAPER
-  count        Int?     // Optional: Number of items
-  status       String   @default("SUCCESS") @db.VarChar(20) // SUCCESS, REJECTED
-  createdAt    DateTime @default(now()) @db.Timestamptz
+  userId       String?  @db.Uuid
+  user         User?    @relation(fields: [userId], references: [id])
 
   @@index([userId, type, createdAt])
 }
@@ -74,17 +62,17 @@ model Transaction {
 /// Short-lived tokens for QR interactions. 
 /// 'EARN' for recycling machine, 'REDEEM' for water dispenser.
 model QrToken {
-  id           String    @id @default(uuid()) @db.Uuid
-  userId       String    @db.Uuid
-  user         User      @relation(fields: [userId], references: [id])
-  token        String    @unique // Original long token (JWT/JSON)
-  shortToken   String?   @unique @db.VarChar(20) // New high-density short token (e.g., ECO-A3F9B2C1)
-  type         String    @default("EARN") @db.VarChar(20) // "EARN" or "REDEEM"
-  amount       Decimal   @default(0) @db.Decimal(10, 2)
-  expiresAt    DateTime  @db.Timestamptz
-  used         Boolean   @default(false)
-  usedAt       DateTime? @db.Timestamptz // Timestamp when the token was successfully used
-  createdAt    DateTime  @default(now()) @db.Timestamptz
+  token      String    @unique
+  shortToken String?   @unique @db.VarChar(20)
+  type       String    @default("EARN") @db.VarChar(20)
+  amount     Decimal   @default(0) @db.Decimal(10, 2)
+  expiresAt  DateTime  @db.Timestamptz(6)
+  used       Boolean   @default(false)
+  usedAt     DateTime? @db.Timestamptz(6)
+  createdAt  DateTime  @default(now()) @db.Timestamptz(6)
+  id         String    @id @default(uuid()) @db.Uuid
+  userId     String    @db.Uuid
+  user       User      @relation(fields: [userId], references: [id])
 
   @@index([token])
   @@index([shortToken])
@@ -94,17 +82,16 @@ model QrToken {
 /// Represents an active hardware interaction session (e.g., dispensing water).
 /// Uses JTI for replay prevention.
 model MachineSession {
-  id              String        @id @default(uuid()) @db.Uuid
-  machineId       String        @db.VarChar(50) // Identifier for the physical ESP32
-  userId          String        @db.Uuid
-  pointsToDeduct  Decimal       @db.Decimal(10, 2)
-  amountToDispense Decimal      @db.Decimal(10, 2) // e.g., 300 (ml)
-  status          String        @default("INITIATED") @db.VarChar(20) // INITIATED, APPROVED, DISPENSED, FAILED
-  jti             String        @unique // JWT ID for replay prevention
-  
-  user            User          @relation(fields: [userId], references: [id])
-  createdAt       DateTime      @default(now()) @db.Timestamptz
-  expiresAt       DateTime      @db.Timestamptz // Set to 60s from creation
+  machineId        String   @db.VarChar(50)
+  pointsToDeduct   Decimal  @db.Decimal(10, 2)
+  amountToDispense Decimal  @db.Decimal(10, 2)
+  status           String   @default("INITIATED") @db.VarChar(20)
+  jti              String   @unique
+  createdAt        DateTime @default(now()) @db.Timestamptz(6)
+  expiresAt        DateTime @db.Timestamptz(6)
+  id               String   @id @default(uuid()) @db.Uuid
+  userId           String   @db.Uuid
+  user             User     @relation(fields: [userId], references: [id])
 
   @@index([machineId, status])
   @@index([jti])
@@ -113,17 +100,17 @@ model MachineSession {
 /// Detailed logs for items processed by the recycling machine.
 /// userId is nullable to support walk-in / anonymous users (no mobile app).
 model RecyclingLog {
-  id              String   @id @default(uuid()) @db.Uuid
-  machineId       String   @db.VarChar(50)
-  userId          String?  @db.Uuid                         // NULL = walk-in / unknown user
-  user            User?    @relation(fields: [userId], references: [id])
-  materialType    String   @db.VarChar(20)                  // BOTTLE, CUP, PAPER
-  count           Int
-  pointsEarned    Decimal  @db.Decimal(10, 2)               // Used to calculate water dispensed
-  waterDispensed  Decimal? @db.Decimal(10, 2)               // ml dispensed (pointsEarned * 100)
-  isWalkIn        Boolean  @default(false)                  // True when no mobile app used
-  status          String   @default("SUCCESS") @db.VarChar(20) // SUCCESS, REJECTED
-  createdAt       DateTime @default(now()) @db.Timestamptz
+  machineId      String   @db.VarChar(50)
+  materialType   String   @db.VarChar(20)
+  count          Int
+  pointsEarned   Decimal  @db.Decimal(10, 2)
+  status         String   @default("SUCCESS") @db.VarChar(20)
+  createdAt      DateTime @default(now()) @db.Timestamptz(6)
+  id             String   @id @default(uuid()) @db.Uuid
+  userId         String?  @db.Uuid
+  isWalkIn       Boolean  @default(false)
+  waterDispensed Decimal? @db.Decimal(10, 2)
+  user           User?    @relation(fields: [userId], references: [id])
 
   @@index([userId, createdAt])
   @@index([machineId, createdAt])
@@ -132,12 +119,17 @@ model RecyclingLog {
 
 /// System-level logs for IoT hardware health monitoring.
 model MachineLog {
-  id           String   @id @default(uuid()) @db.Uuid
-  machineId    String   @db.VarChar(50)
-  status       String   @db.VarChar(20) // ONLINE, OFFLINE, ERROR
-  message      String?
-  pingMs       Int?
-  createdAt    DateTime @default(now()) @db.Timestamptz
+  machineId String   @db.VarChar(50)
+  status    String   @db.VarChar(20)
+  message   String?
+  pingMs    Int?
+  createdAt DateTime @default(now()) @db.Timestamptz(6)
+  id        String   @id @default(uuid()) @db.Uuid
 
   @@index([machineId, createdAt])
+}
+
+enum Role {
+  STUDENT
+  ADMIN
 }

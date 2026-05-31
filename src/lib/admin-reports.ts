@@ -73,7 +73,7 @@ export function getMaterialItemCount(materialType: string | null, count: number 
 }
 
 export async function getAdminReportData(): Promise<AdminReportData> {
-    const [users, totalTransactions, recentTransactions, totalRedeemedAgg] = await Promise.all([
+    const [users, totalTransactions, recentTransactions, totalRedeemedAgg, earnTransactions] = await Promise.all([
         prisma.user.findMany({
             where: { role: "STUDENT" },
             select: {
@@ -115,6 +115,14 @@ export async function getAdminReportData(): Promise<AdminReportData> {
             _sum: { amount: true },
             where: { type: "REDEEM", status: "SUCCESS" },
         }),
+        prisma.transaction.findMany({
+            where: { type: "EARN", status: "SUCCESS" },
+            select: {
+                amount: true,
+                count: true,
+                materialType: true,
+            }
+        })
     ]);
 
     const materialMap = new Map<string, MaterialReportRow>();
@@ -136,22 +144,6 @@ export async function getAdminReportData(): Promise<AdminReportData> {
                 return sum + getMaterialItemCount(transaction.materialType, transaction.count, amount);
             }, 0);
 
-            for (const transaction of user.transactions) {
-                const materialType = transaction.materialType || "OTHER";
-                const amount = Number(transaction.amount || 0);
-                const row = materialMap.get(materialType) ?? {
-                    materialType,
-                    points: 0,
-                    items: 0,
-                    transactions: 0,
-                };
-
-                row.points += amount;
-                row.items += getMaterialItemCount(transaction.materialType, transaction.count, amount);
-                row.transactions += 1;
-                materialMap.set(materialType, row);
-            }
-
             return {
                 email: user.email,
                 fullName: user.fullName,
@@ -163,8 +155,28 @@ export async function getAdminReportData(): Promise<AdminReportData> {
         })
         .sort((a, b) => b.totalPoints - a.totalPoints);
 
-    const totalEarned = activeStudents.reduce((sum, user) => sum + user.totalPoints, 0);
-    const totalItemsRecycled = activeStudents.reduce((sum, user) => sum + user.totalItems, 0);
+    // Populate materialMap from ALL earn transactions (including walk-ins)
+    for (const transaction of earnTransactions) {
+        const materialType = transaction.materialType || "OTHER";
+        const amount = Number(transaction.amount || 0);
+        const row = materialMap.get(materialType) ?? {
+            materialType,
+            points: 0,
+            items: 0,
+            transactions: 0,
+        };
+
+        row.points += amount;
+        row.items += getMaterialItemCount(transaction.materialType, transaction.count, amount);
+        row.transactions += 1;
+        materialMap.set(materialType, row);
+    }
+
+    const totalEarned = earnTransactions.reduce((sum, tx) => sum + Number(tx.amount || 0), 0);
+    const totalItemsRecycled = earnTransactions.reduce((sum, tx) => {
+        const amount = Number(tx.amount || 0);
+        return sum + getMaterialItemCount(tx.materialType, tx.count, amount);
+    }, 0);
     const totalRedeemed = Number(totalRedeemedAgg._sum.amount || 0);
 
     return {
@@ -179,8 +191,8 @@ export async function getAdminReportData(): Promise<AdminReportData> {
         materialSummary: Array.from(materialMap.values()).sort((a, b) => b.points - a.points),
         recentTransactions: recentTransactions.map((transaction) => ({
             id: transaction.id,
-            userName: transaction.user.fullName || transaction.user.email,
-            userEmail: transaction.user.email,
+            userName: transaction.user ? (transaction.user.fullName || transaction.user.email) : "Walk-in / Unknown",
+            userEmail: transaction.user ? transaction.user.email : "Walk-in / Unknown",
             type: transaction.type,
             amount: Number(transaction.amount || 0),
             materialType: transaction.materialType || "N/A",

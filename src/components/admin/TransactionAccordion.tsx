@@ -89,10 +89,12 @@ export default function TransactionAccordion({ groups }: { groups: DayGroup[] })
                                                 </td>
                                                 <td className="px-5 py-2.5">
                                                     <div className="flex items-center gap-2">
-                                                        <div className="flex h-6 w-6 items-center justify-center rounded-md bg-indigo-500/10 text-[11px] font-black text-indigo-600">
-                                                            {tx.user?.email?.[0]?.toUpperCase() || "?"}
+                                                        <div className={`flex h-6 w-6 items-center justify-center rounded-md text-[11px] font-black ${
+                                                            tx.user ? "bg-indigo-500/10 text-indigo-600" : "bg-amber-500/10 text-amber-600"
+                                                        }`}>
+                                                            {tx.user?.email?.[0]?.toUpperCase() || "W"}
                                                         </div>
-                                                        <span className="text-[13px] font-bold text-gray-800">{tx.user?.email || "—"}</span>
+                                                        <span className="text-[13px] font-bold text-gray-800">{tx.user?.email || "Walk-in / Unknown"}</span>
                                                     </div>
                                                 </td>
                                                 <td className="px-5 py-2.5">

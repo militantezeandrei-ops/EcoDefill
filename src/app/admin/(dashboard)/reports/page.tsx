@@ -4,7 +4,7 @@ import { Users, Recycle, Receipt, FileText, Download, Trophy } from "lucide-reac
 export const dynamic = "force-dynamic";
 
 export default async function ReportsPage() {
-    const [totalUsers, totalTransactions, topUsers] = await Promise.all([
+    const [totalUsers, totalTransactions, topUsers, itemsRecycledAgg] = await Promise.all([
         prisma.user.count({ where: { role: "STUDENT" } }),
         prisma.transaction.count(),
         prisma.user.findMany({
@@ -16,18 +16,13 @@ export default async function ReportsPage() {
                 },
             },
         }),
+        prisma.transaction.aggregate({
+            _sum: { count: true },
+            where: { type: "EARN", status: "SUCCESS" }
+        })
     ]);
 
-    const totalItemsRecycled = topUsers.reduce(
-        (s, u) => s + u.transactions.reduce((ss, t) => {
-            const amount = Number(t.amount);
-            if (t.materialType === "BOTTLE") return ss + (t.count || amount * 1);
-            if (t.materialType === "CUP") return ss + (t.count || amount * 2);
-            if (t.materialType === "PAPER") return ss + (t.count || amount * 3);
-            return ss + (t.count || amount);
-        }, 0),
-        0
-    );
+    const totalItemsRecycled = itemsRecycledAgg._sum.count || 0;
 
     const activeStudents = topUsers
         .map((u) => ({
