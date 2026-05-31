@@ -3,7 +3,44 @@ import prisma from '@/lib/prisma';
 
 export async function POST(req: Request) {
     try {
-        const { machineId, secretKey, userId } = await req.json();
+        const body = await req.json();
+        const { machineId, secretKey, userId, itemType, amount } = body;
+
+        // If userId is missing, this is an anonymous item insertion from the hardware (from apiEarnAnon)
+        if (!userId) {
+            const count = Number(amount || 1);
+            const materialType = (itemType || "BOTTLE").toUpperCase();
+
+            // Create both RecyclingLog and Transaction atomically
+            const result = await prisma.$transaction(async (tx) => {
+                const log = await tx.recyclingLog.create({
+                    data: {
+                        machineId: machineId || "MACHINE_01",
+                        materialType,
+                        count,
+                        pointsEarned: count,
+                        waterDispensed: 0,
+                        isWalkIn: true,
+                        status: "SUCCESS",
+                    },
+                });
+
+                const transaction = await tx.transaction.create({
+                    data: {
+                        userId: null,
+                        amount: count,
+                        type: "EARN",
+                        materialType,
+                        count,
+                        status: "SUCCESS",
+                    }
+                });
+
+                return { log, transaction };
+            });
+
+            return NextResponse.json({ success: true, logId: result.log.id });
+        }
 
         // 1. Basic Machine Authentication
         if (secretKey !== process.env.MACHINE_SECRET) {
