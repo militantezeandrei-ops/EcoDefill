@@ -16,9 +16,9 @@ export default async function ReportsPage() {
                 },
             },
         }),
-        prisma.transaction.aggregate({
+        prisma.recyclingLog.aggregate({
             _sum: { count: true },
-            where: { type: "EARN", status: "SUCCESS" }
+            where: { status: "SUCCESS" }
         })
     ]);
 

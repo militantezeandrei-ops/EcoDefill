@@ -73,7 +73,7 @@ export function getMaterialItemCount(materialType: string | null, count: number 
 }
 
 export async function getAdminReportData(): Promise<AdminReportData> {
-    const [users, totalTransactions, recentTransactions, totalRedeemedAgg, earnTransactions] = await Promise.all([
+    const [users, totalTransactions, recentTransactions, totalRedeemedAgg, recyclingLogs] = await Promise.all([
         prisma.user.findMany({
             where: { role: "STUDENT" },
             select: {
@@ -115,10 +115,10 @@ export async function getAdminReportData(): Promise<AdminReportData> {
             _sum: { amount: true },
             where: { type: "REDEEM", status: "SUCCESS" },
         }),
-        prisma.transaction.findMany({
-            where: { type: "EARN", status: "SUCCESS" },
+        prisma.recyclingLog.findMany({
+            where: { status: "SUCCESS" },
             select: {
-                amount: true,
+                pointsEarned: true,
                 count: true,
                 materialType: true,
             }
@@ -155,10 +155,11 @@ export async function getAdminReportData(): Promise<AdminReportData> {
         })
         .sort((a, b) => b.totalPoints - a.totalPoints);
 
-    // Populate materialMap from ALL earn transactions (including walk-ins)
-    for (const transaction of earnTransactions) {
-        const materialType = transaction.materialType || "OTHER";
-        const amount = Number(transaction.amount || 0);
+    // Populate materialMap from ALL recycling logs (including walk-ins and QR scans)
+    for (const log of recyclingLogs) {
+        const materialType = log.materialType || "OTHER";
+        const points = Number(log.pointsEarned || 0);
+        const count = log.count || 0;
         const row = materialMap.get(materialType) ?? {
             materialType,
             points: 0,
@@ -166,17 +167,14 @@ export async function getAdminReportData(): Promise<AdminReportData> {
             transactions: 0,
         };
 
-        row.points += amount;
-        row.items += getMaterialItemCount(transaction.materialType, transaction.count, amount);
+        row.points += points;
+        row.items += count;
         row.transactions += 1;
         materialMap.set(materialType, row);
     }
 
-    const totalEarned = earnTransactions.reduce((sum, tx) => sum + Number(tx.amount || 0), 0);
-    const totalItemsRecycled = earnTransactions.reduce((sum, tx) => {
-        const amount = Number(tx.amount || 0);
-        return sum + getMaterialItemCount(tx.materialType, tx.count, amount);
-    }, 0);
+    const totalEarned = recyclingLogs.reduce((sum, log) => sum + Number(log.pointsEarned || 0), 0);
+    const totalItemsRecycled = recyclingLogs.reduce((sum, log) => sum + (log.count || 0), 0);
     const totalRedeemed = Number(totalRedeemedAgg._sum.amount || 0);
 
     return {

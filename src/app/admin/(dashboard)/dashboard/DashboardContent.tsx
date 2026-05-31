@@ -44,9 +44,9 @@ export default async function DashboardContent({ searchParams }: { searchParams:
         prisma.user.count({ where: { role: "STUDENT" } }),
         prisma.transaction.aggregate({ _sum: { amount: true }, where: { type: "EARN", createdAt: { gte: today } } }),
         prisma.transaction.aggregate({ _sum: { amount: true }, where: { type: "REDEEM", status: "SUCCESS" } }),
-        prisma.transaction.aggregate({ _sum: { count: true }, where: { type: "EARN", materialType: "BOTTLE", status: "SUCCESS" } }),
-        prisma.transaction.aggregate({ _sum: { count: true }, where: { type: "EARN", materialType: "CUP", status: "SUCCESS" } }),
-        prisma.transaction.aggregate({ _sum: { count: true }, where: { type: "EARN", materialType: "PAPER", status: "SUCCESS" } }),
+        prisma.recyclingLog.aggregate({ _sum: { count: true }, where: { materialType: "BOTTLE", status: "SUCCESS" } }),
+        prisma.recyclingLog.aggregate({ _sum: { count: true }, where: { materialType: "CUP", status: "SUCCESS" } }),
+        prisma.recyclingLog.aggregate({ _sum: { count: true }, where: { materialType: "PAPER", status: "SUCCESS" } }),
         prisma.transaction.findMany({
             where: { createdAt: { gte: filterDate } },
             select: { amount: true, createdAt: true, type: true },
