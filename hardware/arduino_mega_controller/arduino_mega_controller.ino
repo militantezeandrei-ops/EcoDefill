@@ -10,7 +10,7 @@ LiquidCrystal_I2C lcd(LCD_ADDR, LCD_COLS, LCD_ROWS);
 // SERVO PINS
 #define SRV_BOTTLE_GATE  5
 #define SRV_BOTTLE_EXIT  6
-#define SRV_BOTTLE_BIN   3   // Was pin 2 (INT4 interrupt pin — conflicts with Servo timer on Mega)
+#define SRV_BOTTLE_BIN   2
 
 #define SRV_CUP_GATE     8
 #define SRV_CUP_EXIT     9
@@ -21,18 +21,18 @@ Servo srvCupGate, srvCupExit, srvCupBin;
 
 // SERVO ANGLES
 #define GATE_OPEN       80
-#define GATE_CLOSED     10   // 10° min (0° is outside valid PWM range for many servos)
-#define SORT_ACTIVE_B   40
-#define SORT_ACTIVE_C  140
+#define GATE_CLOSED      0
+#define SORT_ACTIVE_B   50
+#define SORT_ACTIVE_C  130
 #define SORT_IDLE       90
 #define SERVO_DELAY_MS  250UL
 #define SERVO_CLOSE_DELAY_MS 1500UL
 
 #define EXIT_HOLD_MS   1200UL
 #define EXIT_OPEN       90
-#define EXIT_CLOSED     10   // 10° min (safe minimum)
+#define EXIT_CLOSED      10
 #define BIN_OPEN        90
-#define BIN_CLOSED      10   // 10° min (safe minimum)
+#define BIN_CLOSED       10
 
 // IR SENSOR PINS
 #define IR_BOTTLE_SLOT   22
@@ -73,10 +73,9 @@ Servo srvCupGate, srvCupExit, srvCupBin;
 #define WATER_LEVEL_ECHO 41
 #define TANK_FULL_MAX_CM 35
 
-
 // TIMING
 #define CAM_TIMEOUT_MS          9000UL
-#define GATE_STAGE_TIMEOUT_MS   4000UL
+#define GATE_STAGE_TIMEOUT_MS   2000UL
 #define SOL_OPEN_DELAY          80UL
 #define BUSY_MSG_COOLDOWN_MS    2000UL
 #define BUSY_MSG_SHOW_MS        900UL
@@ -106,9 +105,6 @@ State machineState = ST_IDLE;
 
 // SESSION
 int sessionPts = 0;
-int sessionBottles = 0;
-int sessionCups = 0;
-int sessionPapers = 0;
 bool bottleSlotActive = false;
 bool scanModeActive = false;
 
@@ -198,7 +194,7 @@ void devkitSend(const String& cmd) {
   Serial.print(F("[->DEV] "));
   Serial.println(cmd);
   Serial1.print(cmd);
-Serial1.print('\n');
+  Serial1.print('\n');
 }
 
 // ULTRASONIC
@@ -246,11 +242,20 @@ String getWaterLevelCategory() {
   return "Full Tank";
 }
 
-
-// SERVO FUNCTIONS
 void moveServoSmooth(Servo& s, int pos) {
-  s.write(pos);
-  delay(SERVO_DELAY_MS);
+  int current = s.read();
+  if (current < pos) {
+    for (int p = current; p <= pos; p++) {
+      s.write(p);
+      delay(8);
+    }
+  } else {
+    for (int p = current; p >= pos; p--) {
+      s.write(p);
+      delay(8);
+    }
+  }
+  delay(200);
 }
 
 void openBottleSlot() {
@@ -352,24 +357,24 @@ void dispenseWater(unsigned long ms) {
           "Pump running...     ",
           "                    ");
 
- digitalWrite(RELAY_PUMP, PUMP_OFF);
-digitalWrite(RELAY_SOL1, SOL1_OFF);
-delay(150);
+  digitalWrite(RELAY_PUMP, PUMP_OFF);
+  digitalWrite(RELAY_SOL1, SOL1_OFF);
+  delay(150);
 
-digitalWrite(RELAY_SOL1, SOL1_ON);
-delay(SOL_OPEN_DELAY);
+  digitalWrite(RELAY_SOL1, SOL1_ON);
+  delay(SOL_OPEN_DELAY);
 
-digitalWrite(RELAY_PUMP, PUMP_ON);
-delay(ms);
+  digitalWrite(RELAY_PUMP, PUMP_ON);
+  delay(ms);
 
-digitalWrite(RELAY_PUMP, PUMP_OFF);
-delay(250);
+  digitalWrite(RELAY_PUMP, PUMP_OFF);
+  delay(250);
 
-digitalWrite(RELAY_SOL1, SOL1_OFF);
-delay(250);
+  digitalWrite(RELAY_SOL1, SOL1_OFF);
+  delay(250);
 
-digitalWrite(RELAY_PUMP, PUMP_OFF);
-digitalWrite(RELAY_SOL1, SOL1_OFF);
+  digitalWrite(RELAY_PUMP, PUMP_OFF);
+  digitalWrite(RELAY_SOL1, SOL1_OFF);
 }
 
 // HANDLE DEVKIT MESSAGES
@@ -389,7 +394,7 @@ void handleDevKit(const String& msg) {
             "                    ");
 
     compactBottle();
-    sessionBottles += 1;
+    devkitSend("CMD:EARN_ANON|BOTTLE|1");
 
     lcdShow("  Bottle Accepted!  ",
             "+1 Point Earned!    ",
@@ -434,7 +439,7 @@ void handleDevKit(const String& msg) {
             "                    ");
 
     compactCup();
-    sessionCups += 1;
+    devkitSend("CMD:EARN_ANON|CUP|1");
 
     lcdShow("   Cup Accepted!    ",
             "+1 Point Earned!    ",
@@ -469,16 +474,13 @@ void handleDevKit(const String& msg) {
 
   else if (msg == "QR:FOUND") {
     blockScanButton(true);
-  lcdShow(" QR Code Detected! ",
-          "Please wait...     ",
-          "Verifying account  ",
-          "Do not scan again  ");
-}
+    lcdShow(" QR Code Detected! ",
+            "Please wait...     ",
+            "Verifying account  ",
+            "Do not scan again  ");
+  }
 
   else if (msg.startsWith("QR:REDEEM:")) {
-
-    
-    
     // Format from DevKit: QR:REDEEM:<dispenseMs>|<studentName>|<redeemedPoints>
     String data = msg.substring(10);
     int sep1 = data.indexOf('|');
@@ -542,9 +544,6 @@ void handleDevKit(const String& msg) {
 
     sessionPts -= credited;
     if (sessionPts < 0) sessionPts = 0;
-    sessionBottles = 0;
-    sessionCups = 0;
-    sessionPapers = 0;
 
     blockScanButton(true);
     scanModeActive = false;
@@ -582,9 +581,6 @@ void handleDevKit(const String& msg) {
     int credited = msg.substring(8).toInt();
     sessionPts -= credited;
     if (sessionPts < 0) sessionPts = 0;
-    sessionBottles = 0;
-    sessionCups = 0;
-    sessionPapers = 0;
     blockScanButton(true);
     scanModeActive = false;
     qrScanStartedAt = 0;
@@ -622,8 +618,7 @@ void onDispensePressed() {
 
   if (pendingQrDispenseMs > 0 && machineState == ST_QR_READY) {
     if (!refillContainerDetected()) {
-
-  lcdShow(" Waiting for Cup/   ",
+      lcdShow(" Waiting for Cup/   ",
               "Tumbler or Bottle   ",
               "No cup detected!    ",
               "QR water is waiting ");
@@ -631,7 +626,7 @@ void onDispensePressed() {
       delay(1500);
       lcdShowPendingQrDispense();
       return;
-}
+    }
 
     machineState = ST_DISPENSING;
 
@@ -702,31 +697,6 @@ void onDispensePressed() {
           String(ml) + "ml will dispense",
           String(ptsToUse) + " pts used",
           "Please wait...      ");
-
-  // Determine walk-in materials breakdown to report to ESP32
-  int bLog = min(sessionBottles, ptsToUse);
-  int remPts = ptsToUse - bLog;
-  sessionBottles -= bLog;
-  if (sessionBottles < 0) sessionBottles = 0;
-
-  int cLog = 0;
-  if (remPts > 0) {
-    cLog = min(sessionCups, remPts);
-    remPts -= cLog;
-    sessionCups -= cLog;
-    if (sessionCups < 0) sessionCups = 0;
-  }
-
-  int pLog = 0;
-  if (remPts > 0) {
-    pLog = min(sessionPapers / 3, remPts);
-    remPts -= pLog;
-    sessionPapers -= pLog * 3;
-    if (sessionPapers < 0) sessionPapers = 0;
-  }
-
-  // Send walk-in dispense logging command to ESP32
-  devkitSend("CMD:WALKIN_DISPENSE|" + String(bLog) + "|" + String(cLog) + "|" + String(pLog));
 
   dispenseWater(ms);
 
@@ -808,7 +778,7 @@ void onScanPressed() {
   blockScanButton(true);
 
   // Send current local points too. Backend can use this amount when the QR is for transferring points to the app.
-  devkitSend("CMD:SCAN_QR|" + String(sessionPts) + "|" + String(sessionBottles) + "|" + String(sessionCups) + "|" + String(sessionPapers));
+  devkitSend("CMD:SCAN_QR|" + String(sessionPts));
 
   lcdShow(" QR Scanning...    ",
           "Please wait        ",
@@ -817,7 +787,6 @@ void onScanPressed() {
 }
 
 // UPDATED IR CHECKING
-// Bottle and cup logic copied/improved from second code
 void checkIR() {
   if (scanModeActive || machineState == ST_SCAN_WAIT) return;
 
@@ -830,7 +799,6 @@ void checkIR() {
   if (digitalRead(IR_CUP_SLOT) == HIGH) cupSlotArmed = true;
 
   if (machineState == ST_AWAIT_ITEM) {
-
     // Prevent opening another gate if item is still inside validation chamber
     if (validationBusy) {
       lcdShow(" Validation Busy    ",
@@ -930,7 +898,6 @@ void checkPaperIR() {
     paperWasDetected = true;
     lastPaperDetectAt = millis();
     paperCount++;
-    sessionPapers++;
 
     lcdShow(" Paper Detected!    ",
             "Count: " + String(paperCount) + "/3",
@@ -948,6 +915,7 @@ void checkPaperIR() {
               "Total: " + String(sessionPts) + " pts",
               "Returning home...   ");
 
+      // Send telemetry to ESP32 for the walk-in item counts
       devkitSend("CMD:EARN_ANON|PAPER|3");
 
       delay(1500);
@@ -982,12 +950,6 @@ void setup() {
   Serial.begin(115200);
   Serial1.begin(9600);
 
-  // 3-pin button modules:
-  // S/OUT -> Arduino pin
-  // VCC   -> 5V
-  // GND   -> GND
-  // not pressed = LOW
-  // pressed     = HIGH
   pinMode(BTN_DISPENSE, INPUT);
   pinMode(BTN_SCAN, INPUT);
 
@@ -1001,6 +963,7 @@ void setup() {
   pinMode(ULTRASONIC_TRIG, OUTPUT);
   pinMode(ULTRASONIC_ECHO, INPUT);
 
+  // Setup tank water level sensor pins
   pinMode(WATER_LEVEL_TRIG, OUTPUT);
   pinMode(WATER_LEVEL_ECHO, INPUT);
 
@@ -1009,8 +972,8 @@ void setup() {
   pinMode(RELAY_SOL2, OUTPUT);
 
   digitalWrite(RELAY_PUMP, PUMP_OFF);
-digitalWrite(RELAY_SOL1, SOL1_OFF);
-digitalWrite(RELAY_SOL2, SOL1_OFF);
+  digitalWrite(RELAY_SOL1, SOL1_OFF);
+  digitalWrite(RELAY_SOL2, SOL1_OFF);
 
   // Safety delay: keep pump/solenoids OFF during relay startup
   delay(300);
@@ -1042,7 +1005,7 @@ digitalWrite(RELAY_SOL2, SOL1_OFF);
   delay(SERVO_DELAY_MS);
 
   // FIXED LCD BEGIN
- lcd.begin(LCD_COLS, LCD_ROWS);
+  lcd.begin(LCD_COLS, LCD_ROWS);
   lcd.backlight();
   lcd.clear();
 
@@ -1065,6 +1028,7 @@ digitalWrite(RELAY_SOL2, SOL1_OFF);
 void loop() {
   readSerial(Serial1, devBuf, handleDevKit);
 
+  // Send tank water level periodically to ESP32 DevKit to report to server
   static unsigned long lastWaterLevelSendAt = 0;
   #define WATER_LEVEL_SEND_INTERVAL_MS 10000UL
   if (millis() - lastWaterLevelSendAt >= WATER_LEVEL_SEND_INTERVAL_MS) {
@@ -1182,6 +1146,7 @@ void loop() {
       lcdIdle();
     }
   }
+  
   // SAFETY: pump and solenoid must stay OFF when not dispensing
   if (machineState != ST_DISPENSING) {
     digitalWrite(RELAY_PUMP, PUMP_OFF);
