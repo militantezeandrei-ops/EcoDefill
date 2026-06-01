@@ -107,6 +107,7 @@ State machineState = ST_IDLE;
 int sessionPts = 0;
 bool bottleSlotActive = false;
 bool scanModeActive = false;
+bool triggerWaterLevelUpdate = true; // Flag to trigger immediate water level check & send
 
 // SERIAL
 String devBuf = "";
@@ -638,6 +639,7 @@ void onDispensePressed() {
     dispenseWater(pendingQrDispenseMs);
     clearPendingQrDispense();
     machineState = ST_AWAIT_ITEM;
+    triggerWaterLevelUpdate = true;
 
     lcdShow("  Water Dispensed!  ",
             "QR redeem complete  ",
@@ -704,6 +706,7 @@ void onDispensePressed() {
   if (sessionPts < 0) sessionPts = 0;
 
   machineState = ST_AWAIT_ITEM;
+  triggerWaterLevelUpdate = true;
 
   lcdShow("  Water Dispensed!  ",
           String(ml) + "ml served!",
@@ -1028,10 +1031,11 @@ void setup() {
 void loop() {
   readSerial(Serial1, devBuf, handleDevKit);
 
-  // Send tank water level periodically to ESP32 DevKit to report to server
+  // Send tank water level periodically (heartbeat) or immediately if triggered
   static unsigned long lastWaterLevelSendAt = 0;
-  #define WATER_LEVEL_SEND_INTERVAL_MS 10000UL
-  if (millis() - lastWaterLevelSendAt >= WATER_LEVEL_SEND_INTERVAL_MS) {
+  #define WATER_LEVEL_SEND_INTERVAL_MS 300000UL // 5 minutes heartbeat
+  if (triggerWaterLevelUpdate || (millis() - lastWaterLevelSendAt >= WATER_LEVEL_SEND_INTERVAL_MS)) {
+    triggerWaterLevelUpdate = false;
     lastWaterLevelSendAt = millis();
     devkitSend("CMD:WATER_LEVEL|" + getWaterLevelCategory());
   }

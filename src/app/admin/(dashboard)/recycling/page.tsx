@@ -68,7 +68,39 @@ export default async function RecyclingPage() {
     const formatTime = (date: Date) =>
         date.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true, timeZone: "Asia/Manila" });
 
-    const groupedLogs = logs.reduce((acc: Record<string, typeof logs>, log) => {
+    // Compile consecutive Walk-in / Unknown logs that occur within 5 minutes of each other
+    const compiledLogs: any[] = [];
+    for (const log of logs) {
+        if (!log.isWalkIn) {
+            compiledLogs.push(log);
+            continue;
+        }
+
+        const timeDiffLimit = 5 * 60 * 1000; // 5 minutes in milliseconds
+        const match = compiledLogs.find(
+            (item) =>
+                item.isWalkIn &&
+                item.materialType === log.materialType &&
+                item.machineId === log.machineId &&
+                Math.abs(new Date(item.createdAt).getTime() - new Date(log.createdAt).getTime()) <= timeDiffLimit
+        );
+
+        if (match) {
+            match.count += log.count;
+            match.pointsEarned = Number(match.pointsEarned) + Number(log.pointsEarned);
+            if (log.waterDispensed !== null) {
+                match.waterDispensed = Number(match.waterDispensed ?? 0) + Number(log.waterDispensed);
+            }
+        } else {
+            compiledLogs.push({
+                ...log,
+                pointsEarned: Number(log.pointsEarned),
+                waterDispensed: log.waterDispensed !== null ? Number(log.waterDispensed) : null,
+            });
+        }
+    }
+
+    const groupedLogs = compiledLogs.reduce((acc: Record<string, any[]>, log) => {
         const key = formatDateHeader(log.createdAt);
         if (!acc[key]) acc[key] = [];
         acc[key].push(log);
