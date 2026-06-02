@@ -421,10 +421,6 @@ export default async function DashboardContent({ searchParams }: { searchParams:
                                 <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] leading-none mt-1">Pts status</p>
                             </div>
                         </div>
-                        <div className="text-right">
-                            <p className="text-[16px] font-black text-emerald-600">{(todaysPoints - todaysRedeems).toLocaleString()}</p>
-                            <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest leading-none mt-1">Net Flow</p>
-                        </div>
                     </div>
 
                     {/* Donut Chart Implementation */}
