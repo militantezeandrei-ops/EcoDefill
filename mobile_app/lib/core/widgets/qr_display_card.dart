@@ -25,8 +25,8 @@ class QrDisplayCard extends StatelessWidget {
   /// Optional custom size for the QR content. If not specified, defaults to [defaultQrSize].
   final double? size;
 
-  /// Default QR content area size – changed to 280.0 (from 220.0) for much bigger display.
-  static const double defaultQrSize = 280.0;
+  /// Default QR content area size – changed to 220.0 for a slightly smaller display.
+  static const double defaultQrSize = 220.0;
 
   /// Card padding – exactly 16.0 to match Tailwind p-4 (1rem).
   static const double cardPadding = 16.0;

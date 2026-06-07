@@ -366,6 +366,13 @@ class _QrScanScreenState extends ConsumerState<QrScanScreen>
                     ),
                     const SizedBox(height: 12),
 
+                    // ── QR Display Card ──
+                    QrDisplayCard(
+                      token: widget.token,
+                      accentColor: _accent,
+                    ),
+                    const SizedBox(height: 20),
+
                     // ── Title ──
                     Text(
                       widget.mode == QrScanMode.receivePoints
@@ -393,13 +400,6 @@ class _QrScanScreenState extends ConsumerState<QrScanScreen>
                       ),
                     ),
                     const SizedBox(height: 20),
-
-                    // ── QR Display Card ──
-                    QrDisplayCard(
-                      token: widget.token,
-                      accentColor: _accent,
-                    ),
-                    const SizedBox(height: 16),
 
                     // ── Bottom Active Pill ──
                     Container(

@@ -38,25 +38,29 @@ interface CourseGroup {
 const getCourseAccent = (course: string) => {
     const c = course.toUpperCase();
     
-    // IT - Blue
-    if (c.includes("IT")) 
+    // BSIT - Green
+    if (c.includes("BSIT") || c === "IT") 
+        return { bg: "bg-green-600", text: "text-white", border: "border-green-600/20", iconBg: "bg-white/20" };
+    
+    // BSCS - Red
+    if (c.includes("BSCS") || c === "CS") 
+        return { bg: "bg-red-600", text: "text-white", border: "border-red-600/20", iconBg: "bg-white/20" };
+    
+    // BSHM - Blue
+    if (c.includes("BSHM") || c === "HM") 
         return { bg: "bg-blue-600", text: "text-white", border: "border-blue-600/20", iconBg: "bg-white/20" };
     
-    // CS - Emerald
-    if (c.includes("CS")) 
-        return { bg: "bg-emerald-600", text: "text-white", border: "border-emerald-600/20", iconBg: "bg-white/20" };
+    // BSTM - Black
+    if (c.includes("BSTM") || c === "TM") 
+        return { bg: "bg-black", text: "text-white", border: "border-black/20", iconBg: "bg-white/20" };
     
-    // TM - Indigo
-    if (c.includes("TM")) 
-        return { bg: "bg-indigo-600", text: "text-white", border: "border-indigo-600/20", iconBg: "bg-white/20" };
+    // BTLED - Pitch (Peach)
+    if (c.includes("BTLED")) 
+        return { bg: "bg-[#FF8B60]", text: "text-white", border: "border-[#FF8B60]/20", iconBg: "bg-white/20" };
     
-    // HM - Sky
-    if (c.includes("HM")) 
-        return { bg: "bg-sky-500", text: "text-white", border: "border-sky-500/20", iconBg: "bg-white/20" };
-    
-    // OAD - Teal
-    if (c.includes("OAD")) 
-        return { bg: "bg-teal-600", text: "text-white", border: "border-teal-600/20", iconBg: "bg-white/20" };
+    // BSOAD - Pink
+    if (c.includes("BSOAD") || c === "OAD") 
+        return { bg: "bg-pink-500", text: "text-white", border: "border-pink-500/20", iconBg: "bg-white/20" };
 
     // Education (Cyan)
     if (c.includes("ED")) 
