@@ -70,8 +70,9 @@ Servo srvCupGate, srvCupExit, srvCupBin;
 #define REFILL_DETECT_CM 12
 
 // WATER LEVEL SENSOR (TANK WATER LEVEL - 3-WIRE ECHO ONLY)
-#define WATER_LEVEL_ECHO       41
-#define TANK_LOW_THRESHOLD_CM  22.0  // <= 22cm: Sufficient Water (Full/Medium) | > 22cm: Low Water
+#define WATER_LEVEL_ECHO        41
+#define TANK_LOW_THRESHOLD_CM   22.0  // <= 22cm: Sufficient Water (Full/Medium)
+#define TANK_EMPTY_THRESHOLD_CM 27.0  // >= 27cm: Empty Water Tank | > 22cm & < 27cm: Low Water
 
 
 // TIMING
@@ -170,9 +171,9 @@ void lcdShow(const String& r0,
 }
 
 void lcdIdle() {
-  lcdShow("   EcoDefill v3.0   ",
+  lcdShow("     EcoDefill      ",
           "Points: " + String(sessionPts),
-          "[1]Get Water [2]QR  ",
+          "[RED]QR  [BLUE]Water",
           "Insert item to earn ");
 }
 
@@ -184,8 +185,8 @@ void clearPendingQrDispense() {
 void lcdShowPendingQrDispense() {
   lcdShow(" QR Redeem Success  ",
           String(pendingQrDispenseMl) + "ml approved     ",
-          "Place cup, press[1]",
-          "to dispense water  ");
+          "Place cup, [BLUE]Btn",
+          "to dispense water   ");
 }
 
 void blockScanButton(bool requireRelease) {
@@ -260,13 +261,16 @@ String getWaterLevelCategory() {
     return "Unknown";
   }
   
-  // 2-Level Robust Status (avoids blind zone ambiguity):
+  // 3-Level Robust Status (avoids blind zone ambiguity):
   // <= 22.0 cm : Sufficient Water (Covers Full down to Medium operational level)
-  // > 22.0 cm  : Low Water (Refill required)
+  // > 22.0 cm and < 27.0 cm : Low Water (Refill required)
+  // >= 27.0 cm : Empty Water Tank (Tank is empty / critical level)
   if (distance <= TANK_LOW_THRESHOLD_CM) {
     return "Sufficient Water";
-  } else {
+  } else if (distance < TANK_EMPTY_THRESHOLD_CM) {
     return "Low Water";
+  } else {
+    return "Empty Water Tank";
   }
 }
 
@@ -672,7 +676,7 @@ void handleDevKit(const String& msg) {
       lcdShow(" QR Redeem Success ",
               studentName,
               "Redeem: " + String(redeemedPts) + " pts",
-              "Press [1] dispense ");
+              "Press [BLUE] pour  ");
     }
   }
 
@@ -729,7 +733,7 @@ void handleDevKit(const String& msg) {
       lcdShow(" QR Redeem Success ",
               "Student",
               String(pendingQrDispenseMl) + "ml approved",
-              "Press [1] dispense ");
+              "Press [BLUE] pour  ");
     }
   }
 
@@ -1174,7 +1178,7 @@ void setup() {
 
   for (int i = 0; i < 4; i++) lastLcdRow[i] = "";
 
-  lcdShow("   EcoDefill v3.0   ",
+  lcdShow("     EcoDefill      ",
           "   Starting up...   ",
           "  Please wait...    ",
           "                    ");

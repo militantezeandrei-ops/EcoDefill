@@ -89,11 +89,16 @@ export default async function DashboardContent({ searchParams }: { searchParams:
         waterLevelColor = "text-emerald-600 font-black";
         waterLevelIconBg = "bg-emerald-50";
         waterLevelIconColor = "text-emerald-600";
-    } else if (waterLevelRaw.includes("Low") || waterLevelRaw.includes("Empty")) {
-        waterLevel = "Low Water";
+    } else if (waterLevelRaw.includes("Empty")) {
+        waterLevel = "Empty Water Tank";
         waterLevelColor = "text-rose-600 font-black animate-pulse";
         waterLevelIconBg = "bg-rose-50 border border-rose-100 animate-bounce";
         waterLevelIconColor = "text-rose-600";
+    } else if (waterLevelRaw.includes("Low")) {
+        waterLevel = "Low Water";
+        waterLevelColor = "text-amber-600 font-black";
+        waterLevelIconBg = "bg-amber-50 border border-amber-100";
+        waterLevelIconColor = "text-amber-600";
     } else {
         waterLevel = waterLevelRaw;
     }
