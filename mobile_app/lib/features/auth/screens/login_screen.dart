@@ -49,7 +49,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               height: 300,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: AppTheme.primaryEmerald.withOpacity(0.08),
+                color: AppTheme.primaryEmerald.withValues(alpha: 0.08),
               ),
             ),
           ),
@@ -61,7 +61,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               height: 250,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: AppTheme.accentBlue.withOpacity(0.08),
+                color: AppTheme.accentBlue.withValues(alpha: 0.08),
               ),
             ),
           ),
@@ -86,7 +86,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             borderRadius: BorderRadius.circular(28),
                             boxShadow: [
                               BoxShadow(
-                                color: Colors.black.withOpacity(0.06),
+                                color: Colors.black.withValues(alpha: 0.06),
                                 blurRadius: 16,
                                 offset: const Offset(0, 8),
                               )

@@ -13,7 +13,7 @@ class GuideSlidesDialog extends StatefulWidget {
     showDialog(
       context: context,
       barrierDismissible: false,
-      barrierColor: Colors.black.withOpacity(0.6),
+      barrierColor: Colors.black.withValues(alpha: 0.6),
       builder: (context) => GuideSlidesDialog(onFinish: onFinish),
     );
   }
@@ -215,7 +215,7 @@ class _GuideSlidesDialogState extends State<GuideSlidesDialog> {
                               backgroundColor: Colors.blue.shade600,
                               foregroundColor: Colors.white,
                               elevation: 4,
-                              shadowColor: Colors.blue.shade600.withOpacity(0.3),
+                              shadowColor: Colors.blue.shade600.withValues(alpha: 0.3),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(16),
                               ),

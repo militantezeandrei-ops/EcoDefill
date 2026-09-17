@@ -99,7 +99,7 @@ class _ReceivePointsScreenState extends ConsumerState<ReceivePointsScreen> {
               height: 300,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: AppTheme.primaryEmerald.withOpacity(0.06),
+                color: AppTheme.primaryEmerald.withValues(alpha: 0.06),
               ),
             ),
           ),
@@ -119,7 +119,7 @@ class _ReceivePointsScreenState extends ConsumerState<ReceivePointsScreen> {
                           'Generating QR code...',
                           style: TextStyle(
                             fontSize: 14,
-                            color: AppTheme.textMuted.withOpacity(0.8),
+                            color: AppTheme.textMuted.withValues(alpha: 0.8),
                             fontWeight: FontWeight.bold,
                           ),
                         ),

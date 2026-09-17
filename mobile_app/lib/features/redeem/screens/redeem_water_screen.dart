@@ -101,7 +101,7 @@ class _RedeemWaterScreenState extends ConsumerState<RedeemWaterScreen> {
               height: 300,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: AppTheme.accentBlue.withOpacity(0.06),
+                color: AppTheme.accentBlue.withValues(alpha: 0.06),
               ),
             ),
           ),
@@ -127,7 +127,7 @@ class _RedeemWaterScreenState extends ConsumerState<RedeemWaterScreen> {
                       borderRadius: BorderRadius.circular(28),
                       boxShadow: [
                         BoxShadow(
-                          color: AppTheme.accentBlue.withOpacity(0.3),
+                          color: AppTheme.accentBlue.withValues(alpha: 0.3),
                           blurRadius: 20,
                           offset: const Offset(0, 8),
                         )
@@ -172,10 +172,10 @@ class _RedeemWaterScreenState extends ConsumerState<RedeemWaterScreen> {
                           padding: const EdgeInsets.symmetric(
                               horizontal: 12, vertical: 6),
                           decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.12),
+                            color: Colors.white.withValues(alpha: 0.12),
                             borderRadius: BorderRadius.circular(20),
                             border: Border.all(
-                                color: Colors.white.withOpacity(0.15)),
+                                color: Colors.white.withValues(alpha: 0.15)),
                           ),
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
@@ -207,7 +207,7 @@ class _RedeemWaterScreenState extends ConsumerState<RedeemWaterScreen> {
                       border: Border.all(color: Colors.grey.shade200),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.02),
+                          color: Colors.black.withValues(alpha: 0.02),
                           blurRadius: 16,
                           offset: const Offset(0, 4),
                         ),
@@ -281,13 +281,13 @@ class _RedeemWaterScreenState extends ConsumerState<RedeemWaterScreen> {
                             ),
                             // Increment
                             InkWell(
-                              onTap:
-                                  isBalanceZero || _selectedPoints >= maxAllowedPoints
-                                      ? null
-                                      : () => setState(() {
-                                            _selectedPoints++;
-                                            _errorMessage = null;
-                                          }),
+                              onTap: isBalanceZero ||
+                                      _selectedPoints >= maxAllowedPoints
+                                  ? null
+                                  : () => setState(() {
+                                        _selectedPoints++;
+                                        _errorMessage = null;
+                                      }),
                               borderRadius: BorderRadius.circular(16),
                               child: Container(
                                 width: 56,
@@ -297,7 +297,7 @@ class _RedeemWaterScreenState extends ConsumerState<RedeemWaterScreen> {
                                           _selectedPoints >= maxAllowedPoints
                                       ? Colors.grey.shade100
                                       : AppTheme.primaryEmerald
-                                          .withOpacity(0.08),
+                                          .withValues(alpha: 0.08),
                                   borderRadius: BorderRadius.circular(16),
                                 ),
                                 child: Icon(

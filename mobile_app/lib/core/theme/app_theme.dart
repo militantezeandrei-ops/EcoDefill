@@ -7,7 +7,7 @@ class AppTheme {
   static const Color darkEmerald = Color(0xFF059669);
   static const Color accentBlue = Color(0xFF3B82F6);
   static const Color darkBlue = Color(0xFF2563EB);
-  
+
   static const Color backgroundLight = Color(0xFFF6F6F6);
   static const Color cardWhite = Color(0xFFFFFFFF);
   static const Color textDark = Color(0xFF1E293B);
@@ -20,7 +20,7 @@ class AppTheme {
         seedColor: primaryEmerald,
         primary: primaryEmerald,
         secondary: accentBlue,
-        background: backgroundLight,
+        surface: backgroundLight,
       ),
       scaffoldBackgroundColor: backgroundLight,
       textTheme: GoogleFonts.outfitTextTheme().copyWith(

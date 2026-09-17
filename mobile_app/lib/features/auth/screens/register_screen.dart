@@ -277,7 +277,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
             verificationCode: _codeController.text.trim(),
             fullName: _fullNameController.text.trim(),
             course: _selectedCourse,
-            yearLevel: _selectedYearLevel != null ? _selectedYearLevel!.replaceAll(RegExp(r'[^0-9]'), '') : null,
+            yearLevel: _selectedYearLevel?.replaceAll(RegExp(r'[^0-9]'), ''),
             section: _selectedSection ?? '',
           );
       
@@ -325,7 +325,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
               height: 300,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: AppTheme.primaryEmerald.withOpacity(0.08),
+                color: AppTheme.primaryEmerald.withValues(alpha: 0.08),
               ),
             ),
           ),
@@ -337,7 +337,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
               height: 250,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: AppTheme.accentBlue.withOpacity(0.08),
+                color: AppTheme.accentBlue.withValues(alpha: 0.08),
               ),
             ),
           ),
@@ -563,7 +563,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                           Expanded(
                             flex: 1,
                             child: DropdownButtonFormField<String>(
-                              value: _selectedCourse,
+                              initialValue: _selectedCourse,
                               decoration: InputDecoration(
                                 labelText: 'Course',
                                 contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
@@ -597,7 +597,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                           Expanded(
                             flex: 1,
                             child: DropdownButtonFormField<String>(
-                              value: _selectedYearLevel,
+                              initialValue: _selectedYearLevel,
                               decoration: InputDecoration(
                                 labelText: 'Year',
                                 contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
@@ -632,7 +632,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                           Expanded(
                             flex: 1,
                             child: DropdownButtonFormField<String>(
-                              value: _selectedSection,
+                              initialValue: _selectedSection,
                               decoration: InputDecoration(
                                 labelText: 'Section',
                                 contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),

@@ -10,7 +10,7 @@ LiquidCrystal_I2C lcd(LCD_ADDR, LCD_COLS, LCD_ROWS);
 // SERVO PINS
 #define SRV_BOTTLE_GATE  5
 #define SRV_BOTTLE_EXIT  6
-#define SRV_BOTTLE_BIN   2
+#define SRV_BOTTLE_BIN   3   // Was pin 2 (INT4 interrupt pin — conflicts with Servo timer on Mega)
 
 #define SRV_CUP_GATE     8
 #define SRV_CUP_EXIT     9
@@ -20,7 +20,7 @@ Servo srvBottleGate, srvBottleExit, srvBottleBin;
 Servo srvCupGate, srvCupExit, srvCupBin;
 
 // SERVO ANGLES
-#define GATE_OPEN       80
+#define GATE_OPEN       85
 #define GATE_CLOSED      0
 #define SORT_ACTIVE_B   50
 #define SORT_ACTIVE_C  130
@@ -38,7 +38,8 @@ Servo srvCupGate, srvCupExit, srvCupBin;
 #define IR_BOTTLE_SLOT   22
 #define IR_BOTTLE_VALID  23
 #define IR_CUP_SLOT      24
-#define IR_CUP_VALID     25
+#define IR_CUP_VALID     25   // IR 1: Cup chamber presence / bottom
+#define IR_CUP_OVERSIZE  27   // IR 2: Cup chamber height / oversize (bottle size reject)
 
 // PAPER SYSTEM - 1 IR ONLY
 #define IR_PAPER_ENTRY  26
@@ -68,14 +69,14 @@ Servo srvCupGate, srvCupExit, srvCupBin;
 #define ULTRASONIC_ECHO  33
 #define REFILL_DETECT_CM 12
 
-// WATER LEVEL SENSOR (TANK WATER LEVEL)
-#define WATER_LEVEL_TRIG 40
-#define WATER_LEVEL_ECHO 41
-#define TANK_FULL_MAX_CM 35
+// WATER LEVEL SENSOR (TANK WATER LEVEL - 3-WIRE ECHO ONLY)
+#define WATER_LEVEL_ECHO       41
+#define TANK_LOW_THRESHOLD_CM  22.0  // <= 22cm: Sufficient Water (Full/Medium) | > 22cm: Low Water
+
 
 // TIMING
 #define CAM_TIMEOUT_MS          9000UL
-#define GATE_STAGE_TIMEOUT_MS   2000UL
+#define GATE_STAGE_TIMEOUT_MS   5000UL  // Increased: countdown now starts AFTER gate fully opens
 #define SOL_OPEN_DELAY          80UL
 #define BUSY_MSG_COOLDOWN_MS    2000UL
 #define BUSY_MSG_SHOW_MS        900UL
@@ -85,10 +86,12 @@ Servo srvCupGate, srvCupExit, srvCupBin;
 #define DISPENSE_GUARD_MS       2500UL
 #define QR_SCAN_TIMEOUT_MS      15000UL
 
-// DISPENSE
-#define ML_PER_POINT        100
-#define MAX_PTS_PER_PRESS   5
-#define MS_PER_100ML        2000UL
+// DISPENSE & AUTO-PURGE
+#define ML_PER_POINT            100
+#define MAX_PTS_PER_PRESS       5
+#define MS_PER_100ML            2000UL
+#define AUTO_PURGE_IDLE_MS      21600000UL  // 6 Hours idle before automatic line purge
+#define AUTO_PURGE_DURATION_MS  3000UL      // 3 seconds pump flush
 
 enum State {
   ST_IDLE,
@@ -116,6 +119,7 @@ String lastLcdRow[4] = {"", "", "", ""};
 // BUTTON GUARDS
 unsigned long lastScanPressAt = 0;
 unsigned long lastDispensePressAt = 0;
+unsigned long lastDispenseAt = 0;      // Tracks last dispense or boot time for auto-purge
 unsigned long qrScanStartedAt = 0;
 unsigned long scanButtonBlockedUntil = 0;
 bool scanButtonReleaseRequired = false;
@@ -138,6 +142,7 @@ bool paperWasDetected = false;
 unsigned long lastBusyMsgAt = 0;
 bool busyMsgActive = false;
 unsigned long busyMsgShownAt = 0;
+unsigned long busyMsgShowDurationMs = BUSY_MSG_SHOW_MS;
 unsigned long pendingQrDispenseMs = 0;
 int pendingQrDispenseMl = 0;
 
@@ -217,46 +222,57 @@ bool refillContainerDetected() {
   return (d > 0 && d <= REFILL_DETECT_CM);
 }
 
-// WATER LEVEL SENSOR FUNCTIONS
-long getTankWaterLevelCM() {
-  digitalWrite(WATER_LEVEL_TRIG, LOW);
-  delayMicroseconds(2);
+// WATER LEVEL SENSOR FUNCTIONS (3-WIRE ECHO / PWM MULTI-SAMPLE)
+float getTankWaterLevelCM() {
+  float samples[5];
+  int validCount = 0;
 
-  digitalWrite(WATER_LEVEL_TRIG, HIGH);
-  delayMicroseconds(10);
+  for (int i = 0; i < 5; i++) {
+    unsigned long d = pulseIn(WATER_LEVEL_ECHO, HIGH, 45000UL);
+    if (d > 0) {
+      float dist = (d * 0.0343) / 2.0;
+      if (dist > 5.0 && dist < 100.0) {
+        samples[validCount++] = dist;
+      }
+    }
+    delay(25);
+  }
 
-  digitalWrite(WATER_LEVEL_TRIG, LOW);
+  if (validCount == 0) return -1.0;
 
-  long dur = pulseIn(WATER_LEVEL_ECHO, HIGH, 30000);
-  return (dur == 0) ? 999 : dur * 0.034 / 2;
+  // Median sort to eliminate acoustic jitter/noise spikes
+  for (int i = 0; i < validCount - 1; i++) {
+    for (int j = i + 1; j < validCount; j++) {
+      if (samples[i] > samples[j]) {
+        float temp = samples[i];
+        samples[i] = samples[j];
+        samples[j] = temp;
+      }
+    }
+  }
+
+  return samples[validCount / 2];
 }
 
 String getWaterLevelCategory() {
-  long d = getTankWaterLevelCM();
-  Serial.print(F("[SENSOR] Tank water level: "));
-  Serial.print(d);
-  Serial.println(F(" cm"));
-
-  if (d <= 0 || d >= 999 || d >= TANK_FULL_MAX_CM) {
-    return "Low";
+  float distance = getTankWaterLevelCM();
+  if (distance <= 0) {
+    return "Unknown";
   }
-  return "Full Tank";
+  
+  // 2-Level Robust Status (avoids blind zone ambiguity):
+  // <= 22.0 cm : Sufficient Water (Covers Full down to Medium operational level)
+  // > 22.0 cm  : Low Water (Refill required)
+  if (distance <= TANK_LOW_THRESHOLD_CM) {
+    return "Sufficient Water";
+  } else {
+    return "Low Water";
+  }
 }
 
 void moveServoSmooth(Servo& s, int pos) {
-  int current = s.read();
-  if (current < pos) {
-    for (int p = current; p <= pos; p++) {
-      s.write(p);
-      delay(8);
-    }
-  } else {
-    for (int p = current; p >= pos; p--) {
-      s.write(p);
-      delay(8);
-    }
-  }
-  delay(200);
+  s.write(pos);
+  delay(SERVO_DELAY_MS);
 }
 
 void openBottleSlot() {
@@ -282,8 +298,10 @@ void closeBottleSlot() {
 
 void openCupSlot() {
   Serial.println(F("[SERVO] Cup GATE open"));
+  if (!srvCupGate.attached()) srvCupGate.attach(SRV_CUP_GATE);
   moveServoSmooth(srvCupGate, GATE_OPEN);
-  delay(200);
+  delay(300);
+  srvCupGate.detach();
 
   Serial.println(F("[SERVO] Cup SORT active"));
   moveServoSmooth(srvCupBin, SORT_ACTIVE_C);
@@ -298,7 +316,10 @@ void closeCupSlot() {
   delay(200);
 
   Serial.println(F("[SERVO] Cup GATE close"));
+  if (!srvCupGate.attached()) srvCupGate.attach(SRV_CUP_GATE);
   moveServoSmooth(srvCupGate, GATE_CLOSED);
+  delay(300);
+  srvCupGate.detach();
 }
 
 void compactBottle() {
@@ -351,6 +372,138 @@ void returnCupInvalid() {
   delay(SERVO_CLOSE_DELAY_MS);
 }
 
+// DUAL-IR CUP SIZE VALIDATION (ESP32-CAM not used for cup)
+void validateCupBySize() {
+  Serial.println(F("[CUP] Item detected in chamber — starting size validation"));
+  
+  lcdShow("Validating Cup...   ",
+          "Please wait...      ",
+          "Processing item...  ",
+          "                    ");
+
+  // Close the cup slot gate first so nothing else is inserted
+  closeCupSlot();
+
+  // Allow item to settle inside chamber (500ms stabilization delay)
+  delay(500);
+
+  // Multi-sample both IR sensors over 300ms (6 samples, 50ms apart)
+  int ir1Count = 0; // IR 1: IR_CUP_VALID (Presence / bottom)
+  int ir2Count = 0; // IR 2: IR_CUP_OVERSIZE (Height / oversize)
+  const int SAMPLES = 6;
+  
+  for (int i = 0; i < SAMPLES; i++) {
+    if (digitalRead(IR_CUP_VALID) == LOW)    ir1Count++;
+    if (digitalRead(IR_CUP_OVERSIZE) == LOW) ir2Count++;
+    delay(50);
+  }
+
+  bool ir1Blocked = (ir1Count >= 3);
+  bool ir2Blocked = (ir2Count >= 3);
+
+  Serial.print(F("[CUP] IR1 (Presence): "));
+  Serial.print(ir1Blocked ? F("BLOCKED (Active)") : F("CLEAR (Inactive)"));
+  Serial.print(F(" | IR2 (Oversize): "));
+  Serial.println(ir2Blocked ? F("BLOCKED (Active)") : F("CLEAR (Inactive)"));
+
+  // If IR2 (oversize) is active/blocked (bottle size / item too tall): REJECT
+  if (ir2Blocked) {
+    Serial.println(F("[CUP] REJECT: Item reaches IR2 height limit (bottle size detected)"));
+
+    lcdShow("   Item Rejected    ",
+            "Invalid cup item    ",
+            "Returning item...   ",
+            "Please take it back.");
+
+    returnCupInvalid();
+
+    lcdShow("   Item Rejected    ",
+            "Try inserting again.",
+            "Returning home...   ",
+            "                    ");
+
+    delay(1200);
+  }
+  // If only IR1 is active/blocked (valid cup size): ACCEPT
+  else if (ir1Blocked) {
+    Serial.println(F("[CUP] ACCEPT: Valid cup size (IR1 active, IR2 clear)"));
+
+    sessionPts += 1;
+
+    lcdShow("   Cup Accepted!    ",
+            "Sorting item now... ",
+            "+1 Point Earned!    ",
+            "                    ");
+
+    compactCup();
+    devkitSend("CMD:EARN_ANON|CUP|1");
+
+    lcdShow("   Cup Accepted!    ",
+            "+1 Point Earned!    ",
+            "Total: " + String(sessionPts) + " pts",
+            "Returning home...   ");
+
+    delay(1500);
+  }
+  // Fallback: No sensor triggered after settle (false trigger or removed)
+  else {
+    Serial.println(F("[CUP] No item detected in chamber after settle"));
+
+    lcdShow("No cup detected!    ",
+            "Please re-insert    ",
+            "item properly       ",
+            "Returning home...   ");
+
+    delay(1200);
+  }
+
+  machineState = ST_AWAIT_ITEM;
+  lcdIdle();
+}
+
+// AUTO-PURGE / WATER LINE MAINTENANCE
+void runAutoPurge() {
+  Serial.println(F("[MAINTENANCE] Auto-Purge triggered: clearing stagnant water lines..."));
+
+  machineState = ST_DISPENSING;
+
+  lcdShow(" System Maintenance ",
+          " Purging water line ",
+          " Self-cleaning...   ",
+          " Please wait...     ");
+
+  digitalWrite(RELAY_PUMP, PUMP_OFF);
+  digitalWrite(RELAY_SOL1, SOL1_OFF);
+  delay(150);
+
+  digitalWrite(RELAY_SOL1, SOL1_ON);
+  delay(SOL_OPEN_DELAY);
+
+  digitalWrite(RELAY_PUMP, PUMP_ON);
+  delay(AUTO_PURGE_DURATION_MS);
+
+  digitalWrite(RELAY_PUMP, PUMP_OFF);
+  delay(250);
+
+  digitalWrite(RELAY_SOL1, SOL1_OFF);
+  delay(250);
+
+  digitalWrite(RELAY_PUMP, PUMP_OFF);
+  digitalWrite(RELAY_SOL1, SOL1_OFF);
+
+  lastDispenseAt = millis();
+  machineState = ST_AWAIT_ITEM;
+  triggerWaterLevelUpdate = true;
+
+  lcdShow(" Maintenance Done!  ",
+          " Water line fresh   ",
+          " Ready to serve     ",
+          " Returning home...  ");
+
+  delay(1500);
+  lcdIdle();
+}
+
 // WATER DISPENSE
 void dispenseWater(unsigned long ms) {
   lcdShow("  Dispensing Water  ",
@@ -376,6 +529,8 @@ void dispenseWater(unsigned long ms) {
 
   digitalWrite(RELAY_PUMP, PUMP_OFF);
   digitalWrite(RELAY_SOL1, SOL1_OFF);
+
+  lastDispenseAt = millis(); // Reset auto-purge timer
 }
 
 // HANDLE DEVKIT MESSAGES
@@ -748,14 +903,8 @@ void onScanPressed() {
   }
 
   if (pendingQrDispenseMs > 0 || machineState == ST_QR_READY) {
-    lcdShow(" QR Ready To Pour   ",
-            String(pendingQrDispenseMl) + "ml is reserved ",
-            "Press [1] dispense ",
-            "before new QR scan ");
-
-    delay(1200);
-    lcdShowPendingQrDispense();
-    return;
+    clearPendingQrDispense();
+    Serial.println(F("[BTN] Cleared previous pending QR dispense to scan new QR"));
   }
 
   if (machineState == ST_DISPENSING ||
@@ -795,8 +944,9 @@ void checkIR() {
 
   bool bottleValidLow = digitalRead(IR_BOTTLE_VALID) == LOW;
   bool cupValidLow    = digitalRead(IR_CUP_VALID) == LOW;
+  bool cupOversizeLow = digitalRead(IR_CUP_OVERSIZE) == LOW;
 
-  bool validationBusy = bottleValidLow || cupValidLow;
+  bool validationBusy = bottleValidLow || cupValidLow || cupOversizeLow;
 
   if (digitalRead(IR_BOTTLE_SLOT) == HIGH) bottleSlotArmed = true;
   if (digitalRead(IR_CUP_SLOT) == HIGH) cupSlotArmed = true;
@@ -804,10 +954,24 @@ void checkIR() {
   if (machineState == ST_AWAIT_ITEM) {
     // Prevent opening another gate if item is still inside validation chamber
     if (validationBusy) {
-      lcdShow(" Validation Busy    ",
-              "Item still inside   ",
-              "Please wait...      ",
-              "                    ");
+      if ((millis() - lastBusyMsgAt) > BUSY_MSG_COOLDOWN_MS) {
+        lastBusyMsgAt = millis();
+        busyMsgActive = true;
+        busyMsgShownAt = millis();
+        busyMsgShowDurationMs = 2000UL; // Show for 2 seconds
+        lcdShow(" Validation Busy    ",
+                "Item still inside   ",
+                "Please wait...      ",
+                "                    ");
+        
+        // Print diagnostic info to serial monitor
+        Serial.print(F("[DIAGNOSTIC] Validation Busy! Bottle Valid: "));
+        Serial.print(bottleValidLow ? F("LOW (Blocked)") : F("HIGH (Clear)"));
+        Serial.print(F(" | Cup IR1: "));
+        Serial.print(cupValidLow ? F("LOW (Blocked)") : F("HIGH (Clear)"));
+        Serial.print(F(" | Cup IR2 (Oversize): "));
+        Serial.println(cupOversizeLow ? F("LOW (Blocked)") : F("HIGH (Clear)"));
+      }
       return;
     }
 
@@ -817,9 +981,9 @@ void checkIR() {
     if (botSlotLow && bottleSlotArmed && !cupSlotLow) {
       bottleSlotArmed = false;
       bottleSlotActive = true;
-      gateOpenedAt = millis();
 
-      openBottleSlot();
+      openBottleSlot();              // ← servos run first (~850ms)
+      gateOpenedAt = millis();       // ← countdown starts AFTER gate is fully open
       machineState = ST_GATE_OPEN;
 
       lcdShow("Bottle detected     ",
@@ -832,9 +996,9 @@ void checkIR() {
     if (cupSlotLow && cupSlotArmed && !botSlotLow) {
       cupSlotArmed = false;
       bottleSlotActive = false;
-      gateOpenedAt = millis();
 
-      openCupSlot();
+      openCupSlot();                 // ← servos run first (~850ms)
+      gateOpenedAt = millis();       // ← countdown starts AFTER gate is fully open
       machineState = ST_GATE_OPEN;
 
       lcdShow("Cup detected        ",
@@ -846,14 +1010,12 @@ void checkIR() {
   }
 
   if (machineState == ST_GATE_OPEN) {
-    bool validLow = bottleSlotActive ? bottleValidLow : cupValidLow;
+    if (bottleSlotActive) {
+      if (bottleValidLow) {
+        camPending = true;
+        camSentAt = millis();
+        machineState = ST_IDENTIFYING;
 
-    if (validLow) {
-      camPending = true;
-      camSentAt = millis();
-      machineState = ST_IDENTIFYING;
-
-      if (bottleSlotActive) {
         closeBottleSlot();
         devkitSend("CMD:IDENTIFY_BOTTLE");
 
@@ -861,16 +1023,14 @@ void checkIR() {
                 "Bottle chamber      ",
                 "Please hold still   ",
                 "                    ");
-      } else {
-        closeCupSlot();
-        devkitSend("CMD:IDENTIFY_CUP");
-
-        lcdShow("Identifying...      ",
-                "Cup chamber         ",
-                "Please hold still   ",
-                "                    ");
+        return;
       }
-      return;
+    } else {
+      // Cup chamber: size validation based on dual IR sensors (IR1 = presence, IR2 = oversize/bottle height)
+      if (cupValidLow || cupOversizeLow) {
+        validateCupBySize();
+        return;
+      }
     }
 
     if ((millis() - gateOpenedAt) > GATE_STAGE_TIMEOUT_MS) {
@@ -960,14 +1120,14 @@ void setup() {
   pinMode(IR_BOTTLE_VALID, INPUT_PULLUP);
   pinMode(IR_CUP_SLOT,    INPUT_PULLUP);
   pinMode(IR_CUP_VALID,   INPUT_PULLUP);
+  pinMode(IR_CUP_OVERSIZE, INPUT_PULLUP);
 
   pinMode(IR_PAPER_ENTRY, INPUT_PULLUP);
 
   pinMode(ULTRASONIC_TRIG, OUTPUT);
   pinMode(ULTRASONIC_ECHO, INPUT);
 
-  // Setup tank water level sensor pins
-  pinMode(WATER_LEVEL_TRIG, OUTPUT);
+  // Setup tank water level sensor (3-wire Echo input only)
   pinMode(WATER_LEVEL_ECHO, INPUT);
 
   pinMode(RELAY_PUMP, OUTPUT);
@@ -1021,6 +1181,7 @@ void setup() {
 
   delay(1500);
 
+  lastDispenseAt = millis(); // Initialize auto-purge baseline timer
   machineState = ST_AWAIT_ITEM;
   lcdIdle();
 
@@ -1030,6 +1191,14 @@ void setup() {
 // LOOP
 void loop() {
   readSerial(Serial1, devBuf, handleDevKit);
+
+  // AUTO-PURGE MAINTENANCE: flush stagnant line if idle for 6 hours
+  if (machineState == ST_AWAIT_ITEM &&
+      !scanModeActive &&
+      !camPending &&
+      (millis() - lastDispenseAt >= AUTO_PURGE_IDLE_MS)) {
+    runAutoPurge();
+  }
 
   // Send tank water level periodically (heartbeat) or immediately if triggered
   static unsigned long lastWaterLevelSendAt = 0;
@@ -1142,9 +1311,10 @@ void loop() {
 
   // BUSY MESSAGE RETURN
   if (busyMsgActive &&
-      (millis() - busyMsgShownAt) > BUSY_MSG_SHOW_MS) {
+      (millis() - busyMsgShownAt) > busyMsgShowDurationMs) {
 
     busyMsgActive = false;
+    busyMsgShowDurationMs = BUSY_MSG_SHOW_MS; // Reset to default
 
     if (machineState == ST_AWAIT_ITEM && !scanModeActive) {
       lcdIdle();
@@ -1157,3 +1327,4 @@ void loop() {
     digitalWrite(RELAY_SOL1, SOL1_OFF);
   }
 }
+

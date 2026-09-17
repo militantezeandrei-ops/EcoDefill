@@ -7,8 +7,12 @@ import { showToast } from "@/lib/toast";
 
 import Image from "next/image";
 
+import { useAuth } from "@/hooks/useAuth";
+import { setCachedData, invalidateCache } from "@/hooks/useCachedFetch";
+
 export default function QRGeneration() {
     const router = useRouter();
+    const { updateUserBalance } = useAuth();
     const [qrData, setQrData] = useState<{ token: string; expiresAt: string } | null>(null);
     const [error, setError] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
@@ -48,21 +52,36 @@ export default function QRGeneration() {
     useEffect(() => {
         if (!qrData) return;
 
+        let isHandled = false;
         const pollInterval = setInterval(async () => {
+            if (isHandled) return;
             try {
                 const data = await apiClient<{ used: boolean }>("/api/qr-status?token=" + qrData.token);
-                if (data.used) {
+                if (data.used && !isHandled) {
+                    isHandled = true;
                     clearInterval(pollInterval);
+
+                    try {
+                        const freshUserData = await apiClient<any>("/api/user-balance");
+                        if (freshUserData && typeof freshUserData.balance === "number") {
+                            updateUserBalance(freshUserData.balance);
+                            setCachedData("/api/user-balance", freshUserData);
+                        }
+                    } catch (e) {
+                        console.error("Failed to refresh balance after earn scan", e);
+                    }
+                    invalidateCache("/api/user-transactions");
+
                     await showToast({ text: "Points added successfully.", type: "success" });
                     router.push("/dashboard");
                 }
             } catch (err) {
                 console.error("Polling error", err);
             }
-        }, 2000);
+        }, 1000);
 
         return () => clearInterval(pollInterval);
-    }, [qrData, router]);
+    }, [qrData, router, updateUserBalance]);
 
     return (
         <div className="flex min-h-[70vh] flex-col items-center justify-center px-4 pb-4 pt-[calc(var(--safe-top)+14px)] text-center">

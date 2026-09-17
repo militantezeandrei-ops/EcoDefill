@@ -24,7 +24,8 @@ class ShellLayout extends ConsumerWidget {
     final currentIndex = ref.watch(shellNavigationProvider);
 
     return Scaffold(
-      extendBody: true, // Allows background content to flow under the floating bottom navigation bar
+      extendBody:
+          true, // Allows background content to flow under the floating bottom navigation bar
       body: IndexedStack(
         index: currentIndex,
         children: _screens,
@@ -47,7 +48,7 @@ class ShellLayout extends ConsumerWidget {
               ),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.08),
+                  color: Colors.black.withValues(alpha: 0.08),
                   blurRadius: 24,
                   spreadRadius: 2,
                   offset: const Offset(0, 8),
@@ -57,11 +58,16 @@ class ShellLayout extends ConsumerWidget {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
-                _buildNavItem(ref, 0, Icons.home_rounded, Icons.home_rounded, 'Home', currentIndex),
-                _buildNavItem(ref, 1, Icons.stars_rounded, Icons.stars_rounded, 'Rewards', currentIndex),
-                _buildNavItem(ref, 2, Icons.history_rounded, Icons.history_rounded, 'History', currentIndex),
-                _buildNavItem(ref, 3, Icons.leaderboard_rounded, Icons.leaderboard_rounded, 'Ranking', currentIndex),
-                _buildNavItem(ref, 4, Icons.person_rounded, Icons.person_rounded, 'Profile', currentIndex),
+                _buildNavItem(ref, 0, Icons.home_rounded, Icons.home_rounded,
+                    'Home', currentIndex),
+                _buildNavItem(ref, 1, Icons.stars_rounded, Icons.stars_rounded,
+                    'Rewards', currentIndex),
+                _buildNavItem(ref, 2, Icons.history_rounded,
+                    Icons.history_rounded, 'History', currentIndex),
+                _buildNavItem(ref, 3, Icons.leaderboard_rounded,
+                    Icons.leaderboard_rounded, 'Ranking', currentIndex),
+                _buildNavItem(ref, 4, Icons.person_rounded,
+                    Icons.person_rounded, 'Profile', currentIndex),
               ],
             ),
           ),
@@ -70,7 +76,8 @@ class ShellLayout extends ConsumerWidget {
     );
   }
 
-  Widget _buildNavItem(WidgetRef ref, int index, IconData unselectedIcon, IconData selectedIcon, String label, int currentIndex) {
+  Widget _buildNavItem(WidgetRef ref, int index, IconData unselectedIcon,
+      IconData selectedIcon, String label, int currentIndex) {
     final isSelected = currentIndex == index;
     return GestureDetector(
       onTap: () {
@@ -81,7 +88,9 @@ class ShellLayout extends ConsumerWidget {
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
-          color: isSelected ? AppTheme.primaryEmerald.withOpacity(0.15) : Colors.transparent,
+          color: isSelected
+              ? AppTheme.primaryEmerald.withValues(alpha: 0.15)
+              : Colors.transparent,
           borderRadius: BorderRadius.circular(999),
         ),
         child: Row(
@@ -89,7 +98,10 @@ class ShellLayout extends ConsumerWidget {
           children: [
             Icon(
               isSelected ? selectedIcon : unselectedIcon,
-              color: isSelected ? AppTheme.primaryEmerald : const Color(0xFF94A3B8), // slate-400 for contrast on white background
+              color: isSelected
+                  ? AppTheme.primaryEmerald
+                  : const Color(
+                      0xFF94A3B8), // slate-400 for contrast on white background
               size: 22,
             ),
             if (isSelected) ...[

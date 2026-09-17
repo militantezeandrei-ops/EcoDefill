@@ -19,7 +19,7 @@ class RewardsGuideScreen extends StatelessWidget {
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   colors: [
-                    AppTheme.accentBlue.withOpacity(0.1),
+                    AppTheme.accentBlue.withValues(alpha: 0.1),
                     Colors.transparent,
                   ],
                   begin: Alignment.topCenter,
@@ -58,14 +58,17 @@ class RewardsGuideScreen extends StatelessWidget {
                     padding: const EdgeInsets.all(20),
                     decoration: BoxDecoration(
                       gradient: const LinearGradient(
-                        colors: [Color(0xFF3B82F6), Color(0xFF1D4ED8)], // Blue-500 to Blue-700
+                        colors: [
+                          Color(0xFF3B82F6),
+                          Color(0xFF1D4ED8)
+                        ], // Blue-500 to Blue-700
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
                       ),
                       borderRadius: BorderRadius.circular(24),
                       boxShadow: [
                         BoxShadow(
-                          color: const Color(0xFF2563EB).withOpacity(0.3),
+                          color: const Color(0xFF2563EB).withValues(alpha: 0.3),
                           blurRadius: 24,
                           offset: const Offset(0, 12),
                         ),
@@ -82,7 +85,7 @@ class RewardsGuideScreen extends StatelessWidget {
                               style: TextStyle(
                                 fontSize: 10,
                                 fontWeight: FontWeight.w900,
-                                color: Colors.white.withOpacity(0.8),
+                                color: Colors.white.withValues(alpha: 0.8),
                                 letterSpacing: 1.5,
                               ),
                             ),
@@ -109,7 +112,7 @@ class RewardsGuideScreen extends StatelessWidget {
                           width: 64,
                           height: 64,
                           decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.15),
+                            color: Colors.white.withValues(alpha: 0.15),
                             borderRadius: BorderRadius.circular(20),
                           ),
                           child: const Icon(
@@ -137,9 +140,10 @@ class RewardsGuideScreen extends StatelessWidget {
                         ),
                       ),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 10, vertical: 4),
                         decoration: BoxDecoration(
-                          color: AppTheme.primaryEmerald.withOpacity(0.1),
+                          color: AppTheme.primaryEmerald.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: const Text(
@@ -267,7 +271,7 @@ class RewardsGuideScreen extends StatelessWidget {
             width: 48,
             height: 48,
             decoration: BoxDecoration(
-              color: color.withOpacity(0.1),
+              color: color.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(16),
             ),
             child: Icon(

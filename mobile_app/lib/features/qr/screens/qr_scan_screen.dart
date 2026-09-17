@@ -6,6 +6,7 @@ import 'package:ecodefill_mobile/core/network/api_client.dart';
 import 'package:ecodefill_mobile/core/theme/app_theme.dart';
 import 'package:ecodefill_mobile/core/widgets/qr_display_card.dart';
 import 'package:ecodefill_mobile/features/auth/providers/auth_provider.dart';
+import 'package:ecodefill_mobile/features/history/providers/history_provider.dart';
 
 /// Determines which flow the QR scan belongs to.
 enum QrScanMode { receivePoints, redeemWater }
@@ -91,7 +92,7 @@ class _QrScanScreenState extends ConsumerState<QrScanScreen>
 
   void _startPolling(String token) {
     _pollTimer?.cancel();
-    _pollTimer = Timer.periodic(const Duration(seconds: 2), (timer) async {
+    _pollTimer = Timer.periodic(const Duration(seconds: 1), (timer) async {
       if (_scanned) {
         timer.cancel();
         return;
@@ -107,7 +108,8 @@ class _QrScanScreenState extends ConsumerState<QrScanScreen>
           _scanned = true;
 
           if (!mounted) return;
-          ref.read(authProvider.notifier).refreshBalance();
+          await ref.read(authProvider.notifier).fetchUserBalance();
+          ref.read(historyProvider.notifier).fetchTransactions();
 
           if (widget.mode == QrScanMode.receivePoints) {
             _showReceiveSuccess();
@@ -141,7 +143,7 @@ class _QrScanScreenState extends ConsumerState<QrScanScreen>
                 width: 80,
                 height: 80,
                 decoration: BoxDecoration(
-                  color: AppTheme.primaryEmerald.withOpacity(0.12),
+                  color: AppTheme.primaryEmerald.withValues(alpha: 0.12),
                   shape: BoxShape.circle,
                 ),
                 child: const Icon(Icons.check_circle_rounded,
@@ -220,7 +222,7 @@ class _QrScanScreenState extends ConsumerState<QrScanScreen>
                       height: 120,
                       decoration: BoxDecoration(
                         border: Border.all(
-                            color: AppTheme.accentBlue.withOpacity(0.3),
+                            color: AppTheme.accentBlue.withValues(alpha: 0.3),
                             width: 3),
                         borderRadius: const BorderRadius.only(
                           bottomLeft: Radius.circular(20),
@@ -235,8 +237,8 @@ class _QrScanScreenState extends ConsumerState<QrScanScreen>
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
                           colors: [
-                            AppTheme.accentBlue.withOpacity(0.7),
-                            Colors.cyanAccent.withOpacity(0.4),
+                            AppTheme.accentBlue.withValues(alpha: 0.7),
+                            Colors.cyanAccent.withValues(alpha: 0.4),
                           ],
                           begin: Alignment.bottomCenter,
                           end: Alignment.topCenter,
@@ -309,7 +311,7 @@ class _QrScanScreenState extends ConsumerState<QrScanScreen>
           // Background dim overlay
           Positioned.fill(
             child: Container(
-              color: Colors.black.withOpacity(0.65),
+              color: Colors.black.withValues(alpha: 0.65),
             ),
           ),
           // Backdrop blur filter
@@ -331,7 +333,7 @@ class _QrScanScreenState extends ConsumerState<QrScanScreen>
                   borderRadius: BorderRadius.circular(24), // rounded-3xl
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.15),
+                      color: Colors.black.withValues(alpha: 0.15),
                       blurRadius: 24,
                       offset: const Offset(0, 10),
                     ),

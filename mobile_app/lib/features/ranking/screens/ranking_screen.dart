@@ -23,7 +23,7 @@ class RankingScreen extends ConsumerWidget {
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   colors: [
-                    AppTheme.primaryEmerald.withOpacity(0.12),
+                    AppTheme.primaryEmerald.withValues(alpha: 0.12),
                     Colors.transparent,
                   ],
                   begin: Alignment.topCenter,
@@ -36,13 +36,16 @@ class RankingScreen extends ConsumerWidget {
           SafeArea(
             child: RefreshIndicator(
               color: AppTheme.primaryEmerald,
-              onRefresh: () => ref.read(rankingProvider.notifier).loadRankings(forceRefresh: true),
+              onRefresh: () => ref
+                  .read(rankingProvider.notifier)
+                  .loadRankings(forceRefresh: true),
               child: CustomScrollView(
                 slivers: [
                   // App Bar / Title
                   SliverToBoxAdapter(
                     child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16.0, vertical: 12.0),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -63,7 +66,10 @@ class RankingScreen extends ConsumerWidget {
                                   ),
                                   Text(
                                     'Course Standings',
-                                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .titleLarge
+                                        ?.copyWith(
                                           fontSize: 24,
                                           fontWeight: FontWeight.w900,
                                         ),
@@ -88,8 +94,12 @@ class RankingScreen extends ConsumerWidget {
                                 : 'Live standings based on overall recycling points.',
                             style: TextStyle(
                               fontSize: 12,
-                              color: rankingState.isFromCache ? Colors.amber.shade800 : AppTheme.textMuted,
-                              fontWeight: rankingState.isFromCache ? FontWeight.bold : FontWeight.normal,
+                              color: rankingState.isFromCache
+                                  ? Colors.amber.shade800
+                                  : AppTheme.textMuted,
+                              fontWeight: rankingState.isFromCache
+                                  ? FontWeight.bold
+                                  : FontWeight.normal,
                             ),
                           ),
                         ],
@@ -101,7 +111,8 @@ class RankingScreen extends ConsumerWidget {
                   if (rankingState.error != null)
                     SliverToBoxAdapter(
                       child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 16.0, vertical: 8.0),
                         child: Container(
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
@@ -111,7 +122,8 @@ class RankingScreen extends ConsumerWidget {
                           ),
                           child: Row(
                             children: [
-                              Icon(Icons.info_outline_rounded, color: Colors.red.shade600, size: 20),
+                              Icon(Icons.info_outline_rounded,
+                                  color: Colors.red.shade600, size: 20),
                               const SizedBox(width: 10),
                               Expanded(
                                 child: Text(
@@ -137,7 +149,8 @@ class RankingScreen extends ConsumerWidget {
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Icon(Icons.bar_chart_rounded, size: 64, color: AppTheme.textMuted),
+                            Icon(Icons.bar_chart_rounded,
+                                size: 64, color: AppTheme.textMuted),
                             SizedBox(height: 12),
                             Text(
                               'No rankings data available',
@@ -150,7 +163,8 @@ class RankingScreen extends ConsumerWidget {
                             SizedBox(height: 4),
                             Text(
                               'Check back later or swipe down to refresh.',
-                              style: TextStyle(fontSize: 12, color: AppTheme.textMuted),
+                              style: TextStyle(
+                                  fontSize: 12, color: AppTheme.textMuted),
                             ),
                           ],
                         ),
@@ -162,7 +176,8 @@ class RankingScreen extends ConsumerWidget {
                     if (rankingState.rankings.isNotEmpty)
                       SliverToBoxAdapter(
                         child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 16.0, vertical: 12.0),
                           child: RankingPodium(
                             topThree: rankingState.rankings.take(3).toList(),
                           ),
@@ -172,13 +187,16 @@ class RankingScreen extends ConsumerWidget {
                     // List of courses (Rank 4+) or all list items if we prefer.
                     // We'll show Rank 4 and above in the list, but if they want the whole list, we can show it here
                     SliverPadding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16.0, vertical: 8.0),
                       sliver: SliverList(
                         delegate: SliverChildBuilderDelegate(
                           (context, index) {
                             // index starts from 3 because index 0, 1, 2 are in the podium
                             final actualIndex = index + 3;
-                            if (actualIndex >= rankingState.rankings.length) return null;
+                            if (actualIndex >= rankingState.rankings.length) {
+                              return null;
+                            }
 
                             final item = rankingState.rankings[actualIndex];
                             return _buildRankingListItem(item, actualIndex + 1);
@@ -200,9 +218,14 @@ class RankingScreen extends ConsumerWidget {
   }
 
   Widget _buildRankingListItem(dynamic item, int rank) {
-    final courseName = (item['course'] ?? item['name'] ?? item['code'] ?? 'Course').toString();
-    final points = double.tryParse((item['points'] ?? item['totalPoints'] ?? item['total_points'] ?? 0).toString()) ?? 0.0;
-    final students = item['studentsCount'] ?? item['studentCount'] ?? item['students'] ?? 0;
+    final courseName =
+        (item['course'] ?? item['name'] ?? item['code'] ?? 'Course').toString();
+    final points = double.tryParse(
+            (item['points'] ?? item['totalPoints'] ?? item['total_points'] ?? 0)
+                .toString()) ??
+        0.0;
+    final students =
+        item['studentsCount'] ?? item['studentCount'] ?? item['students'] ?? 0;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
@@ -263,7 +286,7 @@ class RankingScreen extends ConsumerWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
             decoration: BoxDecoration(
-              color: AppTheme.primaryEmerald.withOpacity(0.08),
+              color: AppTheme.primaryEmerald.withValues(alpha: 0.08),
               borderRadius: BorderRadius.circular(10),
             ),
             child: Text(
@@ -360,8 +383,12 @@ class RankingPodium extends StatelessWidget {
     Color trophyColor,
     Color bgColor,
   ) {
-    final courseName = (item['course'] ?? item['name'] ?? item['code'] ?? 'Course').toString();
-    final points = double.tryParse((item['points'] ?? item['totalPoints'] ?? item['total_points'] ?? 0).toString()) ?? 0.0;
+    final courseName =
+        (item['course'] ?? item['name'] ?? item['code'] ?? 'Course').toString();
+    final points = double.tryParse(
+            (item['points'] ?? item['totalPoints'] ?? item['total_points'] ?? 0)
+                .toString()) ??
+        0.0;
 
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -382,7 +409,8 @@ class RankingPodium extends StatelessWidget {
               end: Alignment.bottomCenter,
             ),
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: trophyColor.withOpacity(0.3), width: 1.5),
+            border: Border.all(
+                color: trophyColor.withValues(alpha: 0.3), width: 1.5),
           ),
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 4.0, vertical: 8.0),

@@ -79,7 +79,25 @@ export default async function DashboardContent({ searchParams }: { searchParams:
         });
     }
     const waterLevelRaw = latestLog?.message || "Unknown";
-    const waterLevel = (waterLevelRaw === "Full Tank" || waterLevelRaw === "Full Tank Water") ? "Full Tank" : "Low";
+    let waterLevel = "Unknown";
+    let waterLevelColor = "text-gray-500 font-semibold";
+    let waterLevelIconBg = "bg-gray-50";
+    let waterLevelIconColor = "text-gray-400";
+
+    if (waterLevelRaw.includes("Sufficient") || waterLevelRaw.includes("Full") || waterLevelRaw.includes("Medium")) {
+        waterLevel = "Sufficient";
+        waterLevelColor = "text-emerald-600 font-black";
+        waterLevelIconBg = "bg-emerald-50";
+        waterLevelIconColor = "text-emerald-600";
+    } else if (waterLevelRaw.includes("Low") || waterLevelRaw.includes("Empty")) {
+        waterLevel = "Low Water";
+        waterLevelColor = "text-rose-600 font-black animate-pulse";
+        waterLevelIconBg = "bg-rose-50 border border-rose-100 animate-bounce";
+        waterLevelIconColor = "text-rose-600";
+    } else {
+        waterLevel = waterLevelRaw;
+    }
+
     const lastUpdatedStr = latestLog
         ? new Date(latestLog.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
         : "N/A";
@@ -174,17 +192,11 @@ export default async function DashboardContent({ searchParams }: { searchParams:
             sub: `Updated: ${lastUpdatedStr}`,
             icon: Cylinder,
             bg: "bg-white",
-            valueColor: waterLevel === "Full Tank" 
-                ? "text-blue-600 font-black animate-in fade-in" 
-                : "text-rose-600 animate-pulse font-black",
+            valueColor: waterLevelColor,
             titleColor: "text-gray-400",
             subColor: "text-gray-500",
-            iconBg: waterLevel === "Full Tank" 
-                ? "bg-blue-50" 
-                : "bg-rose-50 border border-rose-100 animate-bounce",
-            iconColor: waterLevel === "Full Tank" 
-                ? "text-blue-500" 
-                : "text-rose-500",
+            iconBg: waterLevelIconBg,
+            iconColor: waterLevelIconColor,
         },
     ];
 

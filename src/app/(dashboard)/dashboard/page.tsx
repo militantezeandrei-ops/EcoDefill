@@ -53,6 +53,25 @@ export default function Dashboard() {
         }
     }, [data?.balance, updateUserBalance]);
 
+    useEffect(() => {
+        // Auto-refresh balance in background every 4s when active or when window regains focus
+        const interval = setInterval(() => {
+            if (typeof document !== "undefined" && document.visibilityState === "visible") {
+                void mutate();
+            }
+        }, 4000);
+
+        const handleFocus = () => {
+            void mutate();
+        };
+
+        window.addEventListener("focus", handleFocus);
+        return () => {
+            clearInterval(interval);
+            window.removeEventListener("focus", handleFocus);
+        };
+    }, [mutate]);
+
     const balance = data?.balance ?? user?.balance ?? 0;
     const fullName = data?.fullName || user?.email?.split("@")[0] || "Student";
     const dailyEarned = data?.dailyEarned ?? 0;
@@ -82,7 +101,7 @@ export default function Dashboard() {
     return (
         <div className="relative min-h-full">
             {isOffline && (
-                <div className="sticky top-[var(--safe-top)] z-50 flex items-center justify-center bg-rose-500/90 backdrop-blur-md px-4 py-2 text-[11px] font-bold text-white shadow-lg animate-in slide-in-from-top duration-300">
+                <div className="sticky top-(--safe-top) z-50 flex items-center justify-center bg-rose-500/90 backdrop-blur-md px-4 py-2 text-[11px] font-bold text-white shadow-lg animate-in slide-in-from-top duration-300">
                     <span className="material-symbols-outlined mr-2 text-[16px]">wifi_off</span>
                     OFFLINE MODE &bull;
                     <button
@@ -94,12 +113,12 @@ export default function Dashboard() {
                 </div>
             )}
             {/* Ambient gradient */}
-            <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-56 bg-gradient-to-b from-emerald-100/60 to-transparent" />
+            <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-56 bg-linear-to-b from-emerald-100/60 to-transparent" />
 
             {/* ── Balance Hero Card ── */}
             <section className="px-4 pt-[calc(var(--safe-top)+56px)]">
                 <h2 className="app-section-title">Dashboard</h2>
-                <div className="relative overflow-hidden rounded-[24px] bg-gradient-to-br from-emerald-500 via-emerald-600 to-teal-700 px-5 pb-5 pt-6 text-white shadow-[0_12px_32px_rgba(5,150,105,0.3)]">
+                <div className="relative overflow-hidden rounded-[24px] bg-linear-to-br from-emerald-500 via-emerald-600 to-teal-700 px-5 pb-5 pt-6 text-white shadow-[0_12px_32px_rgba(5,150,105,0.3)]">
                     {/* Decorative blobs */}
                     <div className="absolute -right-8 -top-8 h-32 w-32 rounded-full bg-white/10 blur-2xl" />
 
@@ -220,7 +239,7 @@ export default function Dashboard() {
                         </div>
                     ) : data.recentTransactions.length > 0 ? (
                         <div className="divide-y divide-slate-100">
-                            {data.recentTransactions.map((tx) => (
+                            {data.recentTransactions.map((tx: any) => (
                                 <div key={tx.id} className="flex items-center justify-between px-4 py-3.5 transition-colors active:bg-slate-50">
                                     <div className="flex items-center gap-3">
                                         <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${tx.type === "EARN" ? "bg-emerald-50 text-emerald-600" : "bg-blue-50 text-blue-600"}`}>

@@ -47,7 +47,7 @@ class DashboardScreen extends ConsumerWidget {
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   colors: [
-                    AppTheme.primaryEmerald.withOpacity(0.12),
+                    AppTheme.primaryEmerald.withValues(alpha: 0.12),
                     Colors.transparent,
                   ],
                   begin: Alignment.topCenter,
@@ -114,7 +114,7 @@ class DashboardScreen extends ConsumerWidget {
                       borderRadius: BorderRadius.circular(24),
                       boxShadow: [
                         BoxShadow(
-                          color: AppTheme.primaryEmerald.withOpacity(0.3),
+                          color: AppTheme.primaryEmerald.withValues(alpha: 0.3),
                           blurRadius: 24,
                           offset: const Offset(0, 10),
                         )
@@ -129,7 +129,7 @@ class DashboardScreen extends ConsumerWidget {
                             fontSize: 10,
                             fontWeight: FontWeight.w900,
                             letterSpacing: 1.8,
-                            color: Colors.white.withOpacity(0.7),
+                            color: Colors.white.withValues(alpha: 0.7),
                           ),
                         ),
                         const SizedBox(height: 8),
@@ -164,9 +164,9 @@ class DashboardScreen extends ConsumerWidget {
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                           decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.12),
+                            color: Colors.white.withValues(alpha: 0.12),
                             borderRadius: BorderRadius.circular(20),
-                            border: Border.all(color: Colors.white.withOpacity(0.15)),
+                            border: Border.all(color: Colors.white.withValues(alpha: 0.15)),
                           ),
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
@@ -217,11 +217,11 @@ class DashboardScreen extends ConsumerWidget {
                               Row(
                                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                 children: [
-                                  Row(
+                                  const Row(
                                     children: [
-                                      const Icon(Icons.recycling_rounded, size: 18, color: AppTheme.primaryEmerald),
-                                      const SizedBox(width: 4),
-                                      const Text(
+                                      Icon(Icons.recycling_rounded, size: 18, color: AppTheme.primaryEmerald),
+                                      SizedBox(width: 4),
+                                      Text(
                                         'EARNED',
                                         style: TextStyle(
                                           fontSize: 10,
@@ -285,11 +285,11 @@ class DashboardScreen extends ConsumerWidget {
                               Row(
                                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                 children: [
-                                  Row(
+                                  const Row(
                                     children: [
-                                      const Icon(Icons.water_drop_rounded, size: 18, color: AppTheme.accentBlue),
-                                      const SizedBox(width: 4),
-                                      const Text(
+                                      Icon(Icons.water_drop_rounded, size: 18, color: AppTheme.accentBlue),
+                                      SizedBox(width: 4),
+                                      Text(
                                         'REDEEMED',
                                         style: TextStyle(
                                           fontSize: 10,
@@ -383,7 +383,7 @@ class DashboardScreen extends ConsumerWidget {
                                   ? null
                                   : [
                                       BoxShadow(
-                                        color: AppTheme.primaryEmerald.withOpacity(0.2),
+                                        color: AppTheme.primaryEmerald.withValues(alpha: 0.2),
                                         blurRadius: 16,
                                         offset: const Offset(0, 6),
                                       )
@@ -394,7 +394,7 @@ class DashboardScreen extends ConsumerWidget {
                                 Container(
                                   padding: const EdgeInsets.all(8),
                                   decoration: BoxDecoration(
-                                    color: Colors.white.withOpacity(0.2),
+                                    color: Colors.white.withValues(alpha: 0.2),
                                     borderRadius: BorderRadius.circular(12),
                                   ),
                                   child: Icon(
@@ -454,7 +454,7 @@ class DashboardScreen extends ConsumerWidget {
                                   ? null
                                   : [
                                       BoxShadow(
-                                        color: AppTheme.accentBlue.withOpacity(0.2),
+                                        color: AppTheme.accentBlue.withValues(alpha: 0.2),
                                         blurRadius: 16,
                                         offset: const Offset(0, 6),
                                       )
@@ -465,7 +465,7 @@ class DashboardScreen extends ConsumerWidget {
                                 Container(
                                   padding: const EdgeInsets.all(8),
                                   decoration: BoxDecoration(
-                                    color: Colors.white.withOpacity(0.2),
+                                    color: Colors.white.withValues(alpha: 0.2),
                                     borderRadius: BorderRadius.circular(12),
                                   ),
                                   child: Icon(
@@ -605,8 +605,8 @@ class DashboardScreen extends ConsumerWidget {
                                   padding: const EdgeInsets.all(8),
                                   decoration: BoxDecoration(
                                     color: isEarn
-                                        ? AppTheme.primaryEmerald.withOpacity(0.1)
-                                        : AppTheme.accentBlue.withOpacity(0.1),
+                                        ? AppTheme.primaryEmerald.withValues(alpha: 0.1)
+                                        : AppTheme.accentBlue.withValues(alpha: 0.1),
                                     shape: BoxShape.circle,
                                   ),
                                   child: Icon(

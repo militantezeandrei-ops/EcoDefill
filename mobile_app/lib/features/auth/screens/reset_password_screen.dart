@@ -87,7 +87,7 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
               height: 300,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: AppTheme.primaryEmerald.withOpacity(0.08),
+                color: AppTheme.primaryEmerald.withValues(alpha: 0.08),
               ),
             ),
           ),
@@ -99,7 +99,7 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
               height: 250,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: AppTheme.accentBlue.withOpacity(0.08),
+                color: AppTheme.accentBlue.withValues(alpha: 0.08),
               ),
             ),
           ),
@@ -128,7 +128,7 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
                             borderRadius: BorderRadius.circular(24),
                             boxShadow: [
                               BoxShadow(
-                                color: AppTheme.accentBlue.withOpacity(0.2),
+                                color: AppTheme.accentBlue.withValues(alpha: 0.2),
                                 blurRadius: 16,
                                 offset: const Offset(0, 8),
                               )

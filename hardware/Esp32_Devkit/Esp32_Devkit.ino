@@ -67,7 +67,7 @@ IPAddress DEVKIT_DNS2(8, 8, 4, 4);    // Google DNS fallback
 const int LED_PIN = 2;   // Built-in LED
 
 // ── TIMING ────────────────────────────────────────────────────────────────────
-const unsigned long WIFI_TIMEOUT_MS  = 20000;
+const unsigned long WIFI_TIMEOUT_MS  = 25000;  // Increased for standalone cold boot
 const unsigned long HTTP_TIMEOUT_MS  = 20000;
 const unsigned long QR_CANCEL_GUARD_MS = 2000;
 const unsigned long CAM_RESULT_TIMEOUT_MS = 12000;
@@ -222,9 +222,8 @@ bool isPrintableSerialByte(char ch) {
 }
 
 void scheduleRestartAfterQR(const char* reason) {
-  restartPending = true;
-  restartAt = millis() + QR_RESTART_DELAY_MS;
-  Serial.printf("[DEV] Restart scheduled after QR flow (%s)\n", reason);
+  // Restart is disabled during normal operation to prevent WiFi disconnect delays and lost state
+  Serial.printf("[DEV] QR flow completed (%s) - maintaining continuous connection\n", reason);
 }
 
 void processMegaCommand(const String& cmd) {
@@ -243,6 +242,8 @@ void processMegaCommand(const String& cmd) {
     qrSessionBottles = 0;
     qrSessionCups = 0;
     qrSessionPapers = 0;
+    lastQrToken = "";
+    lastQrTokenAt = 0;
 
     // Parse: CMD:SCAN_QR|points|bottles|cups|papers
     int firstSep = cmd.indexOf('|');
@@ -283,6 +284,8 @@ void processMegaCommand(const String& cmd) {
     qrSessionBottles = 0;
     qrSessionCups = 0;
     qrSessionPapers = 0;
+    lastQrToken = "";
+    lastQrTokenAt = 0;
     cancelQRCam();
 
   } else if (cmd.startsWith("CMD:EARN_ANON|")) {
@@ -333,7 +336,6 @@ void toMega(const String& msg) {
 void apiVerifyQR(const String& token, int pointsToTransfer) {
   if (!ensureWiFi()) {
     toMega("QR:FAIL");
-    scheduleRestartAfterQR("wifi-unavailable");
     return;
   }
 
@@ -364,14 +366,12 @@ void apiVerifyQR(const String& token, int pointsToTransfer) {
 
   if (code != 200) {
     toMega("QR:FAIL");
-    scheduleRestartAfterQR("verify-http-fail");
     return;
   }
 
   StaticJsonDocument<512> res;
   if (deserializeJson(res, resp)) {
     toMega("QR:FAIL");
-    scheduleRestartAfterQR("verify-json-fail");
     return;
   }
 
@@ -400,7 +400,6 @@ void apiVerifyQR(const String& token, int pointsToTransfer) {
     // Format: QR:REDEEM:<dispenseMs>|<studentName>|<redeemedPoints>
     toMega("QR:REDEEM:" + String(dispenseMs) + "|" + userName + "|" + String(redeemedPts));
     blink(3, 100);
-    scheduleRestartAfterQR("redeem-complete");
     return;
   }
 
@@ -416,12 +415,10 @@ void apiVerifyQR(const String& token, int pointsToTransfer) {
     // Format: QR:RECEIVE:<points>|<studentName>
     toMega("QR:RECEIVE:" + String(pts) + "|" + userName);
     blink(2, 80);
-    scheduleRestartAfterQR("receive-complete");
     return;
   }
 
   toMega("QR:FAIL");
-  scheduleRestartAfterQR("verify-no-result");
 }
 
 // ── BACKEND: ANONYMOUS EARN LOG ───────────────────────────────────────────────
@@ -771,7 +768,7 @@ void handleMegaCommand(const String& line) {
 // ── SETUP ─────────────────────────────────────────────────────────────────────
 void setup() {
   Serial.begin(115200);
-  delay(500);
+  delay(1000);  // Increased: give power supply time to stabilize on standalone boot
   Serial.println("[DEVKIT] EcoDefill v3 booting...");
 
   // Serial2 = UART link to Mega (RX2=GPIO16, TX2=GPIO17)
@@ -781,7 +778,18 @@ void setup() {
   pinMode(LED_PIN, OUTPUT);
   digitalWrite(LED_PIN, LOW);
 
-  connectWiFi();
+  // Retry WiFi up to 3 times — critical for standalone cold boot
+  // when the hotspot/router may not be ready immediately.
+  int wifiAttempts = 0;
+  while (!connectWiFi() && wifiAttempts < 3) {
+    wifiAttempts++;
+    Serial.printf("[DEVKIT] WiFi attempt %d failed. Retrying in 5s...\n", wifiAttempts);
+    delay(5000);
+  }
+  if (WiFi.status() != WL_CONNECTED) {
+    Serial.println("[DEVKIT] WARNING: WiFi not connected after 3 attempts. HTTP server starting anyway.");
+    Serial.println("[DEVKIT] QR scan will fail until WiFi reconnects via watchdog.");
+  }
 
   // Register HTTP endpoints
   server.on("/detect", handleDetect);
@@ -835,15 +843,23 @@ void loop() {
     char ch = (char)Serial2.read();
     if (ch == '\n') {
       serial2Buf.trim();
-      if (serial2Buf.length() > 0) handleMegaCommand(serial2Buf);
+      if (serial2Buf.length() > 0) {
+        handleMegaCommand(serial2Buf);
+      }
       serial2Buf = "";
     } else if (ch == '\r') {
       continue;
     } else if (isPrintableSerialByte(ch)) {
-      if (serial2Buf.length() < 256) serial2Buf += ch;
-      else serial2Buf = "";
+      if (serial2Buf.length() < 256) {
+        serial2Buf += ch;
+      }
     } else {
-      serial2Buf = "";
+      // Print non-printable bytes in hex format for easy debugging
+      Serial.printf("[DEV RX Debug] Non-printable byte received: 0x%02X\n", (uint8_t)ch);
+      // Append a placeholder instead of wiping the entire buffer
+      if (serial2Buf.length() < 256) {
+        serial2Buf += '?';
+      }
     }
   }
 

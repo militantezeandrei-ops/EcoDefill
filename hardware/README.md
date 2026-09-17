@@ -134,7 +134,8 @@ These connections match the current `arduino_mega_controller/arduino_mega_contro
 | Bottle slot IR sensor | D`22` | 5V logic rail | Common GND | `INPUT_PULLUP` | Active LOW |
 | Bottle chamber/valid IR sensor | D`23` | 5V logic rail | Common GND | `INPUT_PULLUP` | Active LOW |
 | Cup slot IR sensor | D`24` | 5V logic rail | Common GND | `INPUT_PULLUP` | Active LOW |
-| Cup chamber/valid IR sensor | D`25` | 5V logic rail | Common GND | `INPUT_PULLUP` | Active LOW |
+| Cup chamber IR 1 (Presence / Bottom) | D`25` | 5V logic rail | Common GND | `INPUT_PULLUP` | Active LOW |
+| Cup chamber IR 2 (Height / Oversize) | D`27` | 5V logic rail | Common GND | `INPUT_PULLUP` | Active LOW (Blocks = Reject oversize/bottle) |
 | Paper entry IR sensor | D`26` | 5V logic rail | Common GND | `INPUT_PULLUP` | Active LOW |
 
 ### Buttons

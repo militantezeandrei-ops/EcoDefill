@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ecodefill_mobile/core/network/api_client.dart';
 import 'package:ecodefill_mobile/core/storage/secure_storage.dart';
@@ -162,7 +163,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
         hasSeenGuide: hasSeenGuide,
       );
     } catch (e) {
-      print('Error fetching user balance: $e');
+      debugPrint('Error fetching user balance: $e');
     }
   }
 
@@ -321,7 +322,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
       } catch (e) {
         // If it is a 404 error (endpoint not deployed on server yet), we simulate success locally for testing.
         if (e.toString().contains('404')) {
-          print('Endpoint not found on server (404), simulating local account deletion for demo/testing.');
+          debugPrint('Endpoint not found on server (404), simulating local account deletion for demo/testing.');
         } else {
           rethrow;
         }
@@ -364,10 +365,14 @@ class AuthNotifier extends StateNotifier<AuthState> {
           dailyRedeemed: dailyRedeemed,
         );
 
-        state = state.copyWith(balance: newBalance);
+        state = state.copyWith(
+          balance: newBalance,
+          dailyEarned: dailyEarned,
+          dailyRedeemed: dailyRedeemed,
+        );
       }
     } catch (e) {
-      print("Error refreshing balance: $e");
+      debugPrint("Error refreshing balance: $e");
     }
   }
 
@@ -377,7 +382,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
       state = state.copyWith(hasSeenGuide: true);
       await ApiClient.instance.post('/api/user/guide-seen');
     } catch (e) {
-      print('Error marking guide as seen: $e');
+      debugPrint('Error marking guide as seen: $e');
     }
   }
 }

@@ -75,13 +75,15 @@ IPAddress subnet(255, 255, 255, 0);
 #define EI_CAMERA_RAW_FRAME_BUFFER_ROWS  240
 #define EI_CAMERA_FRAME_BYTE_SIZE        3
 
-static constexpr float CUP_DECISION_THRESHOLD = 0.30f;
+// Lowered from 0.30: FOMO on embedded hardware gives lower confidence scores.
+// 0.15 still filters noise while accepting real cups.
+static constexpr float CUP_DECISION_THRESHOLD = 0.15f;
 // Detection label from the new model
 static const char* CUP_VALID_LABEL = "Valid";
 
 // ── STATE ─────────────────────────────────────────────────────────────────────
 WebServer server(80);
-const unsigned long WIFI_TIMEOUT_MS = 20000;
+const unsigned long WIFI_TIMEOUT_MS = 25000;  // Increased for standalone cold boot
 static bool   cameraInitialized = false;
 static bool   debug_nn          = false;
 static uint8_t* snapshotBuf     = nullptr;
@@ -276,22 +278,26 @@ bool runCupInference() {
     ei_impulse_result_bounding_box_t bb = result.bounding_boxes[i];
     if (bb.value <= 0.0f) continue;
 
-    Serial.printf("[CUP]   %s (%.3f) x=%u y=%u w=%u h=%u\n",
+    Serial.printf("[CUP]   label='%s' conf=%.3f x=%u y=%u w=%u h=%u\n",
                   bb.label, bb.value, bb.x, bb.y, bb.width, bb.height);
     printedCount++;
 
-    if ((isExactValidCupLabel(bb.label) || isCupAcceptedLabel(bb.label)) && 
-        bb.value >= CUP_DECISION_THRESHOLD) {
+    // Accept if label is an exact valid cup label, OR is not an explicitly rejected label
+    bool labelOk = isExactValidCupLabel(bb.label) || isCupAcceptedLabel(bb.label);
+    if (labelOk && bb.value >= CUP_DECISION_THRESHOLD) {
       detected = true;
       validCount++;
+      Serial.printf("[CUP]   ^ ACCEPTED (threshold %.2f)\n", CUP_DECISION_THRESHOLD);
+    } else if (bb.value >= CUP_DECISION_THRESHOLD) {
+      Serial.println("[CUP]   ^ REJECTED by label filter");
     }
   }
 
   if (printedCount == 0) {
-    Serial.println("[CUP]   (no detections)");
+    Serial.println("[CUP]   (no detections above 0.0)");
   }
 
-  Serial.printf("[CUP] Decision: %s  (accepted boxes: %lu threshold %.2f)\n",
+  Serial.printf("[CUP] Decision: %s  (accepted=%lu threshold=%.2f)\n",
                 detected ? "CUP" : "NONE",
                 (unsigned long)validCount,
                 CUP_DECISION_THRESHOLD);
@@ -377,14 +383,33 @@ void postResult(const char* result, uint32_t requestId) {
                 code, result, (unsigned long)requestId);
 }
 
+
 // ── IDENTIFY HANDLER ─────────────────────────────────────────────────────────
 void doIdentify(uint32_t requestId) {
   Serial.printf("[CUP] Capture requested (rid=%lu)...\n", (unsigned long)requestId);
 
-  bool detected = runCupInference();
+  // Multi-frame voting: try up to 3 frames, accept if ANY frame detects a cup.
+  // Reduces false negatives from single blurry/poorly-lit frames.
+  const int MAX_FRAMES = 3;
+  bool detected = false;
+
+  for (int attempt = 1; attempt <= MAX_FRAMES; attempt++) {
+    Serial.printf("[CUP] Inference attempt %d/%d\n", attempt, MAX_FRAMES);
+    bool frameDetected = runCupInference();
+    if (frameDetected) {
+      detected = true;
+      Serial.printf("[CUP] Cup detected on attempt %d — stopping early\n", attempt);
+      break;
+    }
+    if (attempt < MAX_FRAMES) {
+      delay(200);  // brief pause between frames for exposure to settle
+    }
+  }
+
   postResult(detected ? "CUP" : "NONE", requestId);
   releaseSnapshotBuffer();
 }
+
 
 void handleIdentify() {
   uint32_t requestId = server.hasArg("rid")
@@ -440,6 +465,19 @@ void setup() {
   Serial.printf("[CUP] PSRAM: %s\n", psramFound() ? "YES" : "NO");
 
   connectWiFi();
+  // Retry WiFi up to 3 times — critical for standalone cold boot
+  int wifiAttempts = 0;
+  bool wifiOk = (WiFi.status() == WL_CONNECTED);
+  while (!wifiOk && wifiAttempts < 3) {
+    wifiAttempts++;
+    Serial.printf("[CUP] WiFi attempt %d failed. Retrying in 5s...\n", wifiAttempts);
+    delay(5000);
+    connectWiFi();
+    wifiOk = (WiFi.status() == WL_CONNECTED);
+  }
+  if (!wifiOk) {
+    Serial.println("[CUP] WARNING: WiFi failed. Will retry via loop watchdog.");
+  }
 
   if (!eiCameraInit()) {
     Serial.println("[CUP] ERROR: Camera init failed — halting");

@@ -7,6 +7,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { apiClient } from "@/lib/api";
 import { Button } from "@/components/ui/Button";
 import { showToast } from "@/lib/toast";
+import { setCachedData, invalidateCache } from "@/hooks/useCachedFetch";
 
 export default function RedeemWater() {
     const { user, updateUserBalance } = useAuth();
@@ -34,18 +35,30 @@ export default function RedeemWater() {
     useEffect(() => {
         if (!qrToken || isSuccess) return;
 
+        let isHandled = false;
         const pollInterval = setInterval(async () => {
+            if (isHandled) return;
             try {
                 const data = await apiClient<{ used: boolean }>("/api/qr-status?token=" + qrToken);
-                if (data.used) {
+                if (data.used && !isHandled) {
+                    isHandled = true;
                     setIsSuccess(true);
                     setQrToken("");
                     clearInterval(pollInterval);
 
-                    const userData = await apiClient<{ balance: number; dailyRedeemed: number }>("/api/user-balance");
-                    setBalance(userData.balance);
-                    setDailyRedeemed(userData.dailyRedeemed);
-                    updateUserBalance(userData.balance);
+                    try {
+                        const userData = await apiClient<any>("/api/user-balance");
+                        if (userData && typeof userData.balance === "number") {
+                            setBalance(userData.balance);
+                            setDailyRedeemed(userData.dailyRedeemed);
+                            updateUserBalance(userData.balance);
+                            setCachedData("/api/user-balance", userData);
+                        }
+                    } catch (e) {
+                        console.error("Failed to fetch fresh balance", e);
+                    }
+                    invalidateCache("/api/user-transactions");
+
                     await showToast({
                         text: "Your water is being dispensed. Points deducted successfully.",
                         duration: "long",
@@ -56,7 +69,7 @@ export default function RedeemWater() {
             } catch (err) {
                 console.error("Polling error", err);
             }
-        }, 2000);
+        }, 1000);
 
         return () => clearInterval(pollInterval);
     }, [qrToken, isSuccess, updateUserBalance, router]);
@@ -131,7 +144,7 @@ export default function RedeemWater() {
                     </div>
                 ) : (
                     <div className="space-y-4">
-                        <section className="rounded-3xl bg-gradient-to-br from-blue-500 to-indigo-600 p-5 text-white shadow-[0_20px_40px_rgba(59,130,246,0.3)]">
+                        <section className="rounded-3xl bg-linear-to-br from-blue-500 to-indigo-600 p-5 text-white shadow-[0_20px_40px_rgba(59,130,246,0.3)]">
                             <p className="text-xs uppercase tracking-[0.14em] text-blue-100">Current Balance</p>
                             <p className="mt-2 text-4xl font-bold leading-none">{balance} <span className="text-lg font-medium text-blue-100">pts</span></p>
                             <div className="mt-5 flex items-center justify-between border-t border-white/20 pt-4 text-sm">

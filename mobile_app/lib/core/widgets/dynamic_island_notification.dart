@@ -248,15 +248,15 @@ class _DynamicIslandOverlayWidgetState extends State<DynamicIslandOverlayWidget>
                             filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
                             child: Container(
                               decoration: BoxDecoration(
-                                color: const Color(0xFF0F172A).withOpacity(0.85), // Dark space glassmorphism
+                                color: const Color(0xFF0F172A).withValues(alpha: 0.85), // Dark space glassmorphism
                                 borderRadius: BorderRadius.circular(borderRadius),
                                 border: Border.all(
-                                  color: neonColor.withOpacity(lerpDouble(0.1, 0.45, _progress.value)!.clamp(0.0, 1.0)),
+                                  color: neonColor.withValues(alpha: lerpDouble(0.1, 0.45, _progress.value)!.clamp(0.0, 1.0)),
                                   width: 1.5,
                                 ),
                                 boxShadow: [
                                   BoxShadow(
-                                    color: neonColor.withOpacity(lerpDouble(0.0, 0.18, _progress.value)!.clamp(0.0, 1.0)),
+                                    color: neonColor.withValues(alpha: lerpDouble(0.0, 0.18, _progress.value)!.clamp(0.0, 1.0)),
                                     blurRadius: 16,
                                     spreadRadius: -2,
                                     offset: const Offset(0, 4),
@@ -275,9 +275,9 @@ class _DynamicIslandOverlayWidgetState extends State<DynamicIslandOverlayWidget>
                                             height: 38,
                                             decoration: BoxDecoration(
                                               shape: BoxShape.circle,
-                                              color: neonColor.withOpacity(0.15),
+                                              color: neonColor.withValues(alpha: 0.15),
                                               border: Border.all(
-                                                color: neonColor.withOpacity(0.4),
+                                                color: neonColor.withValues(alpha: 0.4),
                                                 width: 1,
                                               ),
                                             ),

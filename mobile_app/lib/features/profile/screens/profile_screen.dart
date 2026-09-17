@@ -32,7 +32,9 @@ class ProfileScreen extends ConsumerWidget {
     // Get Initials for Avatar
     final names = fullName.trim().split(' ');
     final initials = names.isNotEmpty
-        ? (names.first.substring(0, 1) + (names.length > 1 ? names.last.substring(0, 1) : '')).toUpperCase()
+        ? (names.first.substring(0, 1) +
+                (names.length > 1 ? names.last.substring(0, 1) : ''))
+            .toUpperCase()
         : 'S';
 
     return Scaffold(
@@ -48,7 +50,7 @@ class ProfileScreen extends ConsumerWidget {
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   colors: [
-                    AppTheme.primaryEmerald.withOpacity(0.15),
+                    AppTheme.primaryEmerald.withValues(alpha: 0.15),
                     Colors.transparent,
                   ],
                   begin: Alignment.topCenter,
@@ -74,14 +76,18 @@ class ProfileScreen extends ConsumerWidget {
                         height: 90,
                         decoration: BoxDecoration(
                           gradient: const LinearGradient(
-                            colors: [AppTheme.primaryEmerald, Color(0xFF0F766E)],
+                            colors: [
+                              AppTheme.primaryEmerald,
+                              Color(0xFF0F766E)
+                            ],
                             begin: Alignment.topLeft,
                             end: Alignment.bottomRight,
                           ),
                           shape: BoxShape.circle,
                           boxShadow: [
                             BoxShadow(
-                              color: AppTheme.primaryEmerald.withOpacity(0.3),
+                              color: AppTheme.primaryEmerald
+                                  .withValues(alpha: 0.3),
                               blurRadius: 16,
                               offset: const Offset(0, 8),
                             )
@@ -132,13 +138,14 @@ class ProfileScreen extends ConsumerWidget {
                   ),
                   const SizedBox(height: 10),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
                     decoration: BoxDecoration(
                       color: AppTheme.cardWhite,
                       borderRadius: BorderRadius.circular(24),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.01),
+                          color: Colors.black.withValues(alpha: 0.01),
                           blurRadius: 10,
                           offset: const Offset(0, 4),
                         )
@@ -188,7 +195,8 @@ class ProfileScreen extends ConsumerWidget {
                       Expanded(
                         child: _buildEcoStatCard(
                           title: 'Daily Recycled',
-                          value: '${authState.dailyEarned.toStringAsFixed(1).replaceAll(RegExp(r'\.0$'), '')} pts',
+                          value:
+                              '${authState.dailyEarned.toStringAsFixed(1).replaceAll(RegExp(r'\.0$'), '')} pts',
                           subtitle: 'Last 24h recycling',
                           icon: Icons.eco_rounded,
                           color: Colors.green,
@@ -198,7 +206,8 @@ class ProfileScreen extends ConsumerWidget {
                       Expanded(
                         child: _buildEcoStatCard(
                           title: 'Daily Redeemed',
-                          value: '${authState.dailyRedeemed.toStringAsFixed(1).replaceAll(RegExp(r'\.0$'), '')} pts',
+                          value:
+                              '${authState.dailyRedeemed.toStringAsFixed(1).replaceAll(RegExp(r'\.0$'), '')} pts',
                           subtitle: 'Water dispenses today',
                           icon: Icons.local_drink_rounded,
                           color: AppTheme.accentBlue,
@@ -210,7 +219,8 @@ class ProfileScreen extends ConsumerWidget {
 
                   // Actions Section
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                     decoration: BoxDecoration(
                       color: AppTheme.cardWhite,
                       borderRadius: BorderRadius.circular(24),
@@ -247,9 +257,9 @@ class ProfileScreen extends ConsumerWidget {
                       ),
                       padding: const EdgeInsets.symmetric(vertical: 16),
                     ),
-                    child: Row(
+                    child: const Row(
                       mainAxisAlignment: MainAxisAlignment.center,
-                      children: const [
+                      children: [
                         Icon(Icons.logout_rounded, size: 20),
                         SizedBox(width: 8),
                         Text(
@@ -297,7 +307,7 @@ class ProfileScreen extends ConsumerWidget {
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: color.withOpacity(0.1),
+              color: color.withValues(alpha: 0.1),
               shape: BoxShape.circle,
             ),
             child: Icon(icon, color: color, size: 18),
@@ -340,7 +350,7 @@ class ProfileScreen extends ConsumerWidget {
         border: Border.all(color: const Color(0xFFE2E8F0)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.01),
+            color: Colors.black.withValues(alpha: 0.01),
             blurRadius: 10,
             offset: const Offset(0, 4),
           )
@@ -352,7 +362,7 @@ class ProfileScreen extends ConsumerWidget {
           Container(
             padding: const EdgeInsets.all(6),
             decoration: BoxDecoration(
-              color: color.withOpacity(0.1),
+              color: color.withValues(alpha: 0.1),
               shape: BoxShape.circle,
             ),
             child: Icon(icon, color: color, size: 16),
@@ -435,9 +445,10 @@ class ProfileScreen extends ConsumerWidget {
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(28),
               ),
-              title: Row(
-                children: const [
-                  Icon(Icons.warning_amber_rounded, color: Colors.red, size: 28),
+              title: const Row(
+                children: [
+                  Icon(Icons.warning_amber_rounded,
+                      color: Colors.red, size: 28),
                   SizedBox(width: 8),
                   Text(
                     'Delete Account',
@@ -475,18 +486,22 @@ class ProfileScreen extends ConsumerWidget {
                     obscureText: obscureText,
                     decoration: InputDecoration(
                       hintText: 'Password',
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                      contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 14),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(16),
                         borderSide: const BorderSide(color: Color(0xFFCBD5E1)),
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(16),
-                        borderSide: const BorderSide(color: Colors.red, width: 1.5),
+                        borderSide:
+                            const BorderSide(color: Colors.red, width: 1.5),
                       ),
                       suffixIcon: IconButton(
                         icon: Icon(
-                          obscureText ? Icons.visibility_off_rounded : Icons.visibility_rounded,
+                          obscureText
+                              ? Icons.visibility_off_rounded
+                              : Icons.visibility_rounded,
                           color: AppTheme.textMuted,
                           size: 20,
                         ),
@@ -500,7 +515,8 @@ class ProfileScreen extends ConsumerWidget {
                   ),
                 ],
               ),
-              actionsPadding: const EdgeInsets.only(left: 16, right: 16, bottom: 20),
+              actionsPadding:
+                  const EdgeInsets.only(left: 16, right: 16, bottom: 20),
               actions: [
                 Row(
                   children: [
@@ -532,23 +548,27 @@ class ProfileScreen extends ConsumerWidget {
                             DynamicIslandNotification.show(
                               context,
                               title: 'Password Required',
-                              subtitle: 'Please enter your password to confirm.',
+                              subtitle:
+                                  'Please enter your password to confirm.',
                               icon: Icons.lock_outline_rounded,
                               type: NotificationType.error,
                             );
                             return;
                           }
-                          
+
                           // Show loading indicator
                           showDialog(
                             context: context,
                             barrierDismissible: false,
                             builder: (context) => const Center(
-                              child: CircularProgressIndicator(color: AppTheme.primaryEmerald),
+                              child: CircularProgressIndicator(
+                                  color: AppTheme.primaryEmerald),
                             ),
                           );
 
-                          final success = await ref.read(authProvider.notifier).deleteAccount(password);
+                          final success = await ref
+                              .read(authProvider.notifier)
+                              .deleteAccount(password);
 
                           // Pop loading indicator
                           if (context.mounted) Navigator.of(context).pop();
@@ -556,19 +576,21 @@ class ProfileScreen extends ConsumerWidget {
                           if (success) {
                             // Pop verification dialog
                             if (context.mounted) Navigator.of(context).pop();
-                            
+
                             // Show success dynamic island notification
                             if (context.mounted) {
                               DynamicIslandNotification.show(
                                 context,
                                 title: 'Account Deleted',
-                                subtitle: 'Your account has been deleted successfully.',
+                                subtitle:
+                                    'Your account has been deleted successfully.',
                                 icon: Icons.delete_outline_rounded,
                                 type: NotificationType.success,
                               );
                             }
                           } else {
-                            final errorMsg = ref.read(authProvider).error ?? 'Incorrect password. Please try again.';
+                            final errorMsg = ref.read(authProvider).error ??
+                                'Incorrect password. Please try again.';
                             if (context.mounted) {
                               DynamicIslandNotification.show(
                                 context,

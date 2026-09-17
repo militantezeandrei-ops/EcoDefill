@@ -13,12 +13,13 @@ class HistoryScreen extends ConsumerWidget {
 
     // Flatten the grouped items into a single list of widgets
     final List<Widget> listWidgets = [];
-    
+
     groupedTxs.forEach((groupTitle, txs) {
       // Add Group Header
       listWidgets.add(
         Padding(
-          padding: const EdgeInsets.only(left: 20.0, right: 20.0, top: 16.0, bottom: 8.0),
+          padding: const EdgeInsets.only(
+              left: 20.0, right: 20.0, top: 16.0, bottom: 8.0),
           child: Text(
             groupTitle.toUpperCase(),
             style: const TextStyle(
@@ -52,7 +53,7 @@ class HistoryScreen extends ConsumerWidget {
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   colors: [
-                    AppTheme.primaryEmerald.withOpacity(0.12),
+                    AppTheme.primaryEmerald.withValues(alpha: 0.12),
                     Colors.transparent,
                   ],
                   begin: Alignment.topCenter,
@@ -64,14 +65,16 @@ class HistoryScreen extends ConsumerWidget {
           SafeArea(
             child: RefreshIndicator(
               color: AppTheme.primaryEmerald,
-              onRefresh: () => ref.read(historyProvider.notifier).fetchTransactions(),
+              onRefresh: () =>
+                  ref.read(historyProvider.notifier).fetchTransactions(),
               child: CustomScrollView(
                 physics: const AlwaysScrollableScrollPhysics(),
                 slivers: [
                   // App Bar / Title
                   SliverToBoxAdapter(
                     child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16.0, vertical: 12.0),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
@@ -80,14 +83,20 @@ class HistoryScreen extends ConsumerWidget {
                             children: [
                               Text(
                                 'Activity History',
-                                style: Theme.of(context).textTheme.displayLarge?.copyWith(
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .displayLarge
+                                    ?.copyWith(
                                       fontSize: 28,
                                       fontWeight: FontWeight.w900,
                                     ),
                               ),
                               Text(
                                 'Track your recycling and water dispenses',
-                                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .bodyMedium
+                                    ?.copyWith(
                                       color: AppTheme.textMuted,
                                     ),
                               ),
@@ -110,7 +119,8 @@ class HistoryScreen extends ConsumerWidget {
                   // Stats Top Card
                   SliverToBoxAdapter(
                     child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16.0, vertical: 12.0),
                       child: Container(
                         padding: const EdgeInsets.all(20.0),
                         decoration: BoxDecoration(
@@ -118,7 +128,7 @@ class HistoryScreen extends ConsumerWidget {
                           borderRadius: BorderRadius.circular(24),
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black.withOpacity(0.02),
+                              color: Colors.black.withValues(alpha: 0.02),
                               blurRadius: 16,
                               offset: const Offset(0, 8),
                             )
@@ -130,7 +140,9 @@ class HistoryScreen extends ConsumerWidget {
                           children: [
                             _buildStatColumn(
                               context: context,
-                              value: historyState.totalEarned.toStringAsFixed(1).replaceAll(RegExp(r'\.0$'), ''),
+                              value: historyState.totalEarned
+                                  .toStringAsFixed(1)
+                                  .replaceAll(RegExp(r'\.0$'), ''),
                               label: 'Total Earned',
                               icon: Icons.add_circle_outline_rounded,
                               color: AppTheme.primaryEmerald,
@@ -157,7 +169,8 @@ class HistoryScreen extends ConsumerWidget {
                   if (historyState.error != null)
                     SliverToBoxAdapter(
                       child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 16.0, vertical: 8.0),
                         child: Container(
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
@@ -167,7 +180,8 @@ class HistoryScreen extends ConsumerWidget {
                           ),
                           child: Row(
                             children: [
-                              Icon(Icons.wifi_off_rounded, color: Colors.amber.shade800, size: 20),
+                              Icon(Icons.wifi_off_rounded,
+                                  color: Colors.amber.shade800, size: 20),
                               const SizedBox(width: 10),
                               Expanded(
                                 child: Text(
@@ -298,8 +312,8 @@ class HistoryScreen extends ConsumerWidget {
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
                 color: isEarn
-                    ? AppTheme.primaryEmerald.withOpacity(0.1)
-                    : AppTheme.accentBlue.withOpacity(0.1),
+                    ? AppTheme.primaryEmerald.withValues(alpha: 0.1)
+                    : AppTheme.accentBlue.withValues(alpha: 0.1),
                 shape: BoxShape.circle,
               ),
               child: Icon(
