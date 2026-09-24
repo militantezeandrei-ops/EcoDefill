@@ -73,7 +73,7 @@ All ESP32 microcontrollers communicate wirelessly over a dedicated local 2.4 GHz
   * **Servo Smooth Stepping**: `moveServoSmooth(servo, target)` moves servos with controlled velocity to prevent mechanical jerking.
   * **Sorting Chambers**: Controls independent entry gates, compaction bins, and rejection exit flaps for bottles and cups.
   * **Paper Detection**: Debounced single-beam IR sensor counting paper sheets (`PAPER_NEEDED = 3` sheets per 1 point).
-  * **Water Dispensing Timing**: Calibrated at `20ms per ml` (e.g., 100ml = 2000ms pump activation).
+  * **Water Dispensing Timing**: Calibrated at `36ms per ml` (e.g., 100ml = 3600ms pump activation, 500ml = 18,000ms).
   * **Fail-Safe Relay Interlocks**: Relays and solenoids are forced `LOW/OFF` on startup and idle to prevent unintentional water release.
 
 ### 2. ESP32 DevKit Bridge (`hardware/Esp32_Devkit/Esp32_Devkit.ino`)
@@ -108,12 +108,11 @@ All ESP32 microcontrollers communicate wirelessly over a dedicated local 2.4 GHz
 
 | Pin | Type | Connected Device | Function / Logic |
 | :---: | :---: | :--- | :--- |
-| **5** | PWM | `srvBottleGate` Servo | Bottle entry gate (0° Closed, 80° Open) |
-| **6** | PWM | `srvBottleExit` Servo | Bottle rejection/exit flap (10° Closed, 90° Open) |
-| **3** | PWM | `srvBottleBin` Servo | Bottle bin sorting flap (10° Closed, 90° Open) |
-| **8** | PWM | `srvCupGate` Servo | Cup entry gate (0° Closed, 80° Open) |
-| **9** | PWM | `srvCupExit` Servo | Cup rejection flap (10° Closed, 90° Open) |
-| **10** | PWM | `srvCupBin` Servo | Cup bin sorting flap (10° Closed, 90° Open) |
+| **5** | PWM | `srvBottleGate` Servo | Bottle entry gate (0° Closed, 85° Open) |
+| **6** | PWM | `srvBottleExit` Servo | Bottle exit flap (10° Closed, 90° Open) |
+| **3** | PWM | `srvBottleBin` Servo | Bottle bin sorting flap (10° Closed, 90° Open; opens FIRST before exit) |
+| **8** | PWM | `srvCupGate` Servo | Cup entry gate (0° Closed, 85° Open) |
+| **9** | PWM | `srvCupExit` Servo | Cup exit flap (10° Closed, 90° Open) |
 | **22** | Digital In (Pullup) | Bottle Slot IR Sensor | Detects bottle at insertion point (Active LOW) |
 | **23** | Digital In (Pullup) | Bottle Chamber IR Sensor | Detects bottle inside validation area |
 | **24** | Digital In (Pullup) | Cup Slot IR Sensor | Detects cup at insertion point (Active LOW) |

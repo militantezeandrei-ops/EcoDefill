@@ -383,12 +383,12 @@ void apiVerifyQR(const String& token, int pointsToTransfer) {
 
   // ── REDEEM path ───────────────────────────────────────────────────────────
   // Backend returns waterAmount in ml. Convert ml → ms for Mega.
-  // ML_PER_POINT = 100, MS_PER_100ML = 2000 → 1 ml = 20 ms
+  // ML_PER_POINT = 100, MS_PER_100ML = 3600 → 1 ml = 36 ms
   int waterAmountMl = res["waterAmount"] | 0;
   int pointsDeducted = res["pointsDeducted"] | 0;
 
   if (waterAmountMl > 0) {
-    int dispenseMs = waterAmountMl * 20;  // 100ml = 2000ms (20ms per ml)
+    int dispenseMs = waterAmountMl * 36;  // 100ml = 3600ms (36ms per ml) -> 500ml = 18,000ms
     int redeemedPts = pointsDeducted;
     if (redeemedPts < 0) redeemedPts = -redeemedPts;
     if (redeemedPts <= 0) redeemedPts = waterAmountMl / 100;

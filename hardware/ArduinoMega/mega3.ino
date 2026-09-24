@@ -14,17 +14,13 @@ LiquidCrystal_I2C lcd(LCD_ADDR, LCD_COLS, LCD_ROWS);
 
 #define SRV_CUP_GATE     8
 #define SRV_CUP_EXIT     9
-#define SRV_CUP_BIN     10
 
 Servo srvBottleGate, srvBottleExit, srvBottleBin;
-Servo srvCupGate, srvCupExit, srvCupBin;
+Servo srvCupGate, srvCupExit;
 
 // SERVO ANGLES
 #define GATE_OPEN       85
 #define GATE_CLOSED      0
-#define SORT_ACTIVE_B   50
-#define SORT_ACTIVE_C  130
-#define SORT_IDLE       90
 #define SERVO_DELAY_MS  250UL
 #define SERVO_CLOSE_DELAY_MS 1500UL
 
@@ -90,7 +86,7 @@ Servo srvCupGate, srvCupExit, srvCupBin;
 // DISPENSE & AUTO-PURGE
 #define ML_PER_POINT            100
 #define MAX_PTS_PER_PRESS       5
-#define MS_PER_100ML            2000UL
+#define MS_PER_100ML            3600UL  // Calibrated: 3600ms per 100ml (36ms/ml) -> 5 pts (500ml) = 18,000ms
 #define AUTO_PURGE_IDLE_MS      21600000UL  // 6 Hours idle before automatic line purge
 #define AUTO_PURGE_DURATION_MS  3000UL      // 3 seconds pump flush
 
@@ -282,68 +278,48 @@ void moveServoSmooth(Servo& s, int pos) {
 void openBottleSlot() {
   Serial.println(F("[SERVO] Bottle GATE open"));
   moveServoSmooth(srvBottleGate, GATE_OPEN);
-  delay(200);
-
-  Serial.println(F("[SERVO] Bottle SORT active"));
-  moveServoSmooth(srvBottleBin, SORT_ACTIVE_B);
 }
 
 void closeBottleSlot() {
-  Serial.println(F("[SERVO] Bottle slot CLOSE"));
-  delay(SERVO_CLOSE_DELAY_MS);
-
-  Serial.println(F("[SERVO] Bottle SORT idle"));
-  moveServoSmooth(srvBottleBin, SORT_IDLE);
-  delay(200);
-
   Serial.println(F("[SERVO] Bottle GATE close"));
   moveServoSmooth(srvBottleGate, GATE_CLOSED);
+  delay(SERVO_CLOSE_DELAY_MS);
 }
 
 void openCupSlot() {
   Serial.println(F("[SERVO] Cup GATE open"));
-  if (!srvCupGate.attached()) srvCupGate.attach(SRV_CUP_GATE);
   moveServoSmooth(srvCupGate, GATE_OPEN);
-  delay(300);
-  srvCupGate.detach();
-
-  Serial.println(F("[SERVO] Cup SORT active"));
-  moveServoSmooth(srvCupBin, SORT_ACTIVE_C);
 }
 
 void closeCupSlot() {
-  Serial.println(F("[SERVO] Cup slot CLOSE"));
-  delay(SERVO_CLOSE_DELAY_MS);
-
-  Serial.println(F("[SERVO] Cup SORT idle"));
-  moveServoSmooth(srvCupBin, SORT_IDLE);
-  delay(200);
-
   Serial.println(F("[SERVO] Cup GATE close"));
-  if (!srvCupGate.attached()) srvCupGate.attach(SRV_CUP_GATE);
   moveServoSmooth(srvCupGate, GATE_CLOSED);
-  delay(300);
-  srvCupGate.detach();
+  delay(SERVO_CLOSE_DELAY_MS);
 }
 
 void compactBottle() {
   Serial.println(F("[SERVO] Bottle BIN open first"));
   srvBottleBin.write(BIN_OPEN);
-  delay(SERVO_DELAY_MS);
+  delay(500);
 
   Serial.println(F("[SERVO] Bottle EXIT open"));
   srvBottleExit.write(EXIT_OPEN);
   delay(EXIT_HOLD_MS);
 
+  Serial.println(F("[SERVO] Bottle EXIT close"));
   srvBottleExit.write(EXIT_CLOSED);
   delay(SERVO_CLOSE_DELAY_MS);
 
+  Serial.println(F("[SERVO] Bottle BIN close"));
   srvBottleBin.write(BIN_CLOSED);
   delay(SERVO_CLOSE_DELAY_MS);
 }
 
 void returnBottleInvalid() {
-  Serial.println(F("[SERVO] Bottle EXIT only"));
+  Serial.println(F("[SERVO] Bottle EXIT only (Bin closed)"));
+  srvBottleBin.write(BIN_CLOSED);
+  delay(100);
+
   srvBottleExit.write(EXIT_OPEN);
   delay(EXIT_HOLD_MS);
 
@@ -352,18 +328,12 @@ void returnBottleInvalid() {
 }
 
 void compactCup() {
-  Serial.println(F("[SERVO] Cup BIN open first"));
-  srvCupBin.write(BIN_OPEN);
-  delay(SERVO_DELAY_MS);
-
   Serial.println(F("[SERVO] Cup EXIT open"));
   srvCupExit.write(EXIT_OPEN);
   delay(EXIT_HOLD_MS);
 
+  Serial.println(F("[SERVO] Cup EXIT close"));
   srvCupExit.write(EXIT_CLOSED);
-  delay(SERVO_CLOSE_DELAY_MS);
-
-  srvCupBin.write(BIN_CLOSED);
   delay(SERVO_CLOSE_DELAY_MS);
 }
 
@@ -667,7 +637,7 @@ void handleDevKit(const String& msg) {
     if (ms > 0) {
       blockScanButton(true);
       pendingQrDispenseMs = ms;
-      pendingQrDispenseMl = ms / 20; // DevKit uses 20ms per ml
+      pendingQrDispenseMl = ms / (MS_PER_100ML / ML_PER_POINT); // Calibrated ms to ml conversion
 
       scanModeActive = false;
       qrScanStartedAt = 0;
@@ -726,7 +696,7 @@ void handleDevKit(const String& msg) {
     if (ms > 0) {
       blockScanButton(true);
       pendingQrDispenseMs = ms;
-      pendingQrDispenseMl = ms / 20;
+      pendingQrDispenseMl = ms / (MS_PER_100ML / ML_PER_POINT);
       scanModeActive = false;
       qrScanStartedAt = 0;
       machineState = ST_QR_READY;
@@ -1163,11 +1133,6 @@ void setup() {
 
   srvCupExit.attach(SRV_CUP_EXIT);
   srvCupExit.write(EXIT_CLOSED);
-
-  delay(SERVO_DELAY_MS);
-
-  srvCupBin.attach(SRV_CUP_BIN);
-  srvCupBin.write(BIN_CLOSED);
 
   delay(SERVO_DELAY_MS);
 

@@ -121,11 +121,10 @@ These connections match the current `arduino_mega_controller/arduino_mega_contro
 | Component | Mega Signal Pin | Power | Ground | Notes |
 |:----------|:----------------|:------|:-------|:------|
 | Bottle gate servo | D`5` | External 6V servo rail | Common GND | Signal only goes to Mega; do not power servo from Mega 5V |
-| Bottle exit servo | D`6` | External 6V servo rail | Common GND | MG996R/MG90 style servo signal |
-| Bottle bin/sorter servo | D`3` | External 6V servo rail | Common GND | Current firmware uses pin `3`, not pin `7` |
+| Bottle exit servo | D`6` | External 6V servo rail | Common GND | Opens to release bottle into sorting bin or exit chute |
+| Bottle bin/sorter servo | D`3` | External 6V servo rail | Common GND | Opens FIRST before exit servo opens to route bottle into recycle bin |
 | Cup gate servo | D`8` | External 6V servo rail | Common GND | Signal only goes to Mega |
-| Cup exit servo | D`9` | External 6V servo rail | Common GND | Signal only goes to Mega |
-| Cup bin/sorter servo | D`10` | External 6V servo rail | Common GND | Signal only goes to Mega |
+| Cup exit servo | D`9` | External 6V servo rail | Common GND | Signal only goes to Mega (Cup chamber uses Gate + Exit only; no Cup bin servo needed) |
 
 ### IR Sensors
 
@@ -230,7 +229,6 @@ These are internal board-to-camera connections used by the firmware. They are us
 | Bottle bin/sorter servo | Arduino Mega | D`3` | Wired PWM servo signal |
 | Cup gate servo | Arduino Mega | D`8` | Wired PWM servo signal |
 | Cup exit servo | Arduino Mega | D`9` | Wired PWM servo signal |
-| Cup bin/sorter servo | Arduino Mega | D`10` | Wired PWM servo signal |
 | Bottle slot IR | Arduino Mega | D`22` | Wired digital input |
 | Bottle chamber IR | Arduino Mega | D`23` | Wired digital input |
 | Cup slot IR | Arduino Mega | D`24` | Wired digital input |
@@ -343,25 +341,27 @@ Before uploading, verify:
 | QR CAM | `GET /cancel` | Stop scanning |
 | All CAMs | `GET /ping` | Connectivity check |
 
-<<<<<<< Updated upstream
 ## 13. Expected Runtime Flow
 
 The system operates using a combined mechanical and point-logic state machine. 
 
 ### ♻️ 1. Item Recycling & Mechanical Flow
-1. **Insertion:** A user inserts an item into the slot. **IR 1 (Slot IR Sensor)** detects the object. 
-   * *Safety Check:* The Arduino Mega verifies **IR 2 (Chamber IR Sensor)**. If the chamber is busy (validating another object), the slot stays locked.
-2. **Entering the Chamber:** If clear, **Servo 1 (Gate Servo)** opens, allowing the item to drop, and immediately closes to lock out new items.
-3. **Detection:** The item lands and blocks **IR 2 (Chamber IR Sensor)**. The Mega sends `CMD:IDENTIFY_BOTTLE` (or CUP) to the ESP32 DevKit.
-4. **Validation:** The DevKit calls the ESP32-CAM via Wi-Fi. The camera runs its Edge Impulse shape validation and returns the result to the DevKit, which sends it back to the Mega.
-5. **Sorting:**
-   * **If Valid:** **Servo 3 (Bin/Sorter Servo)** moves to the "Accept" position. Then **Servo 2 (Exit Servo)** opens to drop the item into the accepted bin. Points are awarded.
-   * **If Invalid:** **Servo 3 (Bin/Sorter Servo)** stays in the default "Reject" position. **Servo 2 (Exit Servo)** opens to drop the garbage into the reject bin. No points awarded.
-6. **Reset:** **Servo 2** closes, and the machine is ready for the next item.
+1. **Insertion:** A user inserts an item into the slot. **Slot IR Sensor** detects the object. 
+   * *Safety Check:* The Arduino Mega verifies the Chamber IR Sensor. If the chamber is busy, the slot stays locked.
+2. **Entering the Chamber:** If clear, **Gate Servo** opens, allowing the item to drop, and immediately closes to lock out new items.
+3. **Detection & Validation:**
+   * **Bottle:** The item lands and blocks Chamber IR (D23). Mega triggers DevKit / Bottle ESP32-CAM for AI classification.
+   * **Cup:** Item triggers Dual-IR sensors (D25 Presence, D27 Height).
+4. **Sorting:**
+   * **Bottle Valid:** **Bottle Bin Servo (D3)** opens FIRST to the recycle bin position (`BIN_OPEN`). Then **Bottle Exit Servo (D6)** opens (`EXIT_OPEN`) to drop the bottle into the bin. Exit servo closes (`EXIT_CLOSED`), then bin servo closes (`BIN_CLOSED`). Points awarded (+1 pt).
+   * **Bottle Invalid:** **Bottle Bin Servo (D3)** remains in closed/reject position (`BIN_CLOSED`). **Bottle Exit Servo (D6)** opens (`EXIT_OPEN`) to return/reject the item.
+   * **Cup Valid:** **Cup Exit Servo (D9)** opens (`EXIT_OPEN`) to drop the cup into the container, then closes (`EXIT_CLOSED`). (No cup bin servo needed). Points awarded (+1 pt).
+   * **Cup Invalid:** **Cup Exit Servo (D9)** opens (`EXIT_OPEN`) to return/reject the item, then closes.
+5. **Reset:** Servos return to closed idle, and the machine is ready for the next item.
 
 ### 💯 2. Earning Points (Local Machine State)
-*   **Point Values:** 1 Valid Bottle = 1 Point, 1 Valid Cup = 1 Point, 3 Valid Papers = 1 Point. 
-*   **Display & Limit:** The 20x4 I2C LCD displays the accumulated points. The machine holds a maximum of **5 local points**. Once reached, the user must dispense water or save points to their app before recycling more.
+* **Point Values:** 1 Valid Bottle = 1 Point, 1 Valid Cup = 1 Point, 3 Valid Papers = 1 Point. 
+* **Display & Limit:** The 20x4 I2C LCD displays the accumulated points. The machine holds a maximum of **5 local points**. Once reached, the user must dispense water or save points to their app before recycling more.
 
 ### 💧 3. The Blue Button (Water Dispense)
 Used to exchange locally earned points for physical water.
@@ -372,40 +372,18 @@ Used to exchange locally earned points for physical water.
 
 ### 📱 4. The Red Button (QR Scanner / App Integration)
 Used to either save local points to the app, or redeem points from the app for water.
-*   **Scenario A: Saving Points (Condition: Local Points > 0)**
-    1. User has local points and presses the **Red Button**. LCD says `Present QR to Scanner`.
-    2. User shows their personal app QR code to the QR ESP32-CAM. 
-    3. The DevKit verifies the user with the backend (`eco-defill.vercel.app`) and credits their account (`QR:RECEIVE...`).
-    4. LCD confirms the saved points, and local machine points reset to `0`.
-*   **Scenario B: Redeeming Points (Condition: Local Points = 0)**
-    1. User walks up to an empty machine, generates a "Redeem Water" QR code on their app, and presses the **Red Button**. LCD says `Present QR to Scanner`.
-    2. The QR CAM scans the code. The DevKit verifies the redemption token with the backend.
-    3. DevKit commands the Mega to dispense water (`QR:REDEEM...`).
-    4. LCD displays `Redeemed! Dispensing...` and the water is dispensed.
+* **Scenario A: Saving Points (Condition: Local Points > 0)**
+  1. User has local points and presses the **Red Button**. LCD says `Present QR to Scanner`.
+  2. User shows their personal app QR code to the QR ESP32-CAM. 
+  3. The DevKit verifies the user with the backend (`eco-defill.vercel.app`) and credits their account (`QR:RECEIVE...`).
+  4. LCD confirms the saved points, and local machine points reset to `0`.
+* **Scenario B: Redeeming Points (Condition: Local Points = 0)**
+  1. User walks up to an empty machine, generates a "Redeem Water" QR code on their app, and presses the **Red Button**. LCD says `Present QR to Scanner`.
+  2. The QR CAM scans the code. The DevKit verifies the redemption token with the backend.
+  3. DevKit commands the Mega to dispense water (`QR:REDEEM...`).
+  4. LCD displays `Redeemed! Dispensing...` and the water is dispensed.
 
 ## 14. Bring-Up Checklist
-=======
-## 9. Expected Runtime Flow
-
-1. Mega detects an item at the slot IR sensor
-2. Mega opens the appropriate gate
-3. Chamber IR sensor confirms the item is in position
-4. Mega sends `CMD:IDENTIFY_BOTTLE` or `CMD:IDENTIFY_CUP` to the DevKit
-5. DevKit calls the correct CAM over Wi-Fi
-6. CAM posts `BOTTLE`, `CUP`, or `NONE` back to the DevKit with the same request ID
-7. DevKit sends `CAM:...` result back to Mega
-8. Mega sorts the item and updates points
-
-QR flow:
-
-1. Mega sends `CMD:SCAN_QR`
-2. DevKit calls QR CAM `/scan`
-3. QR CAM posts token to DevKit `/qr`
-4. DevKit verifies token with backend
-5. DevKit sends `QR:EARN:<pts>`, `QR:DISPENSE:<ms>`, or `QR:FAIL` back to Mega
-
-## 10. Bring-Up Checklist
->>>>>>> Stashed changes
 
 - Flash all five boards with the matching firmware in this folder
 - Confirm all ESP32 boards boot and join the same Wi-Fi network
