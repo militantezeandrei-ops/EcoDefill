@@ -104,7 +104,12 @@ export default async function DashboardContent({ searchParams }: { searchParams:
     }
 
     const lastUpdatedStr = latestLog
-        ? new Date(latestLog.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        ? new Date(latestLog.createdAt).toLocaleTimeString("en-US", { 
+            hour: "numeric", 
+            minute: "2-digit", 
+            hour12: true, 
+            timeZone: "Asia/Manila" 
+          })
         : "N/A";
 
     const todaysPoints = Number(todaysPointsAgg._sum.amount || 0);

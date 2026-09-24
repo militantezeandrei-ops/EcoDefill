@@ -48,11 +48,15 @@ Servo srvCupGate, srvCupExit;
 #define RELAY_SOL1   36
 #define RELAY_SOL2   38
 
+// Active-LOW Relays (Standard Arduino Relay Module: LOW = ON/LED lit, HIGH = OFF/LED unlit)
 #define PUMP_ON   LOW
 #define PUMP_OFF  HIGH
 
-#define SOL1_ON   HIGH
-#define SOL1_OFF  LOW
+#define SOL1_ON   LOW
+#define SOL1_OFF  HIGH
+
+#define SOL2_ON   LOW
+#define SOL2_OFF  HIGH
 
 // BUTTONS
 #define BTN_DISPENSE 30
@@ -65,8 +69,8 @@ Servo srvCupGate, srvCupExit;
 #define ULTRASONIC_ECHO  33
 #define REFILL_DETECT_CM 12
 
-// WATER LEVEL SENSOR (TANK WATER LEVEL - 3-WIRE ECHO ONLY)
-#define WATER_LEVEL_ECHO        41
+// WATER LEVEL SENSOR (TANK WATER LEVEL - 3-WIRE PWM ON PIN 15)
+#define WATER_LEVEL_PIN         15
 #define TANK_LOW_THRESHOLD_CM   22.0  // <= 22cm: Sufficient Water (Full/Medium)
 #define TANK_EMPTY_THRESHOLD_CM 27.0  // >= 27cm: Empty Water Tank | > 22cm & < 27cm: Low Water
 
@@ -219,25 +223,27 @@ bool refillContainerDetected() {
   return (d > 0 && d <= REFILL_DETECT_CM);
 }
 
-// WATER LEVEL SENSOR FUNCTIONS (3-WIRE ECHO / PWM MULTI-SAMPLE)
+// WATER LEVEL SENSOR FUNCTIONS (3-WIRE PWM ON PIN 15)
 float getTankWaterLevelCM() {
-  float samples[5];
+  float samples[4];
   int validCount = 0;
 
-  for (int i = 0; i < 5; i++) {
-    unsigned long d = pulseIn(WATER_LEVEL_ECHO, HIGH, 45000UL);
-    if (d > 0) {
-      float dist = (d * 0.0343) / 2.0;
-      if (dist > 5.0 && dist < 100.0) {
-        samples[validCount++] = dist;
+  for (int i = 0; i < 4; i++) {
+    unsigned long dur = pulseIn(WATER_LEVEL_PIN, HIGH, 60000UL);
+    if (dur > 0) {
+      float distCM = (float)dur * 0.0343 / 2.0;
+      if (distCM > 2.0 && distCM < 400.0) {
+        samples[validCount++] = distCM;
       }
     }
-    delay(25);
+    delay(15);
   }
 
-  if (validCount == 0) return -1.0;
+  if (validCount == 0) {
+    return -1.0;
+  }
 
-  // Median sort to eliminate acoustic jitter/noise spikes
+  // Median sort to eliminate acoustic jitter and missed pulses
   for (int i = 0; i < validCount - 1; i++) {
     for (int j = i + 1; j < validCount; j++) {
       if (samples[i] > samples[j]) {
@@ -251,8 +257,11 @@ float getTankWaterLevelCM() {
   return samples[validCount / 2];
 }
 
-String getWaterLevelCategory() {
-  float distance = getTankWaterLevelCM();
+String getWaterLevelCategory(float distance = -1.0) {
+  if (distance < 0) {
+    distance = getTankWaterLevelCM();
+  }
+
   if (distance <= 0) {
     return "Unknown";
   }
@@ -1101,16 +1110,15 @@ void setup() {
   pinMode(ULTRASONIC_TRIG, OUTPUT);
   pinMode(ULTRASONIC_ECHO, INPUT);
 
-  // Setup tank water level sensor (3-wire Echo input only)
-  pinMode(WATER_LEVEL_ECHO, INPUT);
+  pinMode(WATER_LEVEL_PIN, INPUT);
 
+  // Keep Active-LOW relays unenergized (HIGH) on boot
+  digitalWrite(RELAY_PUMP, PUMP_OFF);
+  digitalWrite(RELAY_SOL1, SOL1_OFF);
+  digitalWrite(RELAY_SOL2, SOL2_OFF);
   pinMode(RELAY_PUMP, OUTPUT);
   pinMode(RELAY_SOL1, OUTPUT);
   pinMode(RELAY_SOL2, OUTPUT);
-
-  digitalWrite(RELAY_PUMP, PUMP_OFF);
-  digitalWrite(RELAY_SOL1, SOL1_OFF);
-  digitalWrite(RELAY_SOL2, SOL1_OFF);
 
   // Safety delay: keep pump/solenoids OFF during relay startup
   delay(300);
@@ -1169,13 +1177,35 @@ void loop() {
     runAutoPurge();
   }
 
-  // Send tank water level periodically (heartbeat) or immediately if triggered
+  // RAPID SENSING DIAGNOSTIC: Check water level every 1000ms & print to Mega Serial Monitor
+  static unsigned long lastWaterLevelCheckAt = 0;
+  static float lastMeasuredWaterDistance = -1.0;
+  if (millis() - lastWaterLevelCheckAt >= 1000UL) {
+    lastWaterLevelCheckAt = millis();
+    float liveDist = getTankWaterLevelCM();
+    if (liveDist > 0) {
+      lastMeasuredWaterDistance = liveDist;
+    }
+    String category = getWaterLevelCategory(lastMeasuredWaterDistance);
+    
+    Serial.print(F("[WATER LEVEL LIVE] "));
+    if (lastMeasuredWaterDistance > 0) {
+      Serial.print(F("Distance: "));
+      Serial.print(lastMeasuredWaterDistance, 1);
+      Serial.print(F(" cm | Status: "));
+      Serial.println(category);
+    } else {
+      Serial.println(F("Measuring..."));
+    }
+  }
+
+  // Send tank water level to DevKit periodically (heartbeat) or immediately if triggered
   static unsigned long lastWaterLevelSendAt = 0;
   #define WATER_LEVEL_SEND_INTERVAL_MS 300000UL // 5 minutes heartbeat
   if (triggerWaterLevelUpdate || (millis() - lastWaterLevelSendAt >= WATER_LEVEL_SEND_INTERVAL_MS)) {
     triggerWaterLevelUpdate = false;
     lastWaterLevelSendAt = millis();
-    devkitSend("CMD:WATER_LEVEL|" + getWaterLevelCategory());
+    devkitSend("CMD:WATER_LEVEL|" + getWaterLevelCategory(lastMeasuredWaterDistance));
   }
 
   checkPaperIR();

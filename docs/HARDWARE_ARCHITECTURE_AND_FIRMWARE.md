@@ -125,6 +125,7 @@ All ESP32 microcontrollers communicate wirelessly over a dedicated local 2.4 GHz
 | **34** | Digital Out | Water Pump Relay | Active LOW (Energizes 12V diaphragm pump) |
 | **36** | Digital Out | Solenoid Valve 1 Relay | Active HIGH (Opens water delivery line) |
 | **38** | Digital Out | Solenoid Valve 2 Relay | Active HIGH (Auxiliary line) |
+| **15** | Digital In | Water Level Sensor Echo/PWM | 3-wire ultrasonic pulse distance reader |
 | **18** | UART TX1 | DevKit GPIO 16 (RX2) | Mega TX $\rightarrow$ DevKit RX (via 1k/2k voltage divider) |
 | **19** | UART RX1 | DevKit GPIO 17 (TX2) | DevKit TX $\rightarrow$ Mega RX |
 | **SDA / SCL** | I2C | 20x4 LCD Display | I2C Data & Clock (Address: `0x27`) |
