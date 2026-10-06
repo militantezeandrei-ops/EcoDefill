@@ -9,9 +9,13 @@ import { Button } from "@/components/ui/Button";
 import { showToast } from "@/lib/toast";
 import { setCachedData, invalidateCache } from "@/hooks/useCachedFetch";
 
+import { useMachineStatus } from "@/hooks/useMachineStatus";
+import MachineStatusBadge from "@/components/machine/MachineStatusBadge";
+
 export default function RedeemWater() {
     const { user, updateUserBalance } = useAuth();
     const router = useRouter();
+    const machineStatus = useMachineStatus(4000);
 
     const [balance, setBalance] = useState(user?.balance || 0);
     const [dailyRedeemed, setDailyRedeemed] = useState(0);
@@ -90,11 +94,20 @@ export default function RedeemWater() {
         void fetchUserData();
     }, [updateUserBalance]);
 
-
-
     const handleGenerateQR = async () => {
         setError("");
         setIsSuccess(false);
+
+        if (!machineStatus.isOnline) {
+            setError("Station Offline: The physical EcoDefill machine is disconnected. Please check back when online.");
+            return;
+        }
+
+        if (machineStatus.isEmptyWater) {
+            setError("Water Refilling: The physical machine water tank is currently empty (0.0L).");
+            return;
+        }
+
         const points = parseInt(pointsToRedeem, 10);
 
         if (isNaN(points) || points <= 0) {
@@ -127,6 +140,7 @@ export default function RedeemWater() {
     const remainingRedeemable = MAX_TRANSACTION_LIMIT;
     const parsedPoints = parseInt(pointsToRedeem, 10);
     const isValidInput = !isNaN(parsedPoints) && parsedPoints > 0 && parsedPoints <= balance && parsedPoints <= remainingRedeemable;
+    const canGenerateQR = isValidInput && machineStatus.isOnline && !machineStatus.isEmptyWater;
 
     return (
         <div className="relative flex min-h-screen flex-col bg-transparent">
@@ -135,7 +149,7 @@ export default function RedeemWater() {
                 <p className="text-sm text-slate-500">Convert points to refill volume</p>
             </header>
 
-            <main className="flex-1 overflow-y-auto px-4 pb-10 pt-5">
+            <main className="flex-1 overflow-y-auto px-4 pb-10 pt-4">
                 {fetching ? (
                     <div className="space-y-2.5">
                         {Array.from({ length: 3 }).map((_, i) => (
@@ -144,6 +158,9 @@ export default function RedeemWater() {
                     </div>
                 ) : (
                     <div className="space-y-4">
+                        {/* Real-time machine status badge */}
+                        <MachineStatusBadge machineStatus={machineStatus} onRefresh={machineStatus.refresh} />
+
                         <section className="rounded-3xl bg-linear-to-br from-blue-500 to-indigo-600 p-5 text-white shadow-[0_20px_40px_rgba(59,130,246,0.3)]">
                             <p className="text-xs uppercase tracking-[0.14em] text-blue-100">Current Balance</p>
                             <p className="mt-2 text-4xl font-bold leading-none">{balance} <span className="text-lg font-medium text-blue-100">pts</span></p>
@@ -162,7 +179,7 @@ export default function RedeemWater() {
                                         const current = parseInt(pointsToRedeem) || 1;
                                         if (current > 1) setPointsToRedeem((current - 1).toString());
                                     }}
-                                    disabled={parseInt(pointsToRedeem || "1") <= 1}
+                                    disabled={parseInt(pointsToRedeem || "1") <= 1 || !machineStatus.isOnline || machineStatus.isEmptyWater}
                                     className="flex h-12 w-12 items-center justify-center rounded-lg bg-red-500 text-xl font-semibold text-white shadow-sm transition active:scale-95 disabled:opacity-50 dark:bg-red-600"
                                 >
                                     -
@@ -178,7 +195,7 @@ export default function RedeemWater() {
                                         const maxAllowed = Math.min(remainingRedeemable, balance);
                                         if (current < maxAllowed) setPointsToRedeem((current + 1).toString());
                                     }}
-                                    disabled={parseInt(pointsToRedeem || "0") >= Math.min(remainingRedeemable, balance)}
+                                    disabled={parseInt(pointsToRedeem || "0") >= Math.min(remainingRedeemable, balance) || !machineStatus.isOnline || machineStatus.isEmptyWater}
                                     className="flex h-12 w-12 items-center justify-center rounded-lg bg-emerald-500 text-xl font-semibold text-white shadow-sm transition active:scale-95 disabled:opacity-50 dark:bg-emerald-600"
                                 >
                                     +
@@ -188,14 +205,29 @@ export default function RedeemWater() {
                         </section>
 
                         {!qrToken && !isSuccess && (
-                            <Button
-                                onClick={handleGenerateQR}
-                                disabled={!isValidInput || loading}
-                                className="h-14 w-full rounded-2xl shadow-[0_16px_35px_rgba(59,130,246,0.35)]"
-                                variant="primary"
-                            >
-                                {loading ? "Generating..." : "Generate QR Code"}
-                            </Button>
+                            <div className="space-y-2">
+                                <Button
+                                    onClick={handleGenerateQR}
+                                    disabled={!canGenerateQR || loading}
+                                    className="h-14 w-full rounded-2xl shadow-[0_16px_35px_rgba(59,130,246,0.35)] disabled:bg-slate-300 disabled:text-slate-500 disabled:shadow-none"
+                                    variant="primary"
+                                >
+                                    {loading 
+                                        ? "Generating..." 
+                                        : !machineStatus.isOnline 
+                                        ? "Station Offline (QR Disabled)" 
+                                        : machineStatus.isEmptyWater 
+                                        ? "Tank Empty (QR Disabled)" 
+                                        : "Generate QR Code"}
+                                </Button>
+                                {(!machineStatus.isOnline || machineStatus.isEmptyWater) && (
+                                    <p className="text-center text-[11px] font-semibold text-rose-600">
+                                        {!machineStatus.isOnline 
+                                            ? "QR Generation locked: Station has not sent a heartbeat in >30s." 
+                                            : "QR Generation locked: Water container needs to be refilled by maintenance."}
+                                    </p>
+                                )}
+                            </div>
                         )}
                     </div>
                 )}

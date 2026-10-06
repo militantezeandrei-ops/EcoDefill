@@ -78,6 +78,12 @@ export default async function DashboardContent({ searchParams }: { searchParams:
             orderBy: { createdAt: "desc" }
         });
     }
+
+    const HEARTBEAT_TIMEOUT_SECONDS = 30;
+    const diffSeconds = latestLog ? Math.max(0, Math.floor((now.getTime() - new Date(latestLog.createdAt).getTime()) / 1000)) : 999999;
+    const isMachineOnline = latestLog ? diffSeconds <= HEARTBEAT_TIMEOUT_SECONDS : false;
+    const signalRssi = latestLog?.pingMs && latestLog.pingMs < 0 ? `${latestLog.pingMs} dBm` : "Good";
+
     const waterLevelRaw = latestLog?.message || "20.0L";
     
     // Parse numeric liters out of 20L container (e.g. "19.5L (Sufficient)", "4.5L (Low Water)", "0.0L (Empty Tank)")
@@ -127,6 +133,7 @@ export default async function DashboardContent({ searchParams }: { searchParams:
         ? new Date(latestLog.createdAt).toLocaleTimeString("en-US", { 
             hour: "numeric", 
             minute: "2-digit", 
+            second: "2-digit",
             hour12: true, 
             timeZone: "Asia/Manila" 
           })
@@ -181,6 +188,21 @@ export default async function DashboardContent({ searchParams }: { searchParams:
 
     const statCards = [
         {
+            title: "Station Status",
+            value: isMachineOnline ? "Active" : "Inactive",
+            sub: isMachineOnline 
+                ? `Ping: ${diffSeconds}s ago • ${lastUpdatedStr}` 
+                : (diffSeconds < 999999 ? `Offline for ${Math.floor(diffSeconds / 60)}m • ${lastUpdatedStr}` : "No telemetry recorded"),
+            icon: Activity,
+            bg: isMachineOnline ? "bg-white" : "bg-rose-50/60",
+            border: isMachineOnline ? "border-gray-100" : "border-rose-200 ring-2 ring-rose-100",
+            valueColor: isMachineOnline ? "text-emerald-600 font-black" : "text-rose-600 font-black animate-pulse",
+            titleColor: isMachineOnline ? "text-gray-400" : "text-rose-700",
+            subColor: isMachineOnline ? "text-gray-500 font-semibold" : "text-rose-600 font-semibold",
+            iconBg: isMachineOnline ? "bg-emerald-50" : "bg-rose-100",
+            iconColor: isMachineOnline ? "text-emerald-600" : "text-rose-600",
+        },
+        {
             title: "Total Users",
             value: totalUsers.toLocaleString(),
             sub: "Registered students",
@@ -203,18 +225,6 @@ export default async function DashboardContent({ searchParams }: { searchParams:
             subColor: "text-gray-500",
             iconBg: "bg-emerald-50",
             iconColor: "text-emerald-600",
-        },
-        {
-            title: "Water Dispensed",
-            value: waterDispensedMl >= 1000 ? `${(waterDispensedMl / 1000).toLocaleString()} L` : `${waterDispensedMl.toLocaleString()} ml`,
-            sub: `${totalRedeemed.toLocaleString()} pts redeemed`,
-            icon: Droplet,
-            bg: "bg-white",
-            valueColor: "text-blue-600",
-            titleColor: "text-gray-400",
-            subColor: "text-gray-500",
-            iconBg: "bg-blue-50",
-            iconColor: "text-blue-600",
         },
         {
             title: "Water Tank Level",
@@ -278,15 +288,28 @@ export default async function DashboardContent({ searchParams }: { searchParams:
     return (
         <div className="space-y-6">
             {/* Header + Quick Insights */}
-            <div className="flex items-center justify-between bg-white border border-gray-100 rounded-[20px] px-6 py-4 shadow-sm">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white border border-gray-100 rounded-[20px] px-6 py-4 shadow-sm">
                 <div>
                     <h2 className="text-[20px] font-black text-gray-900 tracking-tight flex items-center gap-2.5">
                         <Activity className="h-5 w-5 text-blue-600" />
-                        Dashboard
+                        Admin Dashboard
                     </h2>
                 </div>
                 {/* Quick Insights Strip */}
-                <div className="flex items-center gap-8">
+                <div className="flex flex-wrap items-center gap-6 sm:gap-8">
+                    {/* Live Machine Liveness Badge */}
+                    <div className="flex items-center gap-2.5">
+                        <div className={`h-2.5 w-2.5 rounded-full ${isMachineOnline ? "bg-emerald-500 animate-ping" : "bg-rose-500"}`} />
+                        <span className="text-[11px] font-black text-gray-400 uppercase tracking-widest">Station Liveness</span>
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-black uppercase tracking-wider ${
+                            isMachineOnline ? "bg-emerald-50 text-emerald-700 border border-emerald-200" : "bg-rose-50 text-rose-700 border border-rose-200"
+                        }`}>
+                            {isMachineOnline ? "Active (Online)" : "Inactive (Offline)"}
+                        </span>
+                    </div>
+
+                    <div className="h-4 w-px bg-gray-100 hidden sm:block" />
+
                     <div className="flex items-center gap-2.5">
                         <div className="h-1.5 w-1.5 rounded-full bg-blue-500 animate-pulse" />
                         <span className="text-[11px] font-black text-gray-400 uppercase tracking-widest">Avg pts/user</span>
@@ -294,7 +317,7 @@ export default async function DashboardContent({ searchParams }: { searchParams:
                             {totalUsers > 0 ? (todaysPoints / totalUsers).toFixed(1) : "0"}
                         </span>
                     </div>
-                    <div className="h-4 w-px bg-gray-100" />
+                    <div className="h-4 w-px bg-gray-100 hidden sm:block" />
                     <div className="flex items-center gap-2.5">
                         <div className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
                         <span className="text-[11px] font-black text-gray-400 uppercase tracking-widest">Recycled</span>
@@ -303,9 +326,33 @@ export default async function DashboardContent({ searchParams }: { searchParams:
                 </div>
             </div>
 
+            {/* Offline Hardware Fault Alert */}
+            {!isMachineOnline && (
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 rounded-[20px] border border-rose-200 bg-linear-to-r from-rose-50 via-rose-50/80 to-red-50 p-4 shadow-sm">
+                    <div className="flex items-center gap-3.5">
+                        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-rose-600 text-white shadow-sm animate-pulse">
+                            <AlertTriangle className="h-6 w-6" />
+                        </div>
+                        <div>
+                            <p className="text-[14px] font-black text-rose-950 uppercase tracking-wide flex items-center gap-2">
+                                Machine Fault Alert: Station Inactive / Disconnected
+                            </p>
+                            <p className="text-[12px] font-semibold text-rose-700 mt-0.5">
+                                No heartbeat received from ESP32 DevKit in the last 30 seconds (Heartbeat timeout exceeded). QR operations have been disabled on the mobile app for safety.
+                            </p>
+                        </div>
+                    </div>
+                    <div className="shrink-0 self-end sm:self-center">
+                        <span className="inline-flex items-center px-3.5 py-1.5 rounded-full text-xs font-black bg-rose-200 text-rose-950 border border-rose-300">
+                            Offline (&gt;30s timeout)
+                        </span>
+                    </div>
+                </div>
+            )}
+
             {/* Maintenance Low Water Alerts */}
             {isEmptyWater && (
-                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 rounded-[20px] border border-rose-200 bg-gradient-to-r from-rose-50 via-rose-50/70 to-red-50 p-4 shadow-sm">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 rounded-[20px] border border-rose-200 bg-linear-to-r from-rose-50 via-rose-50/70 to-red-50 p-4 shadow-sm">
                     <div className="flex items-center gap-3.5">
                         <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-rose-600 text-white shadow-sm animate-bounce">
                             <AlertTriangle className="h-6 w-6" />

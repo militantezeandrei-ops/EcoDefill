@@ -73,6 +73,7 @@ const unsigned long QR_CANCEL_GUARD_MS = 2000;
 const unsigned long CAM_RESULT_TIMEOUT_MS = 12000;
 const unsigned long QR_TOKEN_DUPLICATE_WINDOW_MS = 20000;
 const unsigned long QR_RESTART_DELAY_MS = 1500;
+const unsigned long HEARTBEAT_INTERVAL_MS = 12000; // Periodic heartbeat (12s interval for 30s server threshold)
 
 // ── STATE ─────────────────────────────────────────────────────────────────────
 WebServer server(80);
@@ -91,6 +92,8 @@ bool bottleDetectPending = false;
 bool cupDetectPending = false;
 unsigned long bottleDetectRequestedAt = 0;
 unsigned long cupDetectRequestedAt = 0;
+unsigned long lastHeartbeatAt = 0;
+String currentWaterLevelState = "20.0L (Sufficient)";
 
 // ── HELPERS ───────────────────────────────────────────────────────────────────
 void blink(int n, int ms = 100) {
@@ -383,12 +386,12 @@ void apiVerifyQR(const String& token, int pointsToTransfer) {
 
   // ── REDEEM path ───────────────────────────────────────────────────────────
   // Backend returns waterAmount in ml. Convert ml → ms for Mega.
-  // ML_PER_POINT = 100, MS_PER_100ML = 3600 → 1 ml = 36 ms
+  // ML_PER_POINT = 100, MS_PER_100ML = 4800 → 1 ml = 48 ms
   int waterAmountMl = res["waterAmount"] | 0;
   int pointsDeducted = res["pointsDeducted"] | 0;
 
   if (waterAmountMl > 0) {
-    int dispenseMs = waterAmountMl * 36;  // 100ml = 3600ms (36ms per ml) -> 500ml = 18,000ms
+    int dispenseMs = waterAmountMl * 48;  // 100ml = 4800ms (48ms per ml) -> 500ml = 24,000ms
     int redeemedPts = pointsDeducted;
     if (redeemedPts < 0) redeemedPts = -redeemedPts;
     if (redeemedPts <= 0) redeemedPts = waterAmountMl / 100;
@@ -446,8 +449,8 @@ void apiEarnAnon(const String& itemType, int pts) {
   Serial.printf("[HTTP] earn-anon %s %dpts → %d\n", itemType.c_str(), pts, code);
 }
 
-// ── BACKEND: UPDATE WATER LEVEL ───────────────────────────────────────────────
-void apiUpdateWaterLevel(const String& level) {
+// ── BACKEND: UPDATE WATER LEVEL & HEARTBEAT ──────────────────────────────────
+void apiSendHeartbeat() {
   if (!ensureWiFi()) return;
 
   WiFiClientSecure client; client.setInsecure();
@@ -459,16 +462,23 @@ void apiUpdateWaterLevel(const String& level) {
   StaticJsonDocument<256> req;
   req["machineId"]  = MACHINE_ID;
   req["status"]     = "ONLINE";
-  req["waterLevel"] = level;
+  req["waterLevel"] = currentWaterLevelState;
+  req["rssi"]       = WiFi.RSSI();
   String body; serializeJson(req, body);
 
   int code = http.POST(body);
   if (code <= 0) {
-    logHttpTransportFailure("update-water-level", http, code);
-    logBackendReachability("update-water-level");
+    logHttpTransportFailure("heartbeat", http, code);
+    logBackendReachability("heartbeat");
   }
   http.end();
-  Serial.printf("[HTTP] update-water-level %s → %d\n", level.c_str(), code);
+  Serial.printf("[HTTP] Heartbeat (RSSI: %d dBm, Tank: %s) → HTTP %d\n", WiFi.RSSI(), currentWaterLevelState.c_str(), code);
+}
+
+void apiUpdateWaterLevel(const String& level) {
+  currentWaterLevelState = level;
+  lastHeartbeatAt = millis();
+  apiSendHeartbeat();
 }
 
 // ── BACKEND: MACHINE WALKIN LOG ──────────────────────────────────────────────
@@ -836,6 +846,12 @@ void loop() {
     Serial2.flush();
     delay(50);
     ESP.restart();
+  }
+
+  // Periodic Heartbeat & Liveness ping to cloud server (every 12s)
+  if (!qrModeActive && (now - lastHeartbeatAt >= HEARTBEAT_INTERVAL_MS) && (WiFi.status() == WL_CONNECTED)) {
+    lastHeartbeatAt = now;
+    apiSendHeartbeat();
   }
 
   // Read commands from Mega (Serial2)

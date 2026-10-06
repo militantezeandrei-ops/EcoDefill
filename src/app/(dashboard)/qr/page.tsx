@@ -9,10 +9,13 @@ import Image from "next/image";
 
 import { useAuth } from "@/hooks/useAuth";
 import { setCachedData, invalidateCache } from "@/hooks/useCachedFetch";
+import { useMachineStatus } from "@/hooks/useMachineStatus";
+import MachineStatusBadge from "@/components/machine/MachineStatusBadge";
 
 export default function QRGeneration() {
     const router = useRouter();
     const { updateUserBalance } = useAuth();
+    const machineStatus = useMachineStatus(4000);
     const [qrData, setQrData] = useState<{ token: string; expiresAt: string } | null>(null);
     const [error, setError] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
@@ -85,8 +88,13 @@ export default function QRGeneration() {
 
     return (
         <div className="flex min-h-[70vh] flex-col items-center justify-center px-4 pb-4 pt-[calc(var(--safe-top)+14px)] text-center">
+            {/* Real-time machine status badge */}
+            <div className="mb-4 w-full max-w-sm">
+                <MachineStatusBadge machineStatus={machineStatus} onRefresh={machineStatus.refresh} />
+            </div>
+
             {error ? (
-                <div className="mx-auto mt-6 flex w-full max-w-sm flex-col items-center justify-center rounded-3xl border border-red-100 bg-white p-6 shadow-lg">
+                <div className="mx-auto mt-2 flex w-full max-w-sm flex-col items-center justify-center rounded-3xl border border-red-100 bg-white p-6 shadow-lg">
                     <span className="material-symbols-outlined text-red-500 text-6xl mb-4">cancel</span>
                     <h2 className="text-xl font-bold text-slate-800 mb-2">{error.includes("10 points") ? "Daily Limit Reached" : "Attention"}</h2>
                     <p className="text-slate-500 text-center">{error}</p>
@@ -94,7 +102,7 @@ export default function QRGeneration() {
             ) : (
                 <>
                     <h1 className="mb-2 text-2xl font-bold">Your Personal QR Code</h1>
-                    <p className="mb-6 text-sm leading-relaxed text-slate-500">Scan this code at the EcoDefill station to receive points.</p>
+                    <p className="mb-4 text-sm leading-relaxed text-slate-500">Scan this code at the EcoDefill station to receive points.</p>
 
                     <div className="mb-4 flex flex-col items-center justify-center rounded-3xl border border-gray-100 bg-white p-5 shadow-lg">
                         {loading ? (

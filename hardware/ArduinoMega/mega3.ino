@@ -19,8 +19,12 @@ Servo srvBottleGate, srvBottleExit, srvBottleBin;
 Servo srvCupGate, srvCupExit;
 
 // SERVO ANGLES
-#define GATE_OPEN       85
-#define GATE_CLOSED      0
+#define BOTTLE_GATE_OPEN    70   // Tuned from 85/75: prevents servo hitting physical stopper and shaking/buzzing
+#define BOTTLE_GATE_CLOSED   5   // 5 deg safety buffer instead of hard 0 deg to avoid end-stop grinding
+#define CUP_GATE_OPEN       75   // Tuned from 85: safe open limit for cup chamber flap
+#define CUP_GATE_CLOSED      5   // 5 deg safety buffer
+#define GATE_OPEN           75   // Legacy alias
+#define GATE_CLOSED          5
 #define SERVO_DELAY_MS  250UL
 #define SERVO_CLOSE_DELAY_MS 1500UL
 
@@ -116,7 +120,7 @@ void resetWaterTankLevel() {
 // DISPENSE & AUTO-PURGE
 #define ML_PER_POINT            100
 #define MAX_PTS_PER_PRESS       5
-#define MS_PER_100ML            3600UL  // Calibrated: 3600ms per 100ml (36ms/ml) -> 5 pts (500ml) = 18,000ms
+#define MS_PER_100ML            4800UL  // Calibrated: 4800ms per 100ml (48ms/ml) -> 5 pts (500ml) = 24,000ms
 #define AUTO_PURGE_IDLE_MS      21600000UL  // 6 Hours idle before automatic line purge
 #define AUTO_PURGE_DURATION_MS  3000UL      // 3 seconds pump flush
 
@@ -258,8 +262,6 @@ bool refillContainerDetected() {
   return (d > 0 && d <= REFILL_DETECT_CM);
 }
 
-
-
 void moveServoSmooth(Servo& s, int pos) {
   s.write(pos);
   delay(SERVO_DELAY_MS);
@@ -267,24 +269,34 @@ void moveServoSmooth(Servo& s, int pos) {
 
 void openBottleSlot() {
   Serial.println(F("[SERVO] Bottle GATE open"));
-  moveServoSmooth(srvBottleGate, GATE_OPEN);
+  if (!srvBottleGate.attached()) srvBottleGate.attach(SRV_BOTTLE_GATE);
+  srvBottleGate.write(BOTTLE_GATE_OPEN);
+  delay(350);
+  srvBottleGate.detach();  // Cuts PWM signal: completely eliminates buzzing and holding jitter
 }
 
 void closeBottleSlot() {
   Serial.println(F("[SERVO] Bottle GATE close"));
-  moveServoSmooth(srvBottleGate, GATE_CLOSED);
-  delay(SERVO_CLOSE_DELAY_MS);
+  if (!srvBottleGate.attached()) srvBottleGate.attach(SRV_BOTTLE_GATE);
+  srvBottleGate.write(BOTTLE_GATE_CLOSED);
+  delay(500);
+  srvBottleGate.detach();  // Cuts PWM signal once closed
 }
 
 void openCupSlot() {
   Serial.println(F("[SERVO] Cup GATE open"));
-  moveServoSmooth(srvCupGate, GATE_OPEN);
+  if (!srvCupGate.attached()) srvCupGate.attach(SRV_CUP_GATE);
+  srvCupGate.write(CUP_GATE_OPEN);
+  delay(350);
+  srvCupGate.detach();     // Cuts PWM signal: completely eliminates buzzing and holding jitter
 }
 
 void closeCupSlot() {
   Serial.println(F("[SERVO] Cup GATE close"));
-  moveServoSmooth(srvCupGate, GATE_CLOSED);
-  delay(SERVO_CLOSE_DELAY_MS);
+  if (!srvCupGate.attached()) srvCupGate.attach(SRV_CUP_GATE);
+  srvCupGate.write(CUP_GATE_CLOSED);
+  delay(500);
+  srvCupGate.detach();     // Cuts PWM signal once closed
 }
 
 void compactBottle() {
@@ -1151,7 +1163,7 @@ void setup() {
   delay(300);
 
   srvBottleGate.attach(SRV_BOTTLE_GATE);
-  srvBottleGate.write(GATE_CLOSED);
+  srvBottleGate.write(BOTTLE_GATE_CLOSED);
 
   srvBottleExit.attach(SRV_BOTTLE_EXIT);
   srvBottleExit.write(EXIT_CLOSED);
@@ -1164,12 +1176,16 @@ void setup() {
   delay(SERVO_DELAY_MS);
 
   srvCupGate.attach(SRV_CUP_GATE);
-  srvCupGate.write(GATE_CLOSED);
+  srvCupGate.write(CUP_GATE_CLOSED);
 
   srvCupExit.attach(SRV_CUP_EXIT);
   srvCupExit.write(EXIT_CLOSED);
 
   delay(SERVO_DELAY_MS);
+
+  // Detach gates after homing so they stay silent & cool during idle
+  srvBottleGate.detach();
+  srvCupGate.detach();
 
   // FIXED LCD BEGIN
   lcd.begin(LCD_COLS, LCD_ROWS);

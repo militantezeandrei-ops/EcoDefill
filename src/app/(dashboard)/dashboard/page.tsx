@@ -7,6 +7,9 @@ import { useAuth } from "@/hooks/useAuth";
 import { useCachedFetch } from "@/hooks/useCachedFetch";
 import { useState } from "react";
 import GuideSlides from "@/components/dashboard/GuideSlides";
+import { useMachineStatus } from "@/hooks/useMachineStatus";
+import MachineStatusBadge from "@/components/machine/MachineStatusBadge";
+import { showToast } from "@/lib/toast";
 
 interface Transaction {
     id: string;
@@ -33,6 +36,7 @@ export default function Dashboard() {
     const { user, updateUserBalance } = useAuth();
     const router = useRouter();
     const { data, error, mutate } = useCachedFetch<BalanceData>("/api/user-balance");
+    const machineStatus = useMachineStatus(4000);
     const [showGuide, setShowGuide] = useState(false);
 
     useEffect(() => {
@@ -98,6 +102,31 @@ export default function Dashboard() {
 
     const isOffline = error?.message?.toLowerCase().includes("internet") || error?.message?.toLowerCase().includes("connection");
 
+    const handleReceivePointsClick = () => {
+        if (!machineStatus.isOnline) {
+            showToast({
+                text: "Station Offline: Physical machine is disconnected. Please verify status before scanning.",
+                type: "error"
+            });
+        }
+        router.push("/qr");
+    };
+
+    const handleRedeemWaterClick = () => {
+        if (!machineStatus.isOnline) {
+            showToast({
+                text: "Station Offline: Water dispenser is currently offline.",
+                type: "error"
+            });
+        } else if (machineStatus.isEmptyWater) {
+            showToast({
+                text: "Station Refill: Water tank is currently empty (0.0L).",
+                type: "error"
+            });
+        }
+        router.push("/redeem");
+    };
+
     return (
         <div className="relative min-h-full">
             {isOffline && (
@@ -145,6 +174,15 @@ export default function Dashboard() {
                 </div>
             </section>
 
+            {/* ── Real-Time Machine Status Banner ── */}
+            <section className="mt-4 px-4">
+                <div className="mb-2 flex items-center justify-between">
+                    <h2 className="app-section-title mb-0">Station Liveness</h2>
+                    <span className="text-[11px] font-bold text-slate-400">Physical Machine</span>
+                </div>
+                <MachineStatusBadge machineStatus={machineStatus} onRefresh={machineStatus.refresh} />
+            </section>
+
             {/* ── Daily Progress (One horizontal row) ── */}
             <section className="mt-5 px-4">
                 <h2 className="app-section-title">Usage Summary</h2>
@@ -181,28 +219,44 @@ export default function Dashboard() {
                 <h2 className="app-section-title">Quick Actions</h2>
                 <div className="grid grid-cols-2 gap-3">
                     <button
-                        onClick={() => router.push("/qr")}
-                        className="group flex flex-col items-center gap-2 rounded-[22px] bg-emerald-600 px-4 py-4 text-white shadow-[0_8px_20px_rgba(5,150,105,0.3)] transition-all active:scale-95 active:shadow-none"
+                        onClick={handleReceivePointsClick}
+                        className={`group flex flex-col items-center gap-2 rounded-[22px] px-4 py-4 text-white shadow-sm transition-all active:scale-95 ${
+                            !machineStatus.isOnline
+                                ? "bg-slate-700 opacity-90 shadow-slate-900/10"
+                                : "bg-emerald-600 shadow-[0_8px_20px_rgba(5,150,105,0.3)]"
+                        }`}
                     >
                         <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-white/20">
                             <span className="material-symbols-outlined text-[24px]">qr_code_scanner</span>
                         </div>
                         <div className="text-center">
                             <p className="text-[12px] font-black">Receive Points</p>
-                            <p className="text-[9px] font-medium text-emerald-200">Show my QR</p>
+                            <p className="text-[9px] font-medium text-emerald-200">
+                                {!machineStatus.isOnline ? "Station Offline" : "Show my QR"}
+                            </p>
                         </div>
                     </button>
 
                     <button
-                        onClick={() => router.push("/redeem")}
-                        className="group flex flex-col items-center gap-2 rounded-[22px] bg-blue-600 px-4 py-4 text-white shadow-[0_8px_20px_rgba(37,99,235,0.3)] transition-all active:scale-95 active:shadow-none"
+                        onClick={handleRedeemWaterClick}
+                        className={`group flex flex-col items-center gap-2 rounded-[22px] px-4 py-4 text-white shadow-sm transition-all active:scale-95 ${
+                            !machineStatus.isOnline || machineStatus.isEmptyWater
+                                ? "bg-slate-700 opacity-90 shadow-slate-900/10"
+                                : "bg-blue-600 shadow-[0_8px_20px_rgba(37,99,235,0.3)]"
+                        }`}
                     >
                         <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-white/20">
                             <span className="material-symbols-outlined text-[24px]">local_drink</span>
                         </div>
                         <div className="text-center">
                             <p className="text-[12px] font-black">Redeem Water</p>
-                            <p className="text-[9px] font-medium text-blue-200">Use your points</p>
+                            <p className="text-[9px] font-medium text-blue-200">
+                                {!machineStatus.isOnline 
+                                    ? "Station Offline" 
+                                    : machineStatus.isEmptyWater 
+                                    ? "Tank Empty" 
+                                    : "Use your points"}
+                            </p>
                         </div>
                     </button>
                 </div>
