@@ -1,6 +1,3 @@
-import { Capacitor } from "@capacitor/core";
-import { Preferences } from "@capacitor/preferences";
-
 const TOKEN_KEY = "auth_token";
 const USER_KEY = "auth_user";
 
@@ -11,31 +8,16 @@ let hydrated = false;
 const canUseBrowserStorage = () => typeof window !== "undefined";
 
 const readKey = async (key: string): Promise<string | null> => {
-  if (Capacitor.isNativePlatform()) {
-    const { value } = await Preferences.get({ key });
-    return value ?? null;
-  }
-
   if (!canUseBrowserStorage()) return null;
   return localStorage.getItem(key);
 };
 
 const writeKey = async (key: string, value: string): Promise<void> => {
-  if (Capacitor.isNativePlatform()) {
-    await Preferences.set({ key, value });
-    return;
-  }
-
   if (!canUseBrowserStorage()) return;
   localStorage.setItem(key, value);
 };
 
 const removeKey = async (key: string): Promise<void> => {
-  if (Capacitor.isNativePlatform()) {
-    await Preferences.remove({ key });
-    return;
-  }
-
   if (!canUseBrowserStorage()) return;
   localStorage.removeItem(key);
 };
@@ -59,16 +41,28 @@ export async function hydrateStoredAuth(): Promise<{
     hydrated = true;
   }
 
-  if (!cachedUser) {
-    return { token: cachedToken, user: null };
+  let parsedUser: StoredUser | null = null;
+  if (cachedUser) {
+    try {
+      parsedUser = JSON.parse(cachedUser) as StoredUser;
+    } catch {
+      parsedUser = null;
+    }
   }
 
+  return { token: cachedToken, user: parsedUser };
+}
+
+export function getCachedToken(): string | null {
+  return cachedToken;
+}
+
+export function getCachedUser(): StoredUser | null {
+  if (!cachedUser) return null;
   try {
-    return { token: cachedToken, user: JSON.parse(cachedUser) as StoredUser };
+    return JSON.parse(cachedUser) as StoredUser;
   } catch {
-    cachedUser = null;
-    await removeKey(USER_KEY);
-    return { token: cachedToken, user: null };
+    return null;
   }
 }
 
@@ -84,21 +78,21 @@ export async function setStoredAuth(token: string, user: StoredUser): Promise<vo
   ]);
 }
 
-export async function setStoredUser(user: StoredUser): Promise<void> {
+export async function updateStoredUser(user: StoredUser): Promise<void> {
   const serializedUser = JSON.stringify(user);
   cachedUser = serializedUser;
-  hydrated = true;
   await writeKey(USER_KEY, serializedUser);
 }
+
+export const setStoredUser = updateStoredUser;
 
 export async function clearStoredAuth(): Promise<void> {
   cachedToken = null;
   cachedUser = null;
   hydrated = true;
 
-  await Promise.all([removeKey(TOKEN_KEY), removeKey(USER_KEY)]);
-}
-
-export function getCachedToken(): string | null {
-  return cachedToken;
+  await Promise.all([
+    removeKey(TOKEN_KEY),
+    removeKey(USER_KEY),
+  ]);
 }

@@ -1,7 +1,3 @@
-import { Capacitor } from "@capacitor/core";
-import { Haptics, NotificationType } from "@capacitor/haptics";
-import { Toast } from "@capacitor/toast";
-
 type ToastDuration = "short" | "long";
 type ToastType = "success" | "error" | "warning" | "info";
 
@@ -12,19 +8,6 @@ interface ToastOptions {
     haptic?: boolean;
 }
 
-function getHapticType(type: ToastType): NotificationType {
-    switch (type) {
-        case "success":
-            return NotificationType.Success;
-        case "error":
-            return NotificationType.Error;
-        case "warning":
-            return NotificationType.Warning;
-        default:
-            return NotificationType.Success;
-    }
-}
-
 export async function showToast(
     textOrOptions: string | ToastOptions,
     duration: ToastDuration = "short"
@@ -32,24 +15,7 @@ export async function showToast(
     const options: ToastOptions =
         typeof textOrOptions === "string"
             ? { text: textOrOptions, duration, type: "info" }
-            : { duration: "short", type: "info", haptic: true, ...textOrOptions };
-
-    if (Capacitor.isNativePlatform()) {
-        if (options.haptic !== false) {
-            try {
-                await Haptics.notification({ type: getHapticType(options.type || "info") });
-            } catch {
-                // Ignore haptic failures and continue toast display.
-            }
-        }
-
-        await Toast.show({
-            text: options.text,
-            duration: options.duration || "short",
-            position: "bottom",
-        });
-        return;
-    }
+            : { duration: "short", type: "info", ...textOrOptions };
 
     if (typeof window === "undefined" || typeof document === "undefined") return;
 

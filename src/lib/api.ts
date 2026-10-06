@@ -1,8 +1,4 @@
-import { Capacitor } from "@capacitor/core";
 import { clearStoredAuth, getCachedToken, hydrateStoredAuth } from "@/lib/auth-storage";
-
-const BASE_URL = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/+$/, "");
-const NATIVE_FALLBACK_BASE_URL = "https://eco-defill.vercel.app";
 
 function isOfflineError(error: unknown) {
     if (!(error instanceof Error)) return false;
@@ -13,25 +9,7 @@ function isOfflineError(error: unknown) {
 }
 
 function resolveUrl(endpoint: string) {
-    if (endpoint.startsWith("http")) return endpoint;
-    const isNative = Capacitor.isNativePlatform();
-
-    // In browser/web builds, prefer same-origin API routes to avoid CORS.
-    if (!isNative) {
-        return endpoint;
-    }
-
-    if (!endpoint.startsWith("/api")) {
-        return endpoint;
-    }
-
-    const originBase =
-        typeof window !== "undefined" && /^https?:/i.test(window.location.origin)
-            ? window.location.origin.replace(/\/+$/, "")
-            : "";
-
-    const nativeBase = BASE_URL || originBase || NATIVE_FALLBACK_BASE_URL;
-    return `${nativeBase}${endpoint}`;
+    return endpoint;
 }
 
 export async function apiClient<T>(
