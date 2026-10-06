@@ -189,14 +189,12 @@ export default async function DashboardContent({ searchParams }: { searchParams:
     const statCards = [
         {
             title: "Machine Status",
-            value: isMachineOnline ? "Machine Online" : "Machine Offline",
-            sub: isMachineOnline 
-                ? `Last updated: ${diffSeconds}s ago` 
-                : (diffSeconds < 999999 ? `Disconnected for ${Math.floor(diffSeconds / 60)}m` : "No connection"),
+            value: isMachineOnline ? "Online" : "Offline",
+            sub: isMachineOnline ? "Connected" : "Disconnected",
             icon: Activity,
             bg: isMachineOnline ? "bg-white" : "bg-rose-50/60",
             border: isMachineOnline ? "border-gray-100" : "border-rose-200 ring-2 ring-rose-100",
-            valueColor: isMachineOnline ? "text-emerald-600 font-black" : "text-rose-600 font-black animate-pulse",
+            valueColor: isMachineOnline ? "text-emerald-600 font-black" : "text-rose-600 font-black",
             titleColor: isMachineOnline ? "text-gray-400" : "text-rose-700",
             subColor: isMachineOnline ? "text-gray-500 font-semibold" : "text-rose-600 font-semibold",
             iconBg: isMachineOnline ? "bg-emerald-50" : "bg-rose-100",
@@ -229,7 +227,7 @@ export default async function DashboardContent({ searchParams }: { searchParams:
         {
             title: "Water Tank Level",
             value: waterLevel,
-            sub: `${waterLevelSub} • ${lastUpdatedStr}`,
+            sub: isLowWater ? "Low Tank Level" : isEmptyWater ? "Empty Tank" : "Normal Level",
             icon: Cylinder,
             bg: waterCardBg,
             border: waterCardBorder,
@@ -299,12 +297,12 @@ export default async function DashboardContent({ searchParams }: { searchParams:
                 <div className="flex flex-wrap items-center gap-6 sm:gap-8">
                     {/* Live Machine Status Badge */}
                     <div className="flex items-center gap-2.5">
-                        <div className={`h-2.5 w-2.5 rounded-full ${isMachineOnline ? "bg-emerald-500 animate-ping" : "bg-rose-500"}`} />
+                        <div className={`h-2 w-2 rounded-full ${isMachineOnline ? "bg-emerald-500 animate-pulse" : "bg-rose-500"}`} />
                         <span className="text-[11px] font-black text-gray-400 uppercase tracking-widest">Machine</span>
                         <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-black uppercase tracking-wider ${
                             isMachineOnline ? "bg-emerald-50 text-emerald-700 border border-emerald-200" : "bg-rose-50 text-rose-700 border border-rose-200"
                         }`}>
-                            {isMachineOnline ? "Machine Online" : "Machine Offline"}
+                            {isMachineOnline ? "Online" : "Offline"}
                         </span>
                     </div>
 
@@ -325,30 +323,6 @@ export default async function DashboardContent({ searchParams }: { searchParams:
                     </div>
                 </div>
             </div>
-
-            {/* Offline Station Alert */}
-            {!isMachineOnline && (
-                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 rounded-[20px] border border-rose-200 bg-linear-to-r from-rose-50 via-rose-50/80 to-red-50 p-4 shadow-sm">
-                    <div className="flex items-center gap-3.5">
-                        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-rose-600 text-white shadow-sm animate-pulse">
-                            <AlertTriangle className="h-6 w-6" />
-                        </div>
-                        <div>
-                            <p className="text-[14px] font-black text-rose-950 uppercase tracking-wide flex items-center gap-2">
-                                Machine Offline
-                            </p>
-                            <p className="text-[12px] font-semibold text-rose-700 mt-0.5">
-                                Machine is currently offline.
-                            </p>
-                        </div>
-                    </div>
-                    <div className="shrink-0 self-end sm:self-center">
-                        <span className="inline-flex items-center px-3.5 py-1.5 rounded-full text-xs font-black bg-rose-200 text-rose-950 border border-rose-300">
-                            Offline
-                        </span>
-                    </div>
-                </div>
-            )}
 
             {/* Maintenance Low Water Alerts */}
             {isEmptyWater && (
