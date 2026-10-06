@@ -188,8 +188,8 @@ export default async function DashboardContent({ searchParams }: { searchParams:
 
     const statCards = [
         {
-            title: "Station Status",
-            value: isMachineOnline ? "Online" : "Offline",
+            title: "Machine Status",
+            value: isMachineOnline ? "Machine Online" : "Machine Offline",
             sub: isMachineOnline 
                 ? `Last updated: ${diffSeconds}s ago` 
                 : (diffSeconds < 999999 ? `Disconnected for ${Math.floor(diffSeconds / 60)}m` : "No connection"),
@@ -300,11 +300,11 @@ export default async function DashboardContent({ searchParams }: { searchParams:
                     {/* Live Machine Status Badge */}
                     <div className="flex items-center gap-2.5">
                         <div className={`h-2.5 w-2.5 rounded-full ${isMachineOnline ? "bg-emerald-500 animate-ping" : "bg-rose-500"}`} />
-                        <span className="text-[11px] font-black text-gray-400 uppercase tracking-widest">Station Status</span>
+                        <span className="text-[11px] font-black text-gray-400 uppercase tracking-widest">Machine</span>
                         <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-black uppercase tracking-wider ${
                             isMachineOnline ? "bg-emerald-50 text-emerald-700 border border-emerald-200" : "bg-rose-50 text-rose-700 border border-rose-200"
                         }`}>
-                            {isMachineOnline ? "Online" : "Offline"}
+                            {isMachineOnline ? "Machine Online" : "Machine Offline"}
                         </span>
                     </div>
 
@@ -335,10 +335,10 @@ export default async function DashboardContent({ searchParams }: { searchParams:
                         </div>
                         <div>
                             <p className="text-[14px] font-black text-rose-950 uppercase tracking-wide flex items-center gap-2">
-                                Station Alert: Machine Offline
+                                Machine Offline
                             </p>
                             <p className="text-[12px] font-semibold text-rose-700 mt-0.5">
-                                The physical EcoDefill station is currently disconnected or powered off. Mobile QR operations are paused until the machine is back online.
+                                Machine is currently offline.
                             </p>
                         </div>
                     </div>

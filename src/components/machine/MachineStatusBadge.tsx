@@ -45,7 +45,7 @@ export default function MachineStatusBadge({
                         ? "Water Empty"
                         : isLowWater
                         ? "Low Water"
-                        : "Station Ready"}
+                        : "Machine Online"}
                 </span>
             </div>
         );
@@ -96,12 +96,12 @@ export default function MachineStatusBadge({
                                     : "text-emerald-950"
                             }`}>
                                 {!isOnline
-                                    ? "Physical Station Offline"
+                                    ? "Machine Offline"
                                     : isEmptyWater
                                     ? "Station Alert: Water Tank Empty"
                                     : isLowWater
                                     ? "Station Alert: Low Water Level"
-                                    : "EcoDefill Station Ready"}
+                                    : "Machine Online"}
                             </span>
                             <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider ${
                                 !isOnline
@@ -129,12 +129,12 @@ export default function MachineStatusBadge({
                                 : "text-emerald-700"
                         }`}>
                             {!isOnline
-                                ? "Machine is currently disconnected. QR operations are paused for safety."
+                                ? "Machine is currently offline."
                                 : isEmptyWater
                                 ? "Water tank is at 0.0L. Dispensing is paused until refilled."
                                 : isLowWater
                                 ? `Water container is at ${remainingLiters.toFixed(1)}L (${waterPercentage}%). Refill soon.`
-                                : `Online & active (${waterLevel} • ${waterPercentage}% full).`}
+                                : `Machine online (${waterLevel} • ${waterPercentage}% full).`}
                         </p>
                     </div>
                 </div>
