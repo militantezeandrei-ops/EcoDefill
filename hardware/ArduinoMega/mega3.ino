@@ -27,7 +27,7 @@ Servo srvCupGate, srvCupExit;
 #define EXIT_HOLD_MS   1200UL
 #define EXIT_OPEN       90
 #define EXIT_CLOSED      10
-#define BIN_OPEN        90
+#define BIN_OPEN        120
 #define BIN_CLOSED       10
 
 // IR SENSOR PINS
@@ -64,15 +64,41 @@ Servo srvCupGate, srvCupExit;
 #define BTN_RELEASED LOW
 #define BTN_PRESSED  HIGH
 
-// ULTRASONIC
+// ULTRASONIC CONTAINER PRESENCE (SENSING CUP/BOTTLE UNDER NOZZLE)
 #define ULTRASONIC_TRIG  32
 #define ULTRASONIC_ECHO  33
 #define REFILL_DETECT_CM 12
 
-// WATER LEVEL SENSOR (TANK WATER LEVEL - 3-WIRE PWM ON PIN 15)
-#define WATER_LEVEL_PIN         15
-#define TANK_LOW_THRESHOLD_CM   22.0  // <= 22cm: Sufficient Water (Full/Medium)
-#define TANK_EMPTY_THRESHOLD_CM 27.0  // >= 27cm: Empty Water Tank | > 22cm & < 27cm: Low Water
+// WATER LEVEL CONFIGURATION (20-LITER CONTAINER SOFTWARE-TRACKED)
+#define MAX_TANK_CAPACITY_ML     20000L   // Full container starts at 20.0 Liters (20,000 mL)
+#define LOW_WATER_THRESHOLD_ML   5000L    // 5.0 Liters threshold for Low Water Maintenance Alert
+#define EMPTY_WATER_THRESHOLD_ML 200L     // Threshold below which dispensing is halted
+
+// WATER LEVEL SOFTWARE TRACKING (20L CONTAINER)
+bool triggerWaterLevelUpdate = true; // Flag to trigger immediate water level check & send
+long currentWaterLevelMl = MAX_TANK_CAPACITY_ML;
+
+float getWaterLevelLiters() {
+  return (float)currentWaterLevelMl / 1000.0;
+}
+
+String getWaterLevelCategory() {
+  float liters = getWaterLevelLiters();
+  if (currentWaterLevelMl <= EMPTY_WATER_THRESHOLD_ML) {
+    return "0.0L (Empty Tank)";
+  } else if (currentWaterLevelMl <= LOW_WATER_THRESHOLD_ML) {
+    return String(liters, 1) + "L (Low Water)";
+  } else {
+    return String(liters, 1) + "L (Sufficient)";
+  }
+}
+
+void resetWaterTankLevel() {
+  currentWaterLevelMl = MAX_TANK_CAPACITY_ML;
+  triggerWaterLevelUpdate = true;
+  Serial.println(F("[WATER] Tank reset to 20.0 Liters (Full Container)"));
+}
+
 
 
 // TIMING
@@ -111,7 +137,6 @@ State machineState = ST_IDLE;
 int sessionPts = 0;
 bool bottleSlotActive = false;
 bool scanModeActive = false;
-bool triggerWaterLevelUpdate = true; // Flag to trigger immediate water level check & send
 
 // SERIAL
 String devBuf = "";
@@ -171,10 +196,20 @@ void lcdShow(const String& r0,
 }
 
 void lcdIdle() {
+  float liters = (float)currentWaterLevelMl / 1000.0;
+  String waterStr;
+  if (currentWaterLevelMl <= EMPTY_WATER_THRESHOLD_ML) {
+    waterStr = "Water: EMPTY (0.0L) ";
+  } else if (currentWaterLevelMl <= LOW_WATER_THRESHOLD_ML) {
+    waterStr = "Water: " + String(liters, 1) + "L (LOW)";
+  } else {
+    waterStr = "Water: " + String(liters, 1) + "L/20L";
+  }
+
   lcdShow("     EcoDefill      ",
           "Points: " + String(sessionPts),
-          "[RED]QR  [BLUE]Water",
-          "Insert item to earn ");
+          waterStr,
+          "[RED]QR  [BLUE]Water");
 }
 
 void clearPendingQrDispense() {
@@ -223,61 +258,7 @@ bool refillContainerDetected() {
   return (d > 0 && d <= REFILL_DETECT_CM);
 }
 
-// WATER LEVEL SENSOR FUNCTIONS (3-WIRE PWM ON PIN 15)
-float getTankWaterLevelCM() {
-  float samples[4];
-  int validCount = 0;
 
-  for (int i = 0; i < 4; i++) {
-    unsigned long dur = pulseIn(WATER_LEVEL_PIN, HIGH, 60000UL);
-    if (dur > 0) {
-      float distCM = (float)dur * 0.0343 / 2.0;
-      if (distCM > 2.0 && distCM < 400.0) {
-        samples[validCount++] = distCM;
-      }
-    }
-    delay(15);
-  }
-
-  if (validCount == 0) {
-    return -1.0;
-  }
-
-  // Median sort to eliminate acoustic jitter and missed pulses
-  for (int i = 0; i < validCount - 1; i++) {
-    for (int j = i + 1; j < validCount; j++) {
-      if (samples[i] > samples[j]) {
-        float temp = samples[i];
-        samples[i] = samples[j];
-        samples[j] = temp;
-      }
-    }
-  }
-
-  return samples[validCount / 2];
-}
-
-String getWaterLevelCategory(float distance = -1.0) {
-  if (distance < 0) {
-    distance = getTankWaterLevelCM();
-  }
-
-  if (distance <= 0) {
-    return "Unknown";
-  }
-  
-  // 3-Level Robust Status (avoids blind zone ambiguity):
-  // <= 22.0 cm : Sufficient Water (Covers Full down to Medium operational level)
-  // > 22.0 cm and < 27.0 cm : Low Water (Refill required)
-  // >= 27.0 cm : Empty Water Tank (Tank is empty / critical level)
-  if (distance <= TANK_LOW_THRESHOLD_CM) {
-    return "Sufficient Water";
-  } else if (distance < TANK_EMPTY_THRESHOLD_CM) {
-    return "Low Water";
-  } else {
-    return "Empty Water Tank";
-  }
-}
 
 void moveServoSmooth(Servo& s, int pos) {
   s.write(pos);
@@ -474,6 +455,13 @@ void runAutoPurge() {
   digitalWrite(RELAY_PUMP, PUMP_OFF);
   digitalWrite(RELAY_SOL1, SOL1_OFF);
 
+  long purgeMl = (AUTO_PURGE_DURATION_MS * 100UL) / MS_PER_100ML;
+  if (currentWaterLevelMl >= purgeMl) {
+    currentWaterLevelMl -= purgeMl;
+  } else {
+    currentWaterLevelMl = 0;
+  }
+
   lastDispenseAt = millis();
   machineState = ST_AWAIT_ITEM;
   triggerWaterLevelUpdate = true;
@@ -487,8 +475,12 @@ void runAutoPurge() {
   lcdIdle();
 }
 
-// WATER DISPENSE
-void dispenseWater(unsigned long ms) {
+// WATER DISPENSE (DEDUCTS VOLUME FROM 20L CONTAINER)
+void dispenseWater(unsigned long ms, long mlDispensed = 0) {
+  if (mlDispensed <= 0) {
+    mlDispensed = (ms * 100UL) / MS_PER_100ML;
+  }
+
   lcdShow("  Dispensing Water  ",
           "Please wait...      ",
           "Pump running...     ",
@@ -513,7 +505,14 @@ void dispenseWater(unsigned long ms) {
   digitalWrite(RELAY_PUMP, PUMP_OFF);
   digitalWrite(RELAY_SOL1, SOL1_OFF);
 
+  if (currentWaterLevelMl >= mlDispensed) {
+    currentWaterLevelMl -= mlDispensed;
+  } else {
+    currentWaterLevelMl = 0;
+  }
+
   lastDispenseAt = millis(); // Reset auto-purge timer
+  triggerWaterLevelUpdate = true;
 }
 
 // HANDLE DEVKIT MESSAGES
@@ -521,7 +520,17 @@ void handleDevKit(const String& msg) {
   Serial.print(F("[DEV->] "));
   Serial.println(msg);
 
-  if (msg == "CAM:BOTTLE:VALID") {
+  if (msg == "CMD:RESET_WATER" || msg == "CMD:REFILL_20L") {
+    resetWaterTankLevel();
+    lcdShow(" Container Refilled ",
+            " Water: 20.0 Liters ",
+            " Tank Level: 100%   ",
+            " Ready to serve     ");
+    delay(1800);
+    lcdIdle();
+  }
+
+  else if (msg == "CAM:BOTTLE:VALID") {
     camPending = false;
     if (machineState != ST_IDENTIFYING || !bottleSlotActive) return;
 
@@ -756,6 +765,16 @@ void onDispensePressed() {
   if (scanModeActive || machineState == ST_SCAN_WAIT) return;
 
   if (pendingQrDispenseMs > 0 && machineState == ST_QR_READY) {
+    if (currentWaterLevelMl < pendingQrDispenseMl || currentWaterLevelMl <= EMPTY_WATER_THRESHOLD_ML) {
+      lcdShow("  Water Tank Empty  ",
+              "Cannot dispense QR  ",
+              "Refill 20L container",
+              "Contact maintenance ");
+      delay(2000);
+      lcdIdle();
+      return;
+    }
+
     if (!refillContainerDetected()) {
       lcdShow(" Waiting for Cup/   ",
               "Tumbler or Bottle   ",
@@ -774,7 +793,7 @@ void onDispensePressed() {
             "QR redeem accepted  ",
             "Please wait...      ");
 
-    dispenseWater(pendingQrDispenseMs);
+    dispenseWater(pendingQrDispenseMs, pendingQrDispenseMl);
     clearPendingQrDispense();
     machineState = ST_AWAIT_ITEM;
     triggerWaterLevelUpdate = true;
@@ -816,6 +835,20 @@ void onDispensePressed() {
     return;
   }
 
+  int ptsToUse = min(sessionPts, MAX_PTS_PER_PRESS);
+  unsigned long ms = (unsigned long)ptsToUse * MS_PER_100ML;
+  int ml = ptsToUse * ML_PER_POINT;
+
+  if (currentWaterLevelMl < ml || currentWaterLevelMl <= EMPTY_WATER_THRESHOLD_ML) {
+    lcdShow("  Water Tank Empty! ",
+            "Needed: " + String(ml) + "ml",
+            "Left: " + String((float)currentWaterLevelMl / 1000.0, 1) + "L",
+            "Refill required     ");
+    delay(2000);
+    lcdIdle();
+    return;
+  }
+
   if (!refillContainerDetected()) {
     lcdShow(" Waiting for Cup/   ",
             "Tumbler or Bottle   ",
@@ -827,10 +860,6 @@ void onDispensePressed() {
     return;
   }
 
-  int ptsToUse = min(sessionPts, MAX_PTS_PER_PRESS);
-  unsigned long ms = (unsigned long)ptsToUse * MS_PER_100ML;
-  int ml = ptsToUse * ML_PER_POINT;
-
   machineState = ST_DISPENSING;
 
   lcdShow("  Dispensing Water  ",
@@ -838,7 +867,7 @@ void onDispensePressed() {
           String(ptsToUse) + " pts used",
           "Please wait...      ");
 
-  dispenseWater(ms);
+  dispenseWater(ms, ml);
 
   sessionPts -= ptsToUse;
   if (sessionPts < 0) sessionPts = 0;
@@ -1110,8 +1139,6 @@ void setup() {
   pinMode(ULTRASONIC_TRIG, OUTPUT);
   pinMode(ULTRASONIC_ECHO, INPUT);
 
-  pinMode(WATER_LEVEL_PIN, INPUT);
-
   // Keep Active-LOW relays unenergized (HIGH) on boot
   digitalWrite(RELAY_PUMP, PUMP_OFF);
   digitalWrite(RELAY_SOL1, SOL1_OFF);
@@ -1177,35 +1204,25 @@ void loop() {
     runAutoPurge();
   }
 
-  // RAPID SENSING DIAGNOSTIC: Check water level every 1000ms & print to Mega Serial Monitor
+  // RAPID SENSING DIAGNOSTIC: Print water level every 2000ms to Mega Serial Monitor
   static unsigned long lastWaterLevelCheckAt = 0;
-  static float lastMeasuredWaterDistance = -1.0;
-  if (millis() - lastWaterLevelCheckAt >= 1000UL) {
+  if (millis() - lastWaterLevelCheckAt >= 2000UL) {
     lastWaterLevelCheckAt = millis();
-    float liveDist = getTankWaterLevelCM();
-    if (liveDist > 0) {
-      lastMeasuredWaterDistance = liveDist;
-    }
-    String category = getWaterLevelCategory(lastMeasuredWaterDistance);
-    
     Serial.print(F("[WATER LEVEL LIVE] "));
-    if (lastMeasuredWaterDistance > 0) {
-      Serial.print(F("Distance: "));
-      Serial.print(lastMeasuredWaterDistance, 1);
-      Serial.print(F(" cm | Status: "));
-      Serial.println(category);
-    } else {
-      Serial.println(F("Measuring..."));
-    }
+    Serial.print(getWaterLevelLiters(), 2);
+    Serial.print(F(" L / 20.0 L ("));
+    Serial.print(currentWaterLevelMl);
+    Serial.print(F(" ml) | Status: "));
+    Serial.println(getWaterLevelCategory());
   }
 
   // Send tank water level to DevKit periodically (heartbeat) or immediately if triggered
   static unsigned long lastWaterLevelSendAt = 0;
-  #define WATER_LEVEL_SEND_INTERVAL_MS 300000UL // 5 minutes heartbeat
+  #define WATER_LEVEL_SEND_INTERVAL_MS 60000UL // 1 minute heartbeat
   if (triggerWaterLevelUpdate || (millis() - lastWaterLevelSendAt >= WATER_LEVEL_SEND_INTERVAL_MS)) {
     triggerWaterLevelUpdate = false;
     lastWaterLevelSendAt = millis();
-    devkitSend("CMD:WATER_LEVEL|" + getWaterLevelCategory(lastMeasuredWaterDistance));
+    devkitSend("CMD:WATER_LEVEL|" + getWaterLevelCategory());
   }
 
   checkPaperIR();

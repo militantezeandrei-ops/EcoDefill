@@ -1,6 +1,6 @@
 import Link from "next/link";
 import prisma from "@/lib/prisma";
-import { Users, Target, Droplet, Activity, TrendingUp, Recycle, Cylinder } from "lucide-react";
+import { Users, Target, Droplet, Activity, TrendingUp, Recycle, Cylinder, AlertTriangle } from "lucide-react";
 import DashboardCharts from "@/components/admin/DashboardCharts";
 import { getCourseRanking } from "@/lib/course-ranking";
 function getStartOfDayInManila(date: Date = new Date()): Date {
@@ -78,29 +78,49 @@ export default async function DashboardContent({ searchParams }: { searchParams:
             orderBy: { createdAt: "desc" }
         });
     }
-    const waterLevelRaw = latestLog?.message || "Unknown";
-    let waterLevel = "Unknown";
-    let waterLevelColor = "text-gray-500 font-semibold";
-    let waterLevelIconBg = "bg-gray-50";
-    let waterLevelIconColor = "text-gray-400";
-
-    if (waterLevelRaw.includes("Sufficient") || waterLevelRaw.includes("Full") || waterLevelRaw.includes("Medium")) {
-        waterLevel = "Sufficient";
-        waterLevelColor = "text-emerald-600 font-black";
-        waterLevelIconBg = "bg-emerald-50";
-        waterLevelIconColor = "text-emerald-600";
+    const waterLevelRaw = latestLog?.message || "20.0L";
+    
+    // Parse numeric liters out of 20L container (e.g. "19.5L (Sufficient)", "4.5L (Low Water)", "0.0L (Empty Tank)")
+    let remainingLiters = 20.0;
+    const litersMatch = waterLevelRaw.match(/([\d.]+)\s*L/i);
+    if (litersMatch) {
+        remainingLiters = Math.max(0, Math.min(20, parseFloat(litersMatch[1])));
     } else if (waterLevelRaw.includes("Empty")) {
-        waterLevel = "Empty Water Tank";
+        remainingLiters = 0.0;
+    } else if (waterLevelRaw.includes("Low")) {
+        remainingLiters = 4.5;
+    } else if (waterLevelRaw.includes("Sufficient") || waterLevelRaw.includes("Full")) {
+        remainingLiters = 20.0;
+    }
+
+    const waterPercentage = Math.round((remainingLiters / 20.0) * 100);
+    const isEmptyWater = remainingLiters <= 0.2;
+    const isLowWater = !isEmptyWater && remainingLiters <= 5.0;
+
+    let waterLevel = `${remainingLiters.toFixed(1)} L / 20L`;
+    let waterLevelSub = `${waterPercentage}% Remaining • Full/Normal`;
+    let waterLevelColor = "text-emerald-600 font-black";
+    let waterLevelIconBg = "bg-emerald-50";
+    let waterLevelIconColor = "text-emerald-600";
+    let waterCardBg = "bg-white";
+    let waterCardBorder = "border-gray-100";
+
+    if (isEmptyWater) {
+        waterLevel = `${remainingLiters.toFixed(1)} L (Empty)`;
+        waterLevelSub = "0% • Empty Tank (Refill Needed)";
         waterLevelColor = "text-rose-600 font-black animate-pulse";
         waterLevelIconBg = "bg-rose-50 border border-rose-100 animate-bounce";
         waterLevelIconColor = "text-rose-600";
-    } else if (waterLevelRaw.includes("Low")) {
-        waterLevel = "Low Water";
+        waterCardBg = "bg-rose-50/50";
+        waterCardBorder = "border-rose-300 ring-2 ring-rose-200/60";
+    } else if (isLowWater) {
+        waterLevel = `${remainingLiters.toFixed(1)} L (Low)`;
+        waterLevelSub = `${waterPercentage}% • Refill Soon (≤ 5.0L)`;
         waterLevelColor = "text-amber-600 font-black";
         waterLevelIconBg = "bg-amber-50 border border-amber-100";
         waterLevelIconColor = "text-amber-600";
-    } else {
-        waterLevel = waterLevelRaw;
+        waterCardBg = "bg-amber-50/50";
+        waterCardBorder = "border-amber-300 ring-2 ring-amber-200/60";
     }
 
     const lastUpdatedStr = latestLog
@@ -199,12 +219,13 @@ export default async function DashboardContent({ searchParams }: { searchParams:
         {
             title: "Water Tank Level",
             value: waterLevel,
-            sub: `Updated: ${lastUpdatedStr}`,
+            sub: `${waterLevelSub} • ${lastUpdatedStr}`,
             icon: Cylinder,
-            bg: "bg-white",
+            bg: waterCardBg,
+            border: waterCardBorder,
             valueColor: waterLevelColor,
-            titleColor: "text-gray-400",
-            subColor: "text-gray-500",
+            titleColor: isLowWater ? "text-amber-800" : isEmptyWater ? "text-rose-800" : "text-gray-400",
+            subColor: isLowWater ? "text-amber-700 font-semibold" : isEmptyWater ? "text-rose-700 font-semibold" : "text-gray-500",
             iconBg: waterLevelIconBg,
             iconColor: waterLevelIconColor,
         },
@@ -282,6 +303,53 @@ export default async function DashboardContent({ searchParams }: { searchParams:
                 </div>
             </div>
 
+            {/* Maintenance Low Water Alerts */}
+            {isEmptyWater && (
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 rounded-[20px] border border-rose-200 bg-gradient-to-r from-rose-50 via-rose-50/70 to-red-50 p-4 shadow-sm">
+                    <div className="flex items-center gap-3.5">
+                        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-rose-600 text-white shadow-sm animate-bounce">
+                            <AlertTriangle className="h-6 w-6" />
+                        </div>
+                        <div>
+                            <p className="text-[14px] font-black text-rose-950 uppercase tracking-wide flex items-center gap-2">
+                                Critical Alert: Water Tank Empty (0.0L remaining)
+                            </p>
+                            <p className="text-[12px] font-semibold text-rose-700 mt-0.5">
+                                Dispensing has been halted for student safety. Immediate 20-Liter container replacement required by maintenance.
+                            </p>
+                        </div>
+                    </div>
+                    <div className="shrink-0 self-end sm:self-center">
+                        <span className="inline-flex items-center px-3.5 py-1.5 rounded-full text-xs font-black bg-rose-200 text-rose-950 border border-rose-300 animate-pulse">
+                            Empty Tank (0%)
+                        </span>
+                    </div>
+                </div>
+            )}
+
+            {isLowWater && (
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 rounded-[20px] border border-amber-200 bg-gradient-to-r from-amber-50 via-amber-50/70 to-orange-50 p-4 shadow-sm">
+                    <div className="flex items-center gap-3.5">
+                        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-amber-500 text-white shadow-sm animate-pulse">
+                            <AlertTriangle className="h-6 w-6" />
+                        </div>
+                        <div>
+                            <p className="text-[14px] font-black text-amber-950 uppercase tracking-wide flex items-center gap-2">
+                                Maintenance Alert: Low Water Level ({remainingLiters.toFixed(1)}L / 20.0L remaining)
+                            </p>
+                            <p className="text-[12px] font-semibold text-amber-800 mt-0.5">
+                                Water container is at or below the 5.0 Liters maintenance threshold ({waterPercentage}%). Please prepare a fresh 20-Liter refill container.
+                            </p>
+                        </div>
+                    </div>
+                    <div className="shrink-0 self-end sm:self-center">
+                        <span className="inline-flex items-center px-3.5 py-1.5 rounded-full text-xs font-black bg-amber-200 text-amber-950 border border-amber-300">
+                            Low Water ({waterPercentage}%)
+                        </span>
+                    </div>
+                </div>
+            )}
+
             {/* Stats Grid — 4 columns */}
             <div className="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-4">
                 {statCards.map((card, i) => {
@@ -289,7 +357,7 @@ export default async function DashboardContent({ searchParams }: { searchParams:
                     return (
                         <div
                             key={i}
-                            className={`group relative overflow-hidden rounded-[20px] ${card.bg} border border-gray-100 p-5 shadow-sm transition-all duration-300 hover:shadow-md`}
+                            className={`group relative overflow-hidden rounded-[20px] ${card.bg} ${card.border || "border border-gray-100"} p-5 shadow-sm transition-all duration-300 hover:shadow-md`}
                         >
                             <div className="relative flex items-center justify-between">
                                 <div>

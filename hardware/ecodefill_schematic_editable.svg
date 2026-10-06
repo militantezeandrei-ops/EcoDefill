@@ -1,0 +1,331 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1420 1150" width="100%" height="100%" style="background:#ffffff; font-family: 'Segoe UI', Arial, sans-serif;">
+  <defs>
+    <style>
+      .box { fill: #ffffff; stroke: #1e293b; stroke-width: 2; rx: 4; }
+      .box-header { font-weight: bold; font-size: 12.5px; fill: #0f172a; }
+      .label { font-size: 11px; fill: #334155; }
+      .pin { font-size: 11px; font-weight: 600; fill: #0f172a; }
+      .power-12v { stroke: #dc2626; stroke-width: 2.2; fill: none; stroke-linecap: square; }
+      .power-5v { stroke: #ea580c; stroke-width: 2; fill: none; stroke-linecap: square; }
+      .power-6v { stroke: #b45309; stroke-width: 2; fill: none; stroke-linecap: square; }
+      .gnd { stroke: #1e293b; stroke-width: 2; fill: none; stroke-linecap: square; }
+      .signal { stroke: #2563eb; stroke-width: 1.8; fill: none; stroke-linecap: square; }
+      .wifi { stroke: #16a34a; stroke-width: 1.8; stroke-dasharray: 4,4; fill: none; }
+      .title { font-size: 18px; font-weight: bold; fill: #0f172a; }
+      .legend-text { font-size: 12px; fill: #334155; }
+    </style>
+  </defs>
+
+  <!-- TITLE -->
+  <text x="40" y="38" class="title">ECODEFILL - HARDWARE SCHEMATIC &amp; POWER LOGIC DISTRIBUTION</text>
+
+  <!-- ==================== POWER SUPPLY & CONVERTERS ==================== -->
+  <!-- 12V PSU -->
+  <rect x="40" y="65" width="140" height="90" class="box" />
+  <text x="50" y="85" class="box-header">12V DC POWER SUPPLY</text>
+  <text x="50" y="105" class="label">L, N (220V AC IN)</text>
+  <text x="50" y="120" class="label">GND (EARTH)</text>
+  <text x="145" y="105" class="pin" text-anchor="end">12V V+</text>
+  <text x="145" y="135" class="pin" text-anchor="end">12V V-</text>
+
+  <!-- Common GND Junction 1 -->
+  <rect x="230" y="120" width="50" height="30" class="box" />
+  <text x="255" y="140" class="pin" text-anchor="middle">GND</text>
+
+  <!-- Buck Converters -->
+  <!-- Buck 1: 12V to 5V (MCU / Sensors) -->
+  <rect x="330" y="65" width="150" height="42" class="box" />
+  <text x="340" y="83" class="box-header">BUCK 12V &#8594; 5V (5A)</text>
+  <text x="340" y="98" class="label">IN: 12V | OUT: 5V (MCU)</text>
+
+  <!-- Buck 2: 12V to 5V (ESP Modules) -->
+  <rect x="330" y="117" width="150" height="42" class="box" />
+  <text x="340" y="135" class="box-header">BUCK 12V &#8594; 5V (5A)</text>
+  <text x="340" y="150" class="label">IN: 12V | OUT: 5V (ESPs)</text>
+
+  <!-- Buck 3: 12V to 6V (Servos) -->
+  <rect x="330" y="169" width="150" height="42" class="box" />
+  <text x="340" y="187" class="box-header">BUCK 12V &#8594; 6V (5A)</text>
+  <text x="340" y="202" class="label">IN: 12V | OUT: 6V (Servos)</text>
+
+  <!-- ==================== ACTUATORS & RELAY (PUMP ONLY) ==================== -->
+  <!-- Water Pump -->
+  <rect x="40" y="225" width="140" height="55" class="box" />
+  <text x="50" y="247" class="box-header">WATER PUMP</text>
+  <text x="50" y="265" class="label">12V DC / Submersible</text>
+
+  <!-- Relay Module -->
+  <rect x="220" y="225" width="70" height="55" class="box" />
+  <text x="255" y="247" class="box-header" text-anchor="middle">RELAY</text>
+  <text x="255" y="265" class="label" text-anchor="middle">MODULE</text>
+
+  <!-- ==================== SENSORS & INPUTS (LEFT) ==================== -->
+  <!-- IR 1: Bottle Slot (D22) -->
+  <rect x="40" y="340" width="140" height="42" class="box" />
+  <text x="50" y="358" class="box-header">IR BOTTLE SLOT</text>
+  <text x="50" y="373" class="label">5V | GND | OUT &#8594; D22</text>
+
+  <!-- IR 2: Bottle Valid (D23) -->
+  <rect x="40" y="395" width="140" height="42" class="box" />
+  <text x="50" y="413" class="box-header">IR BOTTLE VALID</text>
+  <text x="50" y="428" class="label">5V | GND | OUT &#8594; D23</text>
+
+  <!-- IR 3: Cup Slot (D24) -->
+  <rect x="40" y="450" width="140" height="42" class="box" />
+  <text x="50" y="468" class="box-header">IR CUP SLOT</text>
+  <text x="50" y="483" class="label">5V | GND | OUT &#8594; D24</text>
+
+  <!-- IR 4: Cup Valid (D25) -->
+  <rect x="40" y="505" width="140" height="42" class="box" />
+  <text x="50" y="523" class="box-header">IR CUP VALID</text>
+  <text x="50" y="538" class="label">5V | GND | OUT &#8594; D25</text>
+
+  <!-- IR 5: Paper Entry (D26) -->
+  <rect x="40" y="560" width="140" height="42" class="box" />
+  <text x="50" y="578" class="box-header">IR PAPER ENTRY</text>
+  <text x="50" y="593" class="label">5V | GND | OUT &#8594; D26</text>
+
+  <!-- IR 6: Cup Oversize (D27) -->
+  <rect x="40" y="615" width="140" height="42" class="box" />
+  <text x="50" y="633" class="box-header">IR CUP OVERSIZE</text>
+  <text x="50" y="648" class="label">5V | GND | OUT &#8594; D27</text>
+
+  <!-- Button: Dispense (D30) -->
+  <rect x="40" y="670" width="140" height="42" class="box" />
+  <text x="50" y="688" class="box-header">DISPENSE BUTTON</text>
+  <text x="50" y="703" class="label">5V | GND | OUT &#8594; D30</text>
+
+  <!-- Button: QR Scan (D31) -->
+  <rect x="40" y="725" width="140" height="42" class="box" />
+  <text x="50" y="743" class="box-header">QR SCAN BUTTON</text>
+  <text x="50" y="758" class="label">5V | GND | OUT &#8594; D31</text>
+
+  <!-- Ultrasonic Sensor (D32 Trig, D33 Echo) -->
+  <rect x="40" y="780" width="140" height="52" class="box" />
+  <text x="50" y="798" class="box-header">ULTRASONIC SENSOR</text>
+  <text x="50" y="813" class="label">5V | GND</text>
+  <text x="50" y="825" class="label">TRIG &#8594; D32 | ECHO &#8594; D33</text>
+
+  <!-- Water Level Sensor (D15) -->
+  <rect x="40" y="845" width="140" height="45" class="box" />
+  <text x="50" y="863" class="box-header">WATER LEVEL SENSOR</text>
+  <text x="50" y="878" class="label">5V | GND | SIG &#8594; D15</text>
+
+  <!-- ==================== ARDUINO MEGA 2560 (CENTER) ==================== -->
+  <rect x="360" y="250" width="220" height="660" class="box" style="stroke-width: 2.5; stroke: #0284c7;" />
+  <text x="470" y="280" class="box-header" text-anchor="middle" style="font-size: 16px; fill: #0369a1;">ARDUINO MEGA 2560</text>
+  
+  <!-- Mega Left Pins -->
+  <text x="375" y="310" class="pin">5V (VCC IN)</text>
+  <text x="375" y="330" class="pin">GND</text>
+  <text x="375" y="361" class="pin">D22 (IR Bottle Slot)</text>
+  <text x="375" y="416" class="pin">D23 (IR Bottle Valid)</text>
+  <text x="375" y="471" class="pin">D24 (IR Cup Slot)</text>
+  <text x="375" y="526" class="pin">D25 (IR Cup Valid)</text>
+  <text x="375" y="581" class="pin">D26 (IR Paper Entry)</text>
+  <text x="375" y="636" class="pin">D27 (IR Cup Oversize)</text>
+  <text x="375" y="691" class="pin">D30 (Btn Dispense)</text>
+  <text x="375" y="746" class="pin">D31 (Btn QR Scan)</text>
+  <text x="375" y="806" class="pin">D32 (Trig) / D33 (Echo)</text>
+  <text x="375" y="867" class="pin">D15 (Water Level)</text>
+  
+  <!-- Mega Right Pins -->
+  <text x="565" y="336" class="pin" text-anchor="end">D5 (Srv Bottle Gate)</text>
+  <text x="565" y="391" class="pin" text-anchor="end">D6 (Srv Bottle Exit)</text>
+  <text x="565" y="446" class="pin" text-anchor="end">D3 (Srv Bottle Bin)</text>
+  <text x="565" y="501" class="pin" text-anchor="end">D8 (Srv Cup Gate)</text>
+  <text x="565" y="556" class="pin" text-anchor="end">D9 (Srv Cup Exit)</text>
+  <text x="565" y="620" class="pin" text-anchor="end">D34 (Relay Pump)</text>
+  <text x="565" y="700" class="pin" text-anchor="end">D18 / TX1 (To ESP RX)</text>
+  <text x="565" y="730" class="pin" text-anchor="end">D19 / RX1 (From ESP TX)</text>
+  <text x="565" y="810" class="pin" text-anchor="end">D20 (SDA - LCD)</text>
+  <text x="565" y="840" class="pin" text-anchor="end">D21 (SCL - LCD)</text>
+  <text x="565" y="880" class="pin" text-anchor="end">GND (Common)</text>
+
+  <!-- ==================== I2C LCD (BOTTOM) ==================== -->
+  <rect x="360" y="940" width="220" height="60" class="box" />
+  <text x="470" y="965" class="box-header" text-anchor="middle">20 x 4 I2C LCD DISPLAY</text>
+  <text x="470" y="985" class="label" text-anchor="middle">VCC (5V) | GND | SDA (D20) | SCL (D21)</text>
+
+  <!-- ==================== SERVOS (6V POWERED) ==================== -->
+  <!-- Common GND Junction 2 for Servos -->
+  <rect x="660" y="245" width="50" height="25" class="box" />
+  <text x="685" y="262" class="pin" text-anchor="middle">GND</text>
+
+  <!-- Servo 1: Bottle Gate -->
+  <rect x="750" y="315" width="150" height="42" class="box" />
+  <text x="760" y="333" class="box-header">SRV BOTTLE GATE</text>
+  <text x="760" y="348" class="label">6V | GND | PWM &#8592; D5</text>
+
+  <!-- Servo 2: Bottle Exit -->
+  <rect x="750" y="370" width="150" height="42" class="box" />
+  <text x="760" y="388" class="box-header">SRV BOTTLE EXIT</text>
+  <text x="760" y="403" class="label">6V | GND | PWM &#8592; D6</text>
+
+  <!-- Servo 3: Bottle Bin -->
+  <rect x="750" y="425" width="150" height="42" class="box" />
+  <text x="760" y="443" class="box-header">SRV BOTTLE BIN</text>
+  <text x="760" y="458" class="label">6V | GND | PWM &#8592; D3</text>
+
+  <!-- Servo 4: Cup Gate -->
+  <rect x="750" y="480" width="150" height="42" class="box" />
+  <text x="760" y="498" class="box-header">SRV CUP GATE</text>
+  <text x="760" y="513" class="label">6V | GND | PWM &#8592; D8</text>
+
+  <!-- Servo 5: Cup Exit -->
+  <rect x="750" y="535" width="150" height="42" class="box" />
+  <text x="760" y="553" class="box-header">SRV CUP EXIT</text>
+  <text x="760" y="568" class="label">6V | GND | PWM &#8592; D9</text>
+
+  <!-- ==================== ESP32 DEVKIT & LEVEL SHIFTER ==================== -->
+  <rect x="670" y="650" width="160" height="130" class="box" style="stroke: #059669;" />
+  <text x="750" y="675" class="box-header" text-anchor="middle" style="fill: #047857;">ESP32 DEVKIT (NODE)</text>
+  <text x="680" y="700" class="pin">5V (VIN)</text>
+  <text x="680" y="720" class="pin">GND</text>
+  <text x="680" y="745" class="pin">D16 / RX2 (from Mega)</text>
+  <text x="680" y="765" class="pin">D17 / TX2 (to Mega)</text>
+  <text x="815" y="745" class="pin" text-anchor="end">Wi-Fi</text>
+
+  <!-- Voltage Divider Box -->
+  <rect x="600" y="688" width="55" height="30" class="box" style="stroke-dasharray: 2,2;" />
+  <text x="627" y="701" class="label" text-anchor="middle" style="font-size: 8px;">VOLTAGE</text>
+  <text x="627" y="711" class="label" text-anchor="middle" style="font-size: 8px;">DIVIDER</text>
+
+  <!-- ==================== ESP32-CAM MODULES (RIGHT) ==================== -->
+  <!-- Cam 1: Bottle -->
+  <rect x="1000" y="140" width="150" height="85" class="box" />
+  <text x="1015" y="165" class="box-header">ESP32-CAM (BOTTLE)</text>
+  <text x="1015" y="185" class="label">5V VCC (Buck 2)</text>
+  <text x="1015" y="200" class="label">GND (Common)</text>
+  <text x="1135" y="200" class="pin" text-anchor="end">Wi-Fi</text>
+
+  <!-- Cam 2: Cup -->
+  <rect x="1000" y="245" width="150" height="85" class="box" />
+  <text x="1015" y="270" class="box-header">ESP32-CAM (CUP)</text>
+  <text x="1015" y="290" class="label">5V VCC (Buck 2)</text>
+  <text x="1015" y="305" class="label">GND (Common)</text>
+  <text x="1135" y="305" class="pin" text-anchor="end">Wi-Fi</text>
+
+  <!-- Cam 3: QR Scanner -->
+  <rect x="1000" y="350" width="150" height="85" class="box" />
+  <text x="1015" y="375" class="box-header">ESP32-CAM (QR CODE)</text>
+  <text x="1015" y="395" class="label">5V VCC (Buck 2)</text>
+  <text x="1015" y="410" class="label">GND (Common)</text>
+  <text x="1135" y="410" class="pin" text-anchor="end">Wi-Fi</text>
+
+  <!-- Wi-Fi Router / Hotspot Gateway -->
+  <rect x="980" y="520" width="190" height="80" class="box" style="stroke: #16a34a; stroke-width: 2.2;" />
+  <text x="1075" y="550" class="box-header" text-anchor="middle" style="fill: #15803d;">2.4GHz WI-FI ROUTER</text>
+  <text x="1075" y="570" class="label" text-anchor="middle">Gateway: 192.168.100.xxx</text>
+  <text x="1075" y="585" class="label" text-anchor="middle">&#8596; Cloud / Vercel Backend</text>
+
+  <!-- ==================== STRICT ORTHOGONAL WIRING PATHS (NO DIAGONALS) ==================== -->
+  
+  <!-- 12V Main Rails (Red) -->
+  <!-- PSU 12V+ out (x=180, y=105) to Bus (x=305) -->
+  <path d="M 180 105 H 305" class="power-12v" />
+  <!-- Bus down to Buck 1 (y=86), Buck 2 (y=138), Buck 3 (y=190) -->
+  <path d="M 305 105 V 86 H 330" class="power-12v" />
+  <path d="M 305 105 V 138 H 330" class="power-12v" />
+  <path d="M 305 105 V 190 H 330" class="power-12v" />
+  <!-- Bus down to Relay/Pump (y=240) -->
+  <path d="M 305 105 V 240 H 290" class="power-12v" />
+  <!-- Relay to Pump -->
+  <path d="M 220 250 H 180" class="power-12v" />
+
+  <!-- 5V Buck 1 to Mega VCC & Sensors (Orange) -->
+  <path d="M 480 86 H 520 V 220 H 330 V 305 H 360" class="power-5v" />
+
+  <!-- 5V Buck 2 to ESP32s & CAMs (Orange) -->
+  <path d="M 480 138 H 940 V 180 H 1000" class="power-5v" />
+  <path d="M 940 180 V 285 H 1000" class="power-5v" />
+  <path d="M 940 285 V 390 H 1000" class="power-5v" />
+  <path d="M 940 390 V 695 H 830" class="power-5v" />
+
+  <!-- 6V Buck 3 to Servos (Brown) -->
+  <path d="M 480 190 H 730 V 336 H 750" class="power-6v" />
+  <path d="M 730 336 V 391 H 750" class="power-6v" />
+  <path d="M 730 391 V 446 H 750" class="power-6v" />
+  <path d="M 730 446 V 501 H 750" class="power-6v" />
+  <path d="M 730 501 V 556 H 750" class="power-6v" />
+
+  <!-- Common GND Rails (Black) -->
+  <!-- PSU V- (x=180, y=135) to GND Junction 1 (x=230, y=135) -->
+  <path d="M 180 135 H 230" class="gnd" />
+  <!-- GND Junction 1 to Mega GND (x=360, y=325) -->
+  <path d="M 280 135 H 315 V 325 H 360" class="gnd" />
+  <!-- GND Junction 1 to Relay/Pump GND -->
+  <path d="M 255 150 V 225" class="gnd" />
+  <path d="M 220 260 H 180" class="gnd" />
+  <!-- GND to Servo GND Box (x=660, y=257) -->
+  <path d="M 480 190 H 660" class="gnd" />
+  <!-- Servo GND Box to each Servo -->
+  <path d="M 710 257 H 740 V 346 H 750" class="gnd" />
+  <path d="M 740 346 V 401 H 750" class="gnd" />
+  <path d="M 740 401 V 456 H 750" class="gnd" />
+  <path d="M 740 456 V 511 H 750" class="gnd" />
+  <path d="M 740 511 V 566 H 750" class="gnd" />
+  <!-- Mega Common GND to ESP32 DevKit GND -->
+  <path d="M 580 880 H 670 V 720 H 680" class="gnd" />
+
+  <!-- Sensor Signal Lines to Mega (Blue - 100% Horizontal & Right Angles) -->
+  <path d="M 180 361 H 360" class="signal" />
+  <path d="M 180 416 H 360" class="signal" />
+  <path d="M 180 471 H 360" class="signal" />
+  <path d="M 180 526 H 360" class="signal" />
+  <path d="M 180 581 H 360" class="signal" />
+  <path d="M 180 636 H 360" class="signal" />
+  <path d="M 180 691 H 360" class="signal" />
+  <path d="M 180 746 H 360" class="signal" />
+  <!-- Ultrasonic (D32 Trig / D33 Echo) -->
+  <path d="M 180 806 H 360" class="signal" />
+  <!-- Water Level (D15) -->
+  <path d="M 180 867 H 360" class="signal" />
+
+  <!-- Mega PWM to Servos (Blue - Straight Horizontal) -->
+  <path d="M 580 336 H 750" class="signal" />
+  <path d="M 580 391 H 750" class="signal" />
+  <path d="M 580 446 H 750" class="signal" />
+  <path d="M 580 501 H 750" class="signal" />
+  <path d="M 580 556 H 750" class="signal" />
+
+  <!-- Mega Relay Control (D34 -> Relay IN) -->
+  <path d="M 580 620 H 600 V 275 H 290" class="signal" />
+
+  <!-- Serial UART Mega <-> ESP32 (Blue) -->
+  <!-- Mega TX1 (D18, y=700) -> Voltage Divider -> ESP RX2 (y=745) -->
+  <path d="M 580 700 H 600" class="signal" />
+  <path d="M 655 700 H 665 V 745 H 680" class="signal" />
+  <!-- ESP TX2 (y=765) -> Mega RX1 (D19, y=730) -->
+  <path d="M 680 765 H 645 V 730 H 580" class="signal" />
+
+  <!-- I2C Bus to LCD (Blue - Right Angles) -->
+  <path d="M 580 810 H 610 V 920 H 490 V 940" class="signal" />
+  <path d="M 580 840 H 625 V 930 H 520 V 940" class="signal" />
+
+  <!-- Wi-Fi Links (Dashed Green - Straight Right Angles) -->
+  <path d="M 1075 520 V 435" class="wifi" />
+  <path d="M 830 745 H 980 V 560" class="wifi" />
+
+  <!-- ==================== LEGEND ==================== -->
+  <rect x="40" y="1040" width="1310" height="60" class="box" style="stroke:#cbd5e1; fill:#f8fafc;" />
+  <text x="55" y="1060" class="box-header">SCHEMATIC LEGEND &amp; COLOR CODE:</text>
+  
+  <line x1="60" y1="1078" x2="100" y2="1078" class="power-12v" />
+  <text x="110" y="1082" class="legend-text">12V DC Main Rail</text>
+
+  <line x1="260" y1="1078" x2="300" y2="1078" class="power-5v" />
+  <text x="310" y="1082" class="legend-text">5V DC Regulated Rail (Logic &amp; ESPs)</text>
+
+  <line x1="560" y1="1078" x2="600" y2="1078" class="power-6v" />
+  <text x="610" y="1082" class="legend-text">6V DC Servo High-Torque Rail</text>
+
+  <line x1="830" y1="1078" x2="870" y2="1078" class="gnd" />
+  <text x="880" y="1082" class="legend-text">Common Ground (GND)</text>
+
+  <line x1="1050" y1="1078" x2="1090" y2="1078" class="signal" />
+  <text x="1100" y="1082" class="legend-text">Data / GPIO / PWM / I2C / UART</text>
+
+  <line x1="1240" y1="1078" x2="1270" y2="1078" class="wifi" />
+  <text x="1280" y="1082" class="legend-text">Wi-Fi (2.4GHz)</text>
+</svg>
