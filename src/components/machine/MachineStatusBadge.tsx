@@ -129,9 +129,9 @@ export default function MachineStatusBadge({
                                 : "text-emerald-700"
                         }`}>
                             {!isOnline
-                                ? "No heartbeat received in >30s. Operations are paused for safety."
+                                ? "Machine is currently disconnected. QR operations are paused for safety."
                                 : isEmptyWater
-                                ? "Water tank is at 0.0L. Dispensing paused until refilled."
+                                ? "Water tank is at 0.0L. Dispensing is paused until refilled."
                                 : isLowWater
                                 ? `Water container is at ${remainingLiters.toFixed(1)}L (${waterPercentage}%). Refill soon.`
                                 : `Online & active (${waterLevel} • ${waterPercentage}% full).`}
@@ -143,15 +143,15 @@ export default function MachineStatusBadge({
                     <div className="flex flex-col items-end shrink-0 self-center">
                         <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">
                             {isOnline 
-                                ? (secondsSinceLastPing <= 5 ? "Heartbeat: Just now" : `Heartbeat: ${secondsSinceLastPing}s ago`) 
-                                : `Last seen: ${secondsSinceLastPing < 3600 ? Math.floor(secondsSinceLastPing / 60) + "m ago" : "Unavailable"}`}
+                                ? (secondsSinceLastPing <= 5 ? "Status: Live" : `Updated: ${secondsSinceLastPing}s ago`) 
+                                : `Last active: ${secondsSinceLastPing < 3600 ? Math.floor(secondsSinceLastPing / 60) + "m ago" : "Unavailable"}`}
                         </span>
                         {onRefresh && (
                             <button
                                 onClick={onRefresh}
                                 className="mt-1 text-[10px] font-bold text-slate-500 hover:text-slate-800 underline active:opacity-60"
                             >
-                                Refresh status
+                                Refresh
                             </button>
                         )}
                     </div>

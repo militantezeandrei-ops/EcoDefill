@@ -189,10 +189,10 @@ export default async function DashboardContent({ searchParams }: { searchParams:
     const statCards = [
         {
             title: "Station Status",
-            value: isMachineOnline ? "Active" : "Inactive",
+            value: isMachineOnline ? "Online" : "Offline",
             sub: isMachineOnline 
-                ? `Ping: ${diffSeconds}s ago • ${lastUpdatedStr}` 
-                : (diffSeconds < 999999 ? `Offline for ${Math.floor(diffSeconds / 60)}m • ${lastUpdatedStr}` : "No telemetry recorded"),
+                ? `Last updated: ${diffSeconds}s ago` 
+                : (diffSeconds < 999999 ? `Disconnected for ${Math.floor(diffSeconds / 60)}m` : "No connection"),
             icon: Activity,
             bg: isMachineOnline ? "bg-white" : "bg-rose-50/60",
             border: isMachineOnline ? "border-gray-100" : "border-rose-200 ring-2 ring-rose-100",
@@ -297,14 +297,14 @@ export default async function DashboardContent({ searchParams }: { searchParams:
                 </div>
                 {/* Quick Insights Strip */}
                 <div className="flex flex-wrap items-center gap-6 sm:gap-8">
-                    {/* Live Machine Liveness Badge */}
+                    {/* Live Machine Status Badge */}
                     <div className="flex items-center gap-2.5">
                         <div className={`h-2.5 w-2.5 rounded-full ${isMachineOnline ? "bg-emerald-500 animate-ping" : "bg-rose-500"}`} />
-                        <span className="text-[11px] font-black text-gray-400 uppercase tracking-widest">Station Liveness</span>
+                        <span className="text-[11px] font-black text-gray-400 uppercase tracking-widest">Station Status</span>
                         <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-black uppercase tracking-wider ${
                             isMachineOnline ? "bg-emerald-50 text-emerald-700 border border-emerald-200" : "bg-rose-50 text-rose-700 border border-rose-200"
                         }`}>
-                            {isMachineOnline ? "Active (Online)" : "Inactive (Offline)"}
+                            {isMachineOnline ? "Online" : "Offline"}
                         </span>
                     </div>
 
@@ -326,7 +326,7 @@ export default async function DashboardContent({ searchParams }: { searchParams:
                 </div>
             </div>
 
-            {/* Offline Hardware Fault Alert */}
+            {/* Offline Station Alert */}
             {!isMachineOnline && (
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 rounded-[20px] border border-rose-200 bg-linear-to-r from-rose-50 via-rose-50/80 to-red-50 p-4 shadow-sm">
                     <div className="flex items-center gap-3.5">
@@ -335,16 +335,16 @@ export default async function DashboardContent({ searchParams }: { searchParams:
                         </div>
                         <div>
                             <p className="text-[14px] font-black text-rose-950 uppercase tracking-wide flex items-center gap-2">
-                                Machine Fault Alert: Station Inactive / Disconnected
+                                Station Alert: Machine Offline
                             </p>
                             <p className="text-[12px] font-semibold text-rose-700 mt-0.5">
-                                No heartbeat received from ESP32 DevKit in the last 30 seconds (Heartbeat timeout exceeded). QR operations have been disabled on the mobile app for safety.
+                                The physical EcoDefill station is currently disconnected or powered off. Mobile QR operations are paused until the machine is back online.
                             </p>
                         </div>
                     </div>
                     <div className="shrink-0 self-end sm:self-center">
                         <span className="inline-flex items-center px-3.5 py-1.5 rounded-full text-xs font-black bg-rose-200 text-rose-950 border border-rose-300">
-                            Offline (&gt;30s timeout)
+                            Offline
                         </span>
                     </div>
                 </div>

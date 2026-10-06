@@ -223,8 +223,8 @@ export default function RedeemWater() {
                                 {(!machineStatus.isOnline || machineStatus.isEmptyWater) && (
                                     <p className="text-center text-[11px] font-semibold text-rose-600">
                                         {!machineStatus.isOnline 
-                                            ? "QR Generation locked: Station has not sent a heartbeat in >30s." 
-                                            : "QR Generation locked: Water container needs to be refilled by maintenance."}
+                                            ? "QR Generation locked: Physical station is currently offline." 
+                                            : "QR Generation locked: Water container is empty and needs refilling."}
                                     </p>
                                 )}
                             </div>
