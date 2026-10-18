@@ -19,9 +19,9 @@ Servo srvBottleGate, srvBottleExit, srvBottleBin;
 Servo srvCupGate, srvCupExit;
 
 // SERVO ANGLES
-#define BOTTLE_GATE_OPEN    70   // Tuned from 85/75: prevents servo hitting physical stopper and shaking/buzzing
+#define BOTTLE_GATE_OPEN    75   // Tuned from 85/75: prevents servo hitting physical stopper and shaking/buzzing
 #define BOTTLE_GATE_CLOSED   5   // 5 deg safety buffer instead of hard 0 deg to avoid end-stop grinding
-#define CUP_GATE_OPEN       75   // Tuned from 85: safe open limit for cup chamber flap
+#define CUP_GATE_OPEN       75   // Tuned from  85: safe open limit for cup chamber flap
 #define CUP_GATE_CLOSED      5   // 5 deg safety buffer
 #define GATE_OPEN           75   // Legacy alias
 #define GATE_CLOSED          5

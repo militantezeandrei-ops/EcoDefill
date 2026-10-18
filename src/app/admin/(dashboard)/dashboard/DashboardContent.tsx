@@ -187,6 +187,7 @@ export default async function DashboardContent({ searchParams }: { searchParams:
     const maxPoints = leaderboard[0]?.points || 1;
 
     const statCards = [
+        /* Temporarily hidden for presentation (Hardware status offline/online)
         {
             title: "Machine Status",
             value: isMachineOnline ? "Online" : "Offline",
@@ -200,6 +201,7 @@ export default async function DashboardContent({ searchParams }: { searchParams:
             iconBg: isMachineOnline ? "bg-emerald-50" : "bg-rose-100",
             iconColor: isMachineOnline ? "text-emerald-600" : "text-rose-600",
         },
+        */
         {
             title: "Total Users",
             value: totalUsers.toLocaleString(),
@@ -295,7 +297,7 @@ export default async function DashboardContent({ searchParams }: { searchParams:
                 </div>
                 {/* Quick Insights Strip */}
                 <div className="flex flex-wrap items-center gap-6 sm:gap-8">
-                    {/* Live Machine Status Badge */}
+                    {/* Live Machine Status Badge - Temporarily hidden for presentation
                     <div className="flex items-center gap-2.5">
                         <div className={`h-2 w-2 rounded-full ${isMachineOnline ? "bg-emerald-500 animate-pulse" : "bg-rose-500"}`} />
                         <span className="text-[11px] font-black text-gray-400 uppercase tracking-widest">Machine</span>
@@ -307,6 +309,7 @@ export default async function DashboardContent({ searchParams }: { searchParams:
                     </div>
 
                     <div className="h-4 w-px bg-gray-100 hidden sm:block" />
+                    */}
 
                     <div className="flex items-center gap-2.5">
                         <div className="h-1.5 w-1.5 rounded-full bg-blue-500 animate-pulse" />
@@ -371,8 +374,8 @@ export default async function DashboardContent({ searchParams }: { searchParams:
                 </div>
             )}
 
-            {/* Stats Grid — 4 columns */}
-            <div className="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-4">
+            {/* Stats Grid — 3 columns (temporarily 3 while Machine Status card is hidden) */}
+            <div className="grid grid-cols-1 gap-5 md:grid-cols-3">
                 {statCards.map((card, i) => {
                     const Icon = card.icon;
                     return (
