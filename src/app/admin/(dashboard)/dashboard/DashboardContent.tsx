@@ -463,7 +463,7 @@ export default async function DashboardContent({ searchParams }: { searchParams:
                 <div className="overflow-hidden rounded-[20px] border border-gray-100 bg-white p-5 shadow-sm h-[380px] flex flex-col">
                     <h3 className="text-[13px] font-black text-gray-900 tracking-tight flex items-center gap-2.5 mb-5 uppercase">
                         <Users className="h-5 w-5 text-blue-600" />
-                        Academic Ranking
+                        Academic Points Overview
                     </h3>
                     <div className="space-y-3 flex-1 overflow-y-auto pr-1 custom-scrollbar">
                         {leaderboard.map((course, idx: number) => (
