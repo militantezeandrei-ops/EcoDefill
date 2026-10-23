@@ -7,7 +7,7 @@ export const dynamic = "force-dynamic";
 export default async function TransactionsPage() {
     const transactions = await prisma.transaction.findMany({
         orderBy: { createdAt: "desc" },
-        include: { user: { select: { email: true } } },
+        include: { user: { select: { fullName: true, email: true } } },
     });
 
     const totalEarned = transactions.filter(t => t.type === "EARN").reduce((s, t) => s + Number(t.amount), 0);

@@ -72,6 +72,14 @@ export function getMaterialItemCount(materialType: string | null, count: number 
     return amount;
 }
 
+function formatUserDisplayName(user?: { fullName?: string | null; email?: string | null } | null): string {
+    if (!user) return "Walk-in / Unknown";
+    const trimmedName = user.fullName?.trim();
+    if (trimmedName) return trimmedName;
+    if (user.email) return user.email.split("@")[0];
+    return "Walk-in / Unknown";
+}
+
 export async function getAdminReportData(): Promise<AdminReportData> {
     const [users, totalTransactions, recentTransactions, totalRedeemedAgg, recyclingLogs] = await Promise.all([
         prisma.user.findMany({
@@ -146,7 +154,7 @@ export async function getAdminReportData(): Promise<AdminReportData> {
 
             return {
                 email: user.email,
-                fullName: user.fullName,
+                fullName: formatUserDisplayName(user),
                 course: user.course,
                 section: user.section,
                 totalPoints,
@@ -189,7 +197,7 @@ export async function getAdminReportData(): Promise<AdminReportData> {
         materialSummary: Array.from(materialMap.values()).sort((a, b) => b.points - a.points),
         recentTransactions: recentTransactions.map((transaction) => ({
             id: transaction.id,
-            userName: transaction.user ? (transaction.user.fullName || transaction.user.email) : "Walk-in / Unknown",
+            userName: formatUserDisplayName(transaction.user),
             userEmail: transaction.user ? transaction.user.email : "Walk-in / Unknown",
             type: transaction.type,
             amount: Number(transaction.amount || 0),

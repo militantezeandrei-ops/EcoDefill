@@ -58,7 +58,7 @@ function addUserActivitySection(pdf: PdfDocument, data: AdminReportData) {
             ],
             rows: data.activeStudents.map((student, index) => [
                 String(index + 1),
-                student.fullName || student.email,
+                student.fullName?.trim() || student.email.split("@")[0],
                 student.course || "N/A",
                 student.section || "N/A",
                 `${formatNumber(student.totalPoints)} pts`,

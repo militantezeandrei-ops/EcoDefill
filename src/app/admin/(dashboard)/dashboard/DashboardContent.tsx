@@ -507,7 +507,7 @@ export default async function DashboardContent({ searchParams }: { searchParams:
                                     <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-[12px] ${tx.type === "EARN" ? "bg-emerald-100 text-emerald-600" : "bg-blue-100 text-blue-600"}`}>
                                        {tx.type === "EARN" ? "♻️" : "💧"}
                                     </div>
-                                    <p className="truncate text-[13px] font-black leading-tight text-gray-900">{tx.user?.fullName || tx.user?.email || "Unknown"}</p>
+                                    <p className="truncate text-[13px] font-black leading-tight text-gray-900">{tx.user?.fullName?.trim() || tx.user?.email?.split("@")[0] || "Walk-in / Unknown"}</p>
                                 </div>
                                 <span className={`w-[15%] text-[11px] font-black uppercase tracking-widest ${tx.type === "EARN" ? "text-emerald-500" : "text-blue-500"}`}>
                                     {tx.type}
@@ -583,4 +583,3 @@ export default async function DashboardContent({ searchParams }: { searchParams:
         </div>
     );
 }
- 

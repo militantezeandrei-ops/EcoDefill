@@ -3,6 +3,14 @@ import { Leaf, Package, Wind } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
+function formatUserDisplayName(user?: { fullName?: string | null; email?: string | null } | null): string {
+    if (!user) return "Unknown";
+    const trimmedName = user.fullName?.trim();
+    if (trimmedName) return trimmedName;
+    if (user.email) return user.email.split("@")[0];
+    return "Unknown";
+}
+
 export default async function RecyclingPage() {
     const logs = await prisma.recyclingLog.findMany({
         orderBy: { createdAt: "desc" },
@@ -164,7 +172,7 @@ export default async function RecyclingPage() {
                                             <div className="flex items-center gap-2">
                                                 <div className="flex items-center gap-2">
                                                 <p className="text-[15px] font-black text-gray-900">
-                                                    {item.isWalkIn ? "Walk-in / Unknown" : (item.user?.fullName || item.user?.email || "Unknown")}
+                                                    {item.isWalkIn ? "Walk-in / Unknown" : formatUserDisplayName(item.user)}
                                                 </p>
                                                 {item.isWalkIn && (
                                                     <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-black uppercase tracking-wider text-amber-600">

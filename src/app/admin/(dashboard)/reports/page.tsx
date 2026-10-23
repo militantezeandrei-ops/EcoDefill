@@ -27,7 +27,7 @@ export default async function ReportsPage() {
     const activeStudents = topUsers
         .map((u) => ({
             email: u.email,
-            fullName: u.fullName,
+            fullName: u.fullName?.trim() || u.email.split("@")[0],
             course: u.course,
             section: u.section,
             totalPoints: u.transactions.reduce((s, t) => s + Number(t.amount), 0),
@@ -216,10 +216,10 @@ export default async function ReportsPage() {
                                 </div>
                                 <div className="flex items-center gap-3">
                                     <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-500/10 text-xs font-black text-emerald-600">
-                                        {user.fullName?.[0]?.toUpperCase() || user.email[0].toUpperCase()}
+                                        {user.fullName?.[0]?.toUpperCase() || "S"}
                                     </div>
                                     <div>
-                                        <p className="text-[15px] font-bold text-gray-900">{user.fullName || user.email}</p>
+                                        <p className="text-[15px] font-bold text-gray-900">{user.fullName}</p>
                                         <p className="text-[12px] font-medium text-gray-400">{user.course} – {user.section}</p>
                                     </div>
                                 </div>

@@ -10,7 +10,7 @@ interface Transaction {
     materialType: string | null;
     status: string | null;
     createdAt: string;
-    user: { email: string } | null;
+    user: { fullName: string | null; email: string } | null;
 }
 
 interface DayGroup {
@@ -20,6 +20,14 @@ interface DayGroup {
     totalEarned: number;
     totalRedeemed: number;
     count: number;
+}
+
+function getUserDisplayName(user: { fullName: string | null; email: string } | null): string {
+    if (!user) return "Walk-in / Unknown";
+    const trimmedName = user.fullName?.trim();
+    if (trimmedName) return trimmedName;
+    if (user.email) return user.email.split("@")[0];
+    return "Walk-in / Unknown";
 }
 
 export default function TransactionAccordion({ groups }: { groups: DayGroup[] }) {
@@ -82,46 +90,50 @@ export default function TransactionAccordion({ groups }: { groups: DayGroup[] })
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {group.transactions.map((tx, rowIdx) => (
-                                            <tr key={tx.id} className={`transition-colors hover:bg-blue-50/20 ${rowIdx % 2 === 0 ? "bg-white" : "bg-gray-50/40"}`}>
-                                                <td className="px-5 py-2.5 text-[13px] font-medium text-gray-500">
-                                                    {new Date(tx.createdAt).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Manila" })}
-                                                </td>
-                                                <td className="px-5 py-2.5">
-                                                    <div className="flex items-center gap-2">
-                                                        <div className={`flex h-6 w-6 items-center justify-center rounded-md text-[11px] font-black ${
-                                                            tx.user ? "bg-indigo-500/10 text-indigo-600" : "bg-amber-500/10 text-amber-600"
-                                                        }`}>
-                                                            {tx.user?.email?.[0]?.toUpperCase() || "W"}
+                                        {group.transactions.map((tx, rowIdx) => {
+                                            const displayName = getUserDisplayName(tx.user);
+                                            const initial = tx.user ? (displayName[0]?.toUpperCase() || "U") : "W";
+                                            return (
+                                                <tr key={tx.id} className={`transition-colors hover:bg-blue-50/20 ${rowIdx % 2 === 0 ? "bg-white" : "bg-gray-50/40"}`}>
+                                                    <td className="px-5 py-2.5 text-[13px] font-medium text-gray-500">
+                                                        {new Date(tx.createdAt).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Manila" })}
+                                                    </td>
+                                                    <td className="px-5 py-2.5">
+                                                        <div className="flex items-center gap-2">
+                                                            <div className={`flex h-6 w-6 items-center justify-center rounded-md text-[11px] font-black ${
+                                                                tx.user ? "bg-indigo-500/10 text-indigo-600" : "bg-amber-500/10 text-amber-600"
+                                                            }`}>
+                                                                {initial}
+                                                            </div>
+                                                            <span className="text-[13px] font-bold text-gray-800">{displayName}</span>
                                                         </div>
-                                                        <span className="text-[13px] font-bold text-gray-800">{tx.user?.email || "Walk-in / Unknown"}</span>
-                                                    </div>
-                                                </td>
-                                                <td className="px-5 py-2.5">
-                                                    <span className={`rounded-full px-2 py-0.5 text-[11px] font-bold uppercase tracking-wider ${
-                                                        tx.type === "EARN"
-                                                            ? "bg-[#16A34A] text-white"
-                                                            : "bg-[#3B82F6] text-white"
-                                                    }`}>{tx.type}</span>
-                                                </td>
-                                                <td className="px-5 py-2.5 text-[13px] font-medium text-gray-500">{tx.materialType || "—"}</td>
-                                                <td className="px-5 py-2.5">
-                                                    <span className={`text-[14px] font-black ${tx.type === "EARN" ? "text-emerald-500" : "text-red-500"}`}>
-                                                        {tx.type === "EARN" ? "+" : "−"}{tx.amount}
-                                                    </span>
-                                                </td>
-                                                <td className="px-5 py-2.5">
-                                                    <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-black uppercase tracking-widest ${
-                                                        tx.status === "SUCCESS"
-                                                            ? "bg-[#16A34A] text-white"
-                                                            : "bg-[#DC2626] text-white"
-                                                    }`}>
-                                                        <div className="h-1 w-1 rounded-full bg-white/80" />
-                                                        {tx.status || "OK"}
-                                                    </span>
-                                                </td>
-                                            </tr>
-                                        ))}
+                                                    </td>
+                                                    <td className="px-5 py-2.5">
+                                                        <span className={`rounded-full px-2 py-0.5 text-[11px] font-bold uppercase tracking-wider ${
+                                                            tx.type === "EARN"
+                                                                ? "bg-[#16A34A] text-white"
+                                                                : "bg-[#3B82F6] text-white"
+                                                        }`}>{tx.type}</span>
+                                                    </td>
+                                                    <td className="px-5 py-2.5 text-[13px] font-medium text-gray-500">{tx.materialType || "—"}</td>
+                                                    <td className="px-5 py-2.5">
+                                                        <span className={`text-[14px] font-black ${tx.type === "EARN" ? "text-emerald-500" : "text-red-500"}`}>
+                                                            {tx.type === "EARN" ? "+" : "−"}{tx.amount}
+                                                        </span>
+                                                    </td>
+                                                    <td className="px-5 py-2.5">
+                                                        <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-black uppercase tracking-widest ${
+                                                            tx.status === "SUCCESS"
+                                                                ? "bg-[#16A34A] text-white"
+                                                                : "bg-[#DC2626] text-white"
+                                                        }`}>
+                                                            <div className="h-1 w-1 rounded-full bg-white/80" />
+                                                            {tx.status || "OK"}
+                                                        </span>
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })}
                                     </tbody>
                                 </table>
                             </div>
