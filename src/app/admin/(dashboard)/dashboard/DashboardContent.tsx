@@ -416,7 +416,7 @@ export default async function DashboardContent({ searchParams }: { searchParams:
                 ))}
             </div>
 
-            {/* Data Grid: Row 1 (History + Ranking) */}
+            {/* Data Grid: Row 1 (History + Academic Points Overview) */}
             <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
                 {/* Points History (1/3) */}
                 <div className="overflow-hidden rounded-[20px] border border-gray-100 bg-white p-5 shadow-sm h-[380px] flex flex-col">
@@ -459,7 +459,7 @@ export default async function DashboardContent({ searchParams }: { searchParams:
                     </div>
                 </div>
 
-                {/* Academic Ranking (1/3) */}
+                {/* Academic Points Overview (1/3) */}
                 <div className="overflow-hidden rounded-[20px] border border-gray-100 bg-white p-5 shadow-sm h-[380px] flex flex-col">
                     <h3 className="text-[13px] font-black text-gray-900 tracking-tight flex items-center gap-2.5 mb-5 uppercase">
                         <Users className="h-5 w-5 text-blue-600" />

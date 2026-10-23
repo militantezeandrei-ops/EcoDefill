@@ -184,6 +184,9 @@ class AuthNotifier extends StateNotifier<AuthState> {
       final String fullName = user['fullName'] ?? email.split('@')[0];
       final double balance = double.parse((user['balance'] ?? 0.0).toString());
 
+      // Clear old cache before storing fresh session
+      await LocalCache.instance.clearCache();
+
       // Save token & user details
       await SecureStorage.instance.saveToken(token);
       await SecureStorage.instance.saveUserData(

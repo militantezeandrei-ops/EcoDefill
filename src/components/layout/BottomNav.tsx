@@ -11,7 +11,7 @@ export function BottomNav() {
         { path: "/dashboard", icon: Home, label: "Home" },
         { path: "/rewards", icon: Gift, label: "Rewards" },
         { path: "/history", icon: History, label: "History" },
-        { path: "/ranking", icon: Trophy, label: "Ranking" },
+        { path: "/ranking", icon: Trophy, label: "Academic Points" },
         { path: "/profile", icon: User, label: "Profile" },
     ];
 

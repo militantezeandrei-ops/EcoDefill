@@ -1,3 +1,4 @@
+import 'package:flutter/services.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -393,79 +394,6 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                         const SizedBox(height: 16),
                       ],
 
-                      // Email Field with Send Code button
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Expanded(
-                            child: TextFormField(
-                              controller: _emailController,
-                              keyboardType: TextInputType.emailAddress,
-                              decoration: InputDecoration(
-                                labelText: 'Email Address',
-                                prefixIcon: const Icon(Icons.email_outlined),
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(16),
-                                ),
-                                filled: true,
-                                fillColor: Colors.white,
-                              ),
-                              validator: (value) {
-                                if (value == null || value.isEmpty) {
-                                  return 'Please enter your email';
-                                }
-                                if (!value.trim().toLowerCase().endsWith('@pdmeduph.onmicrosoft.com')) {
-                                  return 'Use your school email (@pdmeduph.onmicrosoft.com)';
-                                }
-                                return null;
-                              },
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          SizedBox(
-                            height: 56,
-                            child: ElevatedButton(
-                              onPressed: (_countdown > 0 || authState.isLoading)
-                                  ? null
-                                  : _requestOTP,
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: AppTheme.accentBlue,
-                                foregroundColor: Colors.white,
-                                elevation: 0,
-                                padding: const EdgeInsets.symmetric(horizontal: 16),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(16),
-                                ),
-                              ),
-                              child: Text(
-                                _countdown > 0 ? '${_countdown}s' : 'Send Code',
-                                style: const TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-
-                      // Verification Code Label & 6 OTP Boxes
-                      const Padding(
-                        padding: EdgeInsets.only(left: 4.0),
-                        child: Text(
-                          'Verification Code',
-                          style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.bold,
-                            color: AppTheme.textDark,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      _buildOtpBoxes(),
-                      const SizedBox(height: 16),
-
                       // Full Name Field
                       TextFormField(
                         controller: _fullNameController,
@@ -488,13 +416,19 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                       ),
                       const SizedBox(height: 16),
 
-                      // Student Number Field
+                      // Student Number Field (Formatted as PDM-20XX-XXXXXX)
                       TextFormField(
                         controller: _studentNumberController,
                         textCapitalization: TextCapitalization.characters,
+                        inputFormatters: [StudentNumberInputFormatter()],
                         decoration: InputDecoration(
                           labelText: 'Student Number',
-                          hintText: 'PDM-2022-002471',
+                          hintText: 'PDM-20XX-XXXXXX',
+                          helperText: 'Format: PDM-20XX-XXXXXX (e.g. PDM-2024-001234)',
+                          helperStyle: const TextStyle(
+                            color: AppTheme.textMuted,
+                            fontSize: 11,
+                          ),
                           prefixIcon: const Icon(Icons.badge_outlined),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(16),
@@ -506,79 +440,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                           if (value == null || value.trim().isEmpty) {
                             return 'Please enter your student number';
                           }
-                          final regex = RegExp(r'^PDM-\d{4}-\d{6}$');
+                          final regex = RegExp(r'^PDM-20\d{2}-\d{6}$');
                           if (!regex.hasMatch(value.trim())) {
-                            return 'Format: PDM-YYYY-XXXXXX (e.g. PDM-2022-002471)';
-                          }
-                          return null;
-                        },
-                      ),
-                      const SizedBox(height: 16),
-
-                      // Password Field
-                      TextFormField(
-                        controller: _passwordController,
-                        obscureText: _obscurePassword,
-                        decoration: InputDecoration(
-                          labelText: 'Password',
-                          prefixIcon: const Icon(Icons.lock_outlined),
-                          suffixIcon: IconButton(
-                            icon: Icon(
-                              _obscurePassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
-                            ),
-                            onPressed: () {
-                              setState(() {
-                                _obscurePassword = !_obscurePassword;
-                              });
-                            },
-                          ),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          filled: true,
-                          fillColor: Colors.white,
-                        ),
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Please enter your password';
-                          }
-                          if (value.length < 8) {
-                            return 'Password must be at least 8 characters';
-                          }
-                          return null;
-                        },
-                      ),
-                      const SizedBox(height: 16),
-
-                      // Confirm Password Field
-                      TextFormField(
-                        controller: _confirmPasswordController,
-                        obscureText: _obscureConfirmPassword,
-                        decoration: InputDecoration(
-                          labelText: 'Confirm Password',
-                          prefixIcon: const Icon(Icons.lock_outlined),
-                          suffixIcon: IconButton(
-                            icon: Icon(
-                              _obscureConfirmPassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
-                            ),
-                            onPressed: () {
-                              setState(() {
-                                _obscureConfirmPassword = !_obscureConfirmPassword;
-                              });
-                            },
-                          ),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          filled: true,
-                          fillColor: Colors.white,
-                        ),
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Please confirm your password';
-                          }
-                          if (value != _passwordController.text) {
-                            return 'Passwords do not match';
+                            return 'Format: PDM-20XX-XXXXXX (e.g. PDM-2024-001234)';
                           }
                           return null;
                         },
@@ -693,6 +557,157 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                           ),
                         ],
                       ),
+                      const SizedBox(height: 16),
+
+                      // Password Field
+                      TextFormField(
+                        controller: _passwordController,
+                        obscureText: _obscurePassword,
+                        decoration: InputDecoration(
+                          labelText: 'Password',
+                          prefixIcon: const Icon(Icons.lock_outlined),
+                          suffixIcon: IconButton(
+                            icon: Icon(
+                              _obscurePassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                            ),
+                            onPressed: () {
+                              setState(() {
+                                _obscurePassword = !_obscurePassword;
+                              });
+                            },
+                          ),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          filled: true,
+                          fillColor: Colors.white,
+                        ),
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Please enter your password';
+                          }
+                          if (value.length < 8) {
+                            return 'Password must be at least 8 characters';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 16),
+
+                      // Confirm Password Field
+                      TextFormField(
+                        controller: _confirmPasswordController,
+                        obscureText: _obscureConfirmPassword,
+                        decoration: InputDecoration(
+                          labelText: 'Confirm Password',
+                          prefixIcon: const Icon(Icons.lock_outlined),
+                          suffixIcon: IconButton(
+                            icon: Icon(
+                              _obscureConfirmPassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                            ),
+                            onPressed: () {
+                              setState(() {
+                                _obscureConfirmPassword = !_obscureConfirmPassword;
+                              });
+                            },
+                          ),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          filled: true,
+                          fillColor: Colors.white,
+                        ),
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Please confirm your password';
+                          }
+                          if (value != _passwordController.text) {
+                            return 'Passwords do not match';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 16),
+
+                      // Email Field with Send Code button & PDM guide
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            child: TextFormField(
+                              controller: _emailController,
+                              keyboardType: TextInputType.emailAddress,
+                              decoration: InputDecoration(
+                                labelText: 'Email Address',
+                                hintText: 'username@pdmeduph.onmicrosoft.com',
+                                helperText: 'Official PDM school email only (@pdmeduph.onmicrosoft.com)',
+                                helperMaxLines: 2,
+                                helperStyle: const TextStyle(
+                                  color: AppTheme.primaryEmerald,
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                                prefixIcon: const Icon(Icons.email_outlined),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(16),
+                                ),
+                                filled: true,
+                                fillColor: Colors.white,
+                              ),
+                              validator: (value) {
+                                if (value == null || value.isEmpty) {
+                                  return 'Please enter your school email';
+                                }
+                                if (!value.trim().toLowerCase().endsWith('@pdmeduph.onmicrosoft.com')) {
+                                  return 'Only PDM school email (@pdmeduph.onmicrosoft.com) is accepted';
+                                }
+                                return null;
+                              },
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          SizedBox(
+                            height: 56,
+                            child: ElevatedButton(
+                              onPressed: (_countdown > 0 || authState.isLoading)
+                                  ? null
+                                  : _requestOTP,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: AppTheme.accentBlue,
+                                foregroundColor: Colors.white,
+                                elevation: 0,
+                                padding: const EdgeInsets.symmetric(horizontal: 16),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(16),
+                                ),
+                              ),
+                              child: Text(
+                                _countdown > 0 ? '${_countdown}s' : 'Send Code',
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+
+                      // Verification Code Label & 6 OTP Boxes
+                      const Padding(
+                        padding: EdgeInsets.only(left: 4.0),
+                        child: Text(
+                          'Verification Code',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.bold,
+                            color: AppTheme.textDark,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      _buildOtpBoxes(),
                       const SizedBox(height: 20),
 
                       // Terms & Privacy Checkbox
@@ -833,6 +848,47 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
           ),
         );
       }),
+    );
+  }
+}
+
+class StudentNumberInputFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    if (newValue.text.length < oldValue.text.length) {
+      if (newValue.text == 'PDM' || newValue.text == 'PDM-') {
+        return const TextEditingValue();
+      }
+      return newValue;
+    }
+
+    String text = newValue.text.toUpperCase();
+    String cleaned = text.replaceAll(RegExp(r'[^A-Z0-9]'), '');
+    if (cleaned.startsWith('PDM')) {
+      cleaned = cleaned.substring(3);
+    }
+    cleaned = cleaned.replaceAll(RegExp(r'[^0-9]'), '');
+    if (cleaned.length > 10) {
+      cleaned = cleaned.substring(0, 10);
+    }
+
+    if (cleaned.isEmpty) {
+      return const TextEditingValue();
+    }
+
+    String formatted = 'PDM-';
+    if (cleaned.length <= 4) {
+      formatted += cleaned;
+    } else {
+      formatted += '${cleaned.substring(0, 4)}-${cleaned.substring(4)}';
+    }
+
+    return TextEditingValue(
+      text: formatted,
+      selection: TextSelection.collapsed(offset: formatted.length),
     );
   }
 }

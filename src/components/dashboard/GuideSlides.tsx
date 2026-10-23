@@ -31,8 +31,8 @@ export default function GuideSlides({ onFinish }: { onFinish: () => void }) {
             bg: "bg-blue-50"
         },
         {
-            title: "Rise in the Ranking",
-            description: "Represent your course! Every item you recycle adds to your Academic Ranking. Let's make your course #1!",
+            title: "Academic Points Overview",
+            description: "Represent your course! Every item you recycle contributes points to your Academic Points Overview.",
             icon: Trophy,
             color: "text-amber-500",
             bg: "bg-amber-50"

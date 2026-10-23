@@ -26,12 +26,12 @@ export default function RankingPage() {
             <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-64 bg-gradient-to-b from-blue-100/70 via-emerald-50/70 to-transparent" />
 
             <section className="px-4 pt-[calc(var(--safe-top)+56px)]">
-                <h2 className="app-section-title">Course Ranking</h2>
+                <h2 className="app-section-title">Academic Points Overview</h2>
                 <div className="overflow-hidden rounded-[28px] bg-gradient-to-br from-blue-600 via-cyan-500 to-emerald-500 px-5 pb-5 pt-6 text-white shadow-[0_10px_24px_rgba(37,99,235,0.18)]">
                     <div className="flex items-start justify-between gap-3">
                         <div>
                             <p className="text-[10px] font-black uppercase tracking-[0.24em] text-blue-100/90">
-                                Campus Leaderboard
+                                Academic Points Overview
                             </p>
                             <h1 className="mt-2 text-2xl font-black tracking-tight">Represent Your Course</h1>
                             <p className="mt-2 max-w-[240px] text-[12px] font-medium text-blue-50/90">

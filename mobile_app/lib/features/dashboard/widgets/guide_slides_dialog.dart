@@ -48,8 +48,8 @@ class _GuideSlidesDialogState extends State<GuideSlidesDialog> {
       'bg': Colors.blue.shade50,
     },
     {
-      'title': 'Rise in the Ranking',
-      'description': 'Represent your course! Every item you recycle adds to your Academic Ranking. Let\'s make your course #1!',
+      'title': 'Academic Points Overview',
+      'description': 'Represent your course! Every item you recycle contributes points to your Academic Points Overview.',
       'icon': Icons.emoji_events_rounded,
       'color': Colors.amber.shade600,
       'bg': Colors.amber.shade50,

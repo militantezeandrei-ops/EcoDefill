@@ -56,7 +56,7 @@ class RankingScreen extends ConsumerWidget {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   const Text(
-                                    'ECODEFILL LEADERBOARD',
+                                    'ACADEMIC POINTS OVERVIEW',
                                     style: TextStyle(
                                       fontSize: 11,
                                       fontWeight: FontWeight.bold,
@@ -65,7 +65,7 @@ class RankingScreen extends ConsumerWidget {
                                     ),
                                   ),
                                   Text(
-                                    'Course Standings',
+                                    'Academic Points Overview',
                                     style: Theme.of(context)
                                         .textTheme
                                         .titleLarge
@@ -90,8 +90,8 @@ class RankingScreen extends ConsumerWidget {
                           const SizedBox(height: 4),
                           Text(
                             rankingState.isFromCache
-                                ? 'Offline Mode - showing cached ranking data'
-                                : 'Live standings based on overall recycling points.',
+                                ? 'Offline Mode - showing cached academic points'
+                                : 'Campus academic points based on overall recycling activity.',
                             style: TextStyle(
                               fontSize: 12,
                               color: rankingState.isFromCache
@@ -153,7 +153,7 @@ class RankingScreen extends ConsumerWidget {
                                 size: 64, color: AppTheme.textMuted),
                             SizedBox(height: 12),
                             Text(
-                              'No rankings data available',
+                              'No academic points data available',
                               style: TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.bold,

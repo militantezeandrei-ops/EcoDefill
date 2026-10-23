@@ -55,14 +55,11 @@ class HistoryNotifier extends StateNotifier<HistoryState> {
         totalRecycledItems: stats['totalRecycledItems']!.toInt(),
       );
     } else {
-      // Use beautiful default fallback mock data if cache is empty
-      final mockData = _getMockTransactions();
-      final stats = _calculateStats(mockData);
       state = HistoryState(
-        transactions: mockData,
-        totalEarned: stats['totalEarned']!,
-        totalRedeemed: stats['totalRedeemed']!,
-        totalRecycledItems: stats['totalRecycledItems']!.toInt(),
+        transactions: const [],
+        totalEarned: 0.0,
+        totalRedeemed: 0.0,
+        totalRecycledItems: 0,
       );
     }
   }
@@ -90,18 +87,17 @@ class HistoryNotifier extends StateNotifier<HistoryState> {
         totalRecycledItems: recycled,
       );
     } catch (e) {
-      // Offline fallback: keep cached but show warning error message if cache was empty
+      // Offline fallback: keep cached transactions if present
       final cachedTxs = LocalCache.instance.getCachedTransactions();
-      final finalTxs = cachedTxs.isNotEmpty ? cachedTxs : _getMockTransactions();
-      final stats = _calculateStats(finalTxs);
+      final stats = _calculateStats(cachedTxs);
 
       state = state.copyWith(
         isLoading: false,
-        transactions: finalTxs,
+        transactions: cachedTxs,
         totalEarned: stats['totalEarned']!,
         totalRedeemed: stats['totalRedeemed']!,
         totalRecycledItems: stats['totalRecycledItems']!.toInt(),
-        error: cachedTxs.isEmpty ? 'Failed to connect. Using demo data.' : null,
+        error: cachedTxs.isEmpty ? 'Unable to load activity history.' : null,
       );
     }
   }
@@ -128,66 +124,6 @@ class HistoryNotifier extends StateNotifier<HistoryState> {
       'totalRedeemed': redeemed,
       'totalRecycledItems': recycled,
     };
-  }
-
-  List<dynamic> _getMockTransactions() {
-    final now = DateTime.now();
-    return [
-      {
-        'id': 'mock-1',
-        'type': 'EARN',
-        'amount': 2.0,
-        'materialType': 'BOTTLE',
-        'count': 2,
-        'status': 'SUCCESS',
-        'createdAt': now.toIso8601String(),
-      },
-      {
-        'id': 'mock-2',
-        'type': 'REDEEM',
-        'amount': 3.0,
-        'materialType': null,
-        'count': null,
-        'status': 'SUCCESS',
-        'createdAt': now.subtract(const Duration(hours: 3)).toIso8601String(),
-      },
-      {
-        'id': 'mock-3',
-        'type': 'EARN',
-        'amount': 0.5,
-        'materialType': 'CUP',
-        'count': 1,
-        'status': 'SUCCESS',
-        'createdAt': now.subtract(const Duration(days: 1)).toIso8601String(),
-      },
-      {
-        'id': 'mock-4',
-        'type': 'EARN',
-        'amount': 4.5,
-        'materialType': 'CANS',
-        'count': 3,
-        'status': 'SUCCESS',
-        'createdAt': now.subtract(const Duration(days: 1, hours: 2)).toIso8601String(),
-      },
-      {
-        'id': 'mock-5',
-        'type': 'REDEEM',
-        'amount': 5.0,
-        'materialType': null,
-        'count': null,
-        'status': 'SUCCESS',
-        'createdAt': now.subtract(const Duration(days: 4)).toIso8601String(),
-      },
-      {
-        'id': 'mock-6',
-        'type': 'EARN',
-        'amount': 4.0,
-        'materialType': 'BOTTLE',
-        'count': 4,
-        'status': 'SUCCESS',
-        'createdAt': now.subtract(const Duration(days: 5)).toIso8601String(),
-      },
-    ];
   }
 }
 

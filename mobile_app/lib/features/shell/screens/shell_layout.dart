@@ -65,7 +65,7 @@ class ShellLayout extends ConsumerWidget {
                 _buildNavItem(ref, 2, Icons.history_rounded,
                     Icons.history_rounded, 'History', currentIndex),
                 _buildNavItem(ref, 3, Icons.leaderboard_rounded,
-                    Icons.leaderboard_rounded, 'Ranking', currentIndex),
+                    Icons.leaderboard_rounded, 'Academic Points', currentIndex),
                 _buildNavItem(ref, 4, Icons.person_rounded,
                     Icons.person_rounded, 'Profile', currentIndex),
               ],

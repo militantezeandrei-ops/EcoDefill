@@ -88,12 +88,7 @@ class DashboardScreen extends ConsumerWidget {
                           ),
                         ],
                       ),
-                      IconButton(
-                        onPressed: () {
-                          ref.read(authProvider.notifier).logout();
-                        },
-                        icon: const Icon(Icons.logout_rounded, color: Colors.grey),
-                      ),
+
                     ],
                   ),
                   const SizedBox(height: 20),
