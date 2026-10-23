@@ -66,6 +66,7 @@ class DashboardScreen extends ConsumerWidget {
                   // Header
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -88,7 +89,44 @@ class DashboardScreen extends ConsumerWidget {
                           ),
                         ],
                       ),
-
+                      if (authState.daysUntilReset != null && authState.daysUntilReset! > 0)
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: authState.daysUntilReset! <= 7
+                                ? Colors.amber.shade50
+                                : AppTheme.primaryEmerald.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: authState.daysUntilReset! <= 7
+                                  ? Colors.amber.shade200
+                                  : AppTheme.primaryEmerald.withValues(alpha: 0.25),
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.schedule_rounded,
+                                size: 14,
+                                color: authState.daysUntilReset! <= 7
+                                    ? Colors.amber.shade800
+                                    : AppTheme.primaryEmerald,
+                              ),
+                              const SizedBox(width: 5),
+                              Text(
+                                '${authState.daysUntilReset}d until reset',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w800,
+                                  color: authState.daysUntilReset! <= 7
+                                      ? Colors.amber.shade900
+                                      : AppTheme.primaryEmerald,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
                     ],
                   ),
                   const SizedBox(height: 20),

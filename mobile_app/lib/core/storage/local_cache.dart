@@ -16,6 +16,7 @@ class LocalCache {
   static const String _keySection = 'user_section';
   static const String _keyYearLevel = 'user_yearlevel';
   static const String _keyHasSeenGuide = 'user_has_seen_guide';
+  static const String _keyDaysUntilReset = 'semester_days_until_reset';
 
   Future<void> init() async {
     await Hive.initFlutter();
@@ -32,6 +33,7 @@ class LocalCache {
     String? course,
     String? section,
     String? yearLevel,
+    int? daysUntilReset,
   }) async {
     await _box.put(_keyBalance, balance);
     await _box.put(_keyFullName, fullName);
@@ -40,6 +42,9 @@ class LocalCache {
     if (course != null) await _box.put(_keyCourse, course);
     if (section != null) await _box.put(_keySection, section);
     if (yearLevel != null) await _box.put(_keyYearLevel, yearLevel);
+    if (daysUntilReset != null) {
+      await _box.put(_keyDaysUntilReset, daysUntilReset);
+    }
   }
 
   double getCachedBalance() {
@@ -68,6 +73,10 @@ class LocalCache {
 
   String? getCachedYearLevel() {
     return _box.get(_keyYearLevel) as String?;
+  }
+
+  int? getCachedDaysUntilReset() {
+    return _box.get(_keyDaysUntilReset) as int?;
   }
 
   Future<void> cacheTransactions(List<dynamic> txs) async {

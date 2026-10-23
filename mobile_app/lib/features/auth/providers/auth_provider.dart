@@ -21,6 +21,7 @@ class AuthState {
   final bool isResetSuccess;
   final bool isVerificationCodeSent;
   final bool hasSeenGuide;
+  final int? daysUntilReset;
 
   AuthState({
     this.isLoading = false,
@@ -38,6 +39,7 @@ class AuthState {
     this.isResetSuccess = false,
     this.isVerificationCodeSent = false,
     this.hasSeenGuide = true,
+    this.daysUntilReset,
   });
 
   AuthState copyWith({
@@ -56,6 +58,7 @@ class AuthState {
     bool? isResetSuccess,
     bool? isVerificationCodeSent,
     bool? hasSeenGuide,
+    int? daysUntilReset,
   }) {
     return AuthState(
       isLoading: isLoading ?? this.isLoading,
@@ -73,6 +76,7 @@ class AuthState {
       isResetSuccess: isResetSuccess ?? this.isResetSuccess,
       isVerificationCodeSent: isVerificationCodeSent ?? this.isVerificationCodeSent,
       hasSeenGuide: hasSeenGuide ?? this.hasSeenGuide,
+      daysUntilReset: daysUntilReset ?? this.daysUntilReset,
     );
   }
 }
@@ -103,6 +107,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
       final cachedDailyEarned = LocalCache.instance.getCachedDailyEarned();
       final cachedDailyRedeemed = LocalCache.instance.getCachedDailyRedeemed();
       final cachedHasSeenGuide = LocalCache.instance.getCachedHasSeenGuide();
+      final cachedDaysUntilReset = LocalCache.instance.getCachedDaysUntilReset();
       
       final userData = await SecureStorage.instance.getUserData();
       final email = userData['email'];
@@ -118,6 +123,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
         dailyRedeemed: cachedDailyRedeemed,
         email: email,
         hasSeenGuide: cachedHasSeenGuide,
+        daysUntilReset: cachedDaysUntilReset,
       );
       
       fetchUserBalance();
@@ -139,6 +145,9 @@ class AuthNotifier extends StateNotifier<AuthState> {
       final double dailyEarned = double.parse((responseData['dailyEarned'] ?? 0.0).toString());
       final double dailyRedeemed = double.parse((responseData['dailyRedeemed'] ?? 0.0).toString());
       final bool hasSeenGuide = responseData['hasSeenGuide'] as bool? ?? true;
+      final int? daysUntilReset = responseData['daysUntilReset'] != null
+          ? int.tryParse(responseData['daysUntilReset'].toString())
+          : null;
  
       // Cache locally
       await LocalCache.instance.cacheDashboardData(
@@ -149,6 +158,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
         course: course,
         section: section,
         yearLevel: yearLevel,
+        daysUntilReset: daysUntilReset,
       );
       await LocalCache.instance.cacheHasSeenGuide(hasSeenGuide);
  
@@ -161,6 +171,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
         dailyEarned: dailyEarned,
         dailyRedeemed: dailyRedeemed,
         hasSeenGuide: hasSeenGuide,
+        daysUntilReset: daysUntilReset,
       );
     } catch (e) {
       debugPrint('Error fetching user balance: $e');
@@ -325,7 +336,6 @@ class AuthNotifier extends StateNotifier<AuthState> {
           data: {'password': password},
         );
       } catch (e) {
-        // If it is a 404 error (endpoint not deployed on server yet), we simulate success locally for testing.
         if (e.toString().contains('404')) {
           debugPrint('Endpoint not found on server (404), simulating local account deletion for demo/testing.');
         } else {
@@ -362,18 +372,23 @@ class AuthNotifier extends StateNotifier<AuthState> {
         final String cachedName = state.fullName ?? LocalCache.instance.getCachedFullName();
         final double dailyEarned = double.parse((data['dailyEarned'] ?? 0.0).toString());
         final double dailyRedeemed = double.parse((data['dailyRedeemed'] ?? 0.0).toString());
+        final int? daysUntilReset = data['daysUntilReset'] != null
+            ? int.tryParse(data['daysUntilReset'].toString())
+            : state.daysUntilReset;
 
         await LocalCache.instance.cacheDashboardData(
           balance: newBalance,
           fullName: cachedName,
           dailyEarned: dailyEarned,
           dailyRedeemed: dailyRedeemed,
+          daysUntilReset: daysUntilReset,
         );
 
         state = state.copyWith(
           balance: newBalance,
           dailyEarned: dailyEarned,
           dailyRedeemed: dailyRedeemed,
+          daysUntilReset: daysUntilReset,
         );
       }
     } catch (e) {

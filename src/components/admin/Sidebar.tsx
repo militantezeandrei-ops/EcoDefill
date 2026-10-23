@@ -9,6 +9,7 @@ import {
     Recycle,
     Receipt,
     BarChart3,
+    Wrench,
     Settings,
     LogOut,
 } from "lucide-react";
@@ -31,6 +32,7 @@ const navGroups = [
     {
         label: "System",
         items: [
+            { label: "Maintenance", href: "/admin/maintenance", icon: Wrench, badge: "●" },
             { label: "Reports", href: "/admin/reports", icon: BarChart3, badge: null },
             { label: "Settings", href: "/admin/settings", icon: Settings, badge: null },
         ],

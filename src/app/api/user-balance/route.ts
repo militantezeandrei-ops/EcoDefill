@@ -2,6 +2,7 @@ export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { authenticateRequest, handleApiError } from "@/lib/api-middleware";
+import { getAndEnforceMaintenanceStatus } from "@/lib/maintenance";
 
 export async function GET(req: NextRequest) {
     try {
@@ -11,6 +12,9 @@ export async function GET(req: NextRequest) {
         }
 
         const userId = auth.user!.userId;
+
+        // Enforce tamper-proof semester points expiry before reading user balance
+        const maintenance = await getAndEnforceMaintenanceStatus();
 
         // Redeem limit resets at midnight (school hours only)
         const today = new Date();
@@ -63,6 +67,10 @@ export async function GET(req: NextRequest) {
             dailyRedeemed: Number(todaysRedemptions._sum.amount || 0),
             dailyEarned: Number(todaysEarnings._sum.amount || 0),
             hasSeenGuide: !!user.hasSeenGuide,
+            daysUntilReset: maintenance.daysUntilReset,
+            semesterStartDate: maintenance.semesterStartDate,
+            semesterEndDate: maintenance.semesterEndDate,
+            semesterActive: maintenance.semesterActive,
             recentTransactions: recentTransactions.map(tx => ({
                 ...tx,
                 amount: Number(tx.amount)

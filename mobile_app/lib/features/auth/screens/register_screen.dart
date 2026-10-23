@@ -64,39 +64,58 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
           children: [
             Icon(Icons.description_outlined, color: AppTheme.primaryEmerald),
             SizedBox(width: 8),
-            Text('Terms of Service', style: TextStyle(fontWeight: FontWeight.w900)),
+            Expanded(
+              child: Text(
+                'Terms of Service',
+                style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18),
+              ),
+            ),
           ],
         ),
         content: const SingleChildScrollView(
           child: ListBody(
             children: [
               Text(
-                '1. Acceptance of Terms',
+                '1. What is EcoDefill & Eligibility',
                 style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
               ),
               SizedBox(height: 4),
               Text(
-                'By creating an account on EcoDefill, you agree to comply with and be bound by these terms. This app is dedicated to promoting recycling in our campus community.',
+                'EcoDefill is an official campus sustainability project at Pambayang Dalubhasaan ng Marilao (PDM) that lets you trade recyclable plastic bottles, cups, and paper for clean drinking water. Registration is strictly limited to enrolled PDM students using their primary @pdmeduph.onmicrosoft.com email (no + aliases) and valid student number (PDM-20XX-XXXXXX).',
                 style: TextStyle(fontSize: 13, height: 1.4),
               ),
               SizedBox(height: 12),
               Text(
-                '2. Point System and Rewards',
+                '2. How Points & Rewards Work',
                 style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
               ),
               SizedBox(height: 4),
               Text(
-                'EcoDefill awards points based on verified recycling activities at designated campus recycling stations. Points carry no monetary value, are non-transferable, and may only be redeemed for water at authorized EcoDefill dispensers.',
+                '• Plastic: 1 PET bottle or plastic cup = 1 point.\n'
+                '• Paper: 3 pieces of clean paper = 1 point.\n'
+                '• Water Redemption: 1 point = 100mL of clean drinking water.\n'
+                '• Daily Limit: You can redeem up to 1 Liter (10 points) per day.\n'
+                'Points carry no monetary value, are non-transferable, and may only be redeemed at authorized EcoDefill dispensers.',
                 style: TextStyle(fontSize: 13, height: 1.4),
               ),
               SizedBox(height: 12),
               Text(
-                '3. Fair Use & Prohibited Activities',
+                '3. Proper Station Care & Fair Use',
                 style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
               ),
               SizedBox(height: 4),
               Text(
-                'Any attempt to exploit QR code generation, manipulate verified recycling transaction history, or use multiple accounts to game leaderboard rankings will result in immediate account suspension and referral to school administration.',
+                'Please only insert clean PET bottles, plastic cups, or paper into the machine. Do not insert general trash, metal, liquids, or glass. Any attempt to damage the kiosk, spoof or replay QR codes, or create multiple accounts to manipulate leaderboard rankings will result in immediate account suspension.',
+                style: TextStyle(fontSize: 13, height: 1.4),
+              ),
+              SizedBox(height: 12),
+              Text(
+                '4. Water Filtration & Support',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+              ),
+              SizedBox(height: 4),
+              Text(
+                'Our water station goes through a 3-stage filtration system. If the station malfunctions or does not credit your points, please contact us at ecodefill@gmail.com.',
                 style: TextStyle(fontSize: 13, height: 1.4),
               ),
             ],
@@ -121,7 +140,12 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
           children: [
             Icon(Icons.privacy_tip_outlined, color: AppTheme.accentBlue),
             SizedBox(width: 8),
-            Text('Privacy Policy', style: TextStyle(fontWeight: FontWeight.w900)),
+            Expanded(
+              child: Text(
+                'Privacy Policy',
+                style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18),
+              ),
+            ),
           ],
         ),
         content: const SingleChildScrollView(
@@ -133,27 +157,41 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
               ),
               SizedBox(height: 4),
               Text(
-                'We collect registration details including your full name, institutional email address, course, year, and section. We also log your recycling transactions, points earned, and water redemptions.',
+                'When you sign up on the EcoDefill Mobile App, we save your:\n'
+                '• Full name, course, year level, and section\n'
+                '• PDM student number (PDM-20XX-XXXXXX)\n'
+                '• Official school email (@pdmeduph.onmicrosoft.com)\n'
+                '• Points earned and water redemption history',
                 style: TextStyle(fontSize: 13, height: 1.4),
               ),
               SizedBox(height: 12),
               Text(
-                '2. How We Use Data',
+                '2. Why We Collect It',
                 style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
               ),
               SizedBox(height: 4),
               Text(
-                'Your data is processed locally and securely on our campus servers to display leaderboard rankings, manage your account balance, and improve campus waste-management programs. Your course rankings are publicly visible on the leaderboard.',
+                'We only use this information to credit points to your account, verify your identity via 6-digit email OTP, and display campus course & section recycling rankings. We never sell or share your personal data with third parties.',
                 style: TextStyle(fontSize: 13, height: 1.4),
               ),
               SizedBox(height: 12),
               Text(
-                '3. Security & Caching',
+                '3. Kiosk Camera (ESP32-CAM)',
                 style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
               ),
               SizedBox(height: 4),
               Text(
-                'Your credentials and JWT access tokens are stored in secure local keychain/keystore environments using encrypted storage. Session profiles are cached offline for seamless offline-first access.',
+                'The EcoDefill station uses an onboard camera (ESP32-CAM) strictly to verify and classify the bottle, cup, or paper being recycled. It does not capture or store photos of your face.',
+                style: TextStyle(fontSize: 13, height: 1.4),
+              ),
+              SizedBox(height: 12),
+              Text(
+                '4. Data Security & Account Deletion',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+              ),
+              SizedBox(height: 4),
+              Text(
+                'We use encrypted logins (JWT) and secure device storage to protect your account and offline cache. You can permanently delete your account and all associated data anytime from your Profile screen or by emailing ecodefill@gmail.com.',
                 style: TextStyle(fontSize: 13, height: 1.4),
               ),
             ],
@@ -274,12 +312,17 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
         return;
       }
 
+      final rawStudentNumber = _studentNumberController.text.trim();
+      final formattedStudentNumber = rawStudentNumber.startsWith('PDM-')
+          ? rawStudentNumber
+          : 'PDM-$rawStudentNumber';
+
       final success = await ref.read(authProvider.notifier).register(
             email: _emailController.text.trim(),
             password: _passwordController.text,
             verificationCode: _codeController.text.trim(),
             fullName: _fullNameController.text.trim(),
-            studentNumber: _studentNumberController.text.trim(),
+            studentNumber: formattedStudentNumber,
             course: _selectedCourse,
             yearLevel: _selectedYearLevel?.replaceAll(RegExp(r'[^0-9]'), ''),
             section: _selectedSection ?? '',
@@ -419,11 +462,17 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                       // Student Number Field (Formatted as PDM-20XX-XXXXXX)
                       TextFormField(
                         controller: _studentNumberController,
-                        textCapitalization: TextCapitalization.characters,
+                        keyboardType: TextInputType.number,
                         inputFormatters: [StudentNumberInputFormatter()],
                         decoration: InputDecoration(
                           labelText: 'Student Number',
-                          hintText: 'PDM-20XX-XXXXXX',
+                          prefixText: 'PDM-',
+                          prefixStyle: const TextStyle(
+                            color: AppTheme.textDark,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
+                          hintText: '20XX-XXXXXX',
                           helperText: 'Format: PDM-20XX-XXXXXX (e.g. PDM-2024-001234)',
                           helperStyle: const TextStyle(
                             color: AppTheme.textMuted,
@@ -440,7 +489,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                           if (value == null || value.trim().isEmpty) {
                             return 'Please enter your student number';
                           }
-                          final regex = RegExp(r'^PDM-20\d{2}-\d{6}$');
+                          final regex = RegExp(r'^20\d{2}-\d{6}$');
                           if (!regex.hasMatch(value.trim())) {
                             return 'Format: PDM-20XX-XXXXXX (e.g. PDM-2024-001234)';
                           }
@@ -862,32 +911,28 @@ class StudentNumberInputFormatter extends TextInputFormatter {
     TextEditingValue oldValue,
     TextEditingValue newValue,
   ) {
-    if (newValue.text.length < oldValue.text.length) {
-      if (newValue.text == 'PDM' || newValue.text == 'PDM-') {
-        return const TextEditingValue();
-      }
-      return newValue;
-    }
-
+    // Strip any accidental 'PDM' prefix if pasted, then keep only digits
     String text = newValue.text.toUpperCase();
-    String cleaned = text.replaceAll(RegExp(r'[^A-Z0-9]'), '');
-    if (cleaned.startsWith('PDM')) {
-      cleaned = cleaned.substring(3);
-    }
-    cleaned = cleaned.replaceAll(RegExp(r'[^0-9]'), '');
-    if (cleaned.length > 10) {
-      cleaned = cleaned.substring(0, 10);
+    if (text.startsWith('PDM-')) {
+      text = text.substring(4);
+    } else if (text.startsWith('PDM')) {
+      text = text.substring(3);
     }
 
-    if (cleaned.isEmpty) {
+    String digits = text.replaceAll(RegExp(r'[^0-9]'), '');
+    if (digits.isEmpty) {
       return const TextEditingValue();
     }
 
-    String formatted = 'PDM-';
-    if (cleaned.length <= 4) {
-      formatted += cleaned;
+    if (digits.length > 10) {
+      digits = digits.substring(0, 10);
+    }
+
+    String formatted;
+    if (digits.length <= 4) {
+      formatted = digits;
     } else {
-      formatted += '${cleaned.substring(0, 4)}-${cleaned.substring(4)}';
+      formatted = '${digits.substring(0, 4)}-${digits.substring(4)}';
     }
 
     return TextEditingValue(

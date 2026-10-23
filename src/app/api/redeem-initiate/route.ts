@@ -4,6 +4,7 @@ import jwt from "jsonwebtoken";
 import { v4 as uuidv4 } from "uuid";
 import crypto from "crypto";
 import { authenticateRequest } from "@/lib/api-middleware";
+import { getAndEnforceMaintenanceStatus } from "@/lib/maintenance";
 
 export async function POST(req: NextRequest) {
     try {
@@ -20,6 +21,9 @@ export async function POST(req: NextRequest) {
         if (!amount || amount <= 0) {
             return NextResponse.json({ error: "Invalid amount" }, { status: 400 });
         }
+
+        // Enforce tamper-proof semester points expiry before checking balance
+        await getAndEnforceMaintenanceStatus();
 
         const user = await prisma.user.findUnique({ where: { id: finalUserId } });
         if (!user) {
