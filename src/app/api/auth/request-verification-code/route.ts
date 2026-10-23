@@ -9,8 +9,15 @@ import {
     VerificationPurpose,
 } from "@/lib/verification";
 
+const SCHOOL_EMAIL_DOMAIN = "@pdmeduph.onmicrosoft.com";
+
 const requestCodeSchema = z.object({
-    email: z.string().email(),
+    email: z
+        .string()
+        .email()
+        .refine((e) => e.trim().toLowerCase().endsWith(SCHOOL_EMAIL_DOMAIN), {
+            message: `Only school emails ending with ${SCHOOL_EMAIL_DOMAIN} are allowed.`,
+        }),
     purpose: z.enum(["register", "reset_password"]),
 });
 
@@ -24,7 +31,8 @@ export async function POST(req: NextRequest) {
         const body = await req.json();
         const parsed = requestCodeSchema.safeParse(body);
         if (!parsed.success) {
-            return NextResponse.json({ message: "Invalid request data." }, { status: 400 });
+            const firstError = parsed.error.issues[0]?.message || "Invalid request data.";
+            return NextResponse.json({ message: firstError }, { status: 400 });
         }
 
         const email = parsed.data.email.trim().toLowerCase();
@@ -36,6 +44,16 @@ export async function POST(req: NextRequest) {
                 return NextResponse.json({ message: "An account with this email already exists." }, { status: 409 });
             }
         }
+
+        // Invalidate any previous unused codes for the same email+purpose to prevent flooding
+        await prisma.verificationCode.updateMany({
+            where: {
+                email,
+                purpose: purpose === "register" ? VerificationPurpose.Register : VerificationPurpose.ResetPassword,
+                used: false,
+            },
+            data: { used: true },
+        });
 
         const code = generateNumericCode(6);
         await storeVerificationCode(

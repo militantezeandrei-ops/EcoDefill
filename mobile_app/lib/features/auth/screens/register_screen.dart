@@ -16,6 +16,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _fullNameController = TextEditingController();
+  final _studentNumberController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
   final _sectionController = TextEditingController();
@@ -171,6 +172,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   void dispose() {
     _emailController.dispose();
     _fullNameController.dispose();
+    _studentNumberController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
     _sectionController.dispose();
@@ -202,7 +204,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   }
 
   void _requestOTP() async {
-    final email = _emailController.text.trim();
+    final email = _emailController.text.trim().toLowerCase();
     if (email.isEmpty) {
       DynamicIslandNotification.show(
         context,
@@ -213,11 +215,11 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
       );
       return;
     }
-    if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(email)) {
+    if (!email.endsWith('@pdmeduph.onmicrosoft.com')) {
       DynamicIslandNotification.show(
         context,
         title: 'Registration',
-        subtitle: 'Please enter a valid email address.',
+        subtitle: 'Only school emails (@pdmeduph.onmicrosoft.com) are allowed.',
         icon: Icons.warning_amber_rounded,
         type: NotificationType.warning,
       );
@@ -276,6 +278,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
             password: _passwordController.text,
             verificationCode: _codeController.text.trim(),
             fullName: _fullNameController.text.trim(),
+            studentNumber: _studentNumberController.text.trim(),
             course: _selectedCourse,
             yearLevel: _selectedYearLevel?.replaceAll(RegExp(r'[^0-9]'), ''),
             section: _selectedSection ?? '',
@@ -411,8 +414,8 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                                 if (value == null || value.isEmpty) {
                                   return 'Please enter your email';
                                 }
-                                if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) {
-                                  return 'Please enter a valid email address';
+                                if (!value.trim().toLowerCase().endsWith('@pdmeduph.onmicrosoft.com')) {
+                                  return 'Use your school email (@pdmeduph.onmicrosoft.com)';
                                 }
                                 return null;
                               },
@@ -479,6 +482,33 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                         validator: (value) {
                           if (value == null || value.trim().isEmpty) {
                             return 'Please enter your full name';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 16),
+
+                      // Student Number Field
+                      TextFormField(
+                        controller: _studentNumberController,
+                        textCapitalization: TextCapitalization.characters,
+                        decoration: InputDecoration(
+                          labelText: 'Student Number',
+                          hintText: 'PDM-2022-002471',
+                          prefixIcon: const Icon(Icons.badge_outlined),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          filled: true,
+                          fillColor: Colors.white,
+                        ),
+                        validator: (value) {
+                          if (value == null || value.trim().isEmpty) {
+                            return 'Please enter your student number';
+                          }
+                          final regex = RegExp(r'^PDM-\d{4}-\d{6}$');
+                          if (!regex.hasMatch(value.trim())) {
+                            return 'Format: PDM-YYYY-XXXXXX (e.g. PDM-2022-002471)';
                           }
                           return null;
                         },

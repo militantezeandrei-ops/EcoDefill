@@ -67,9 +67,21 @@ const PRIVACY_SECTIONS = [
     },
 ];
 
+const SCHOOL_EMAIL_DOMAIN = "@pdmeduph.onmicrosoft.com";
+const STUDENT_NUMBER_REGEX = /^PDM-\d{4}-\d{6}$/;
+
 const registerSchema = z.object({
     fullName: z.string().min(2, "Full Name is required"),
-    email: z.string().email("Invalid email address"),
+    email: z
+        .string()
+        .email("Invalid email address")
+        .refine((e) => e.trim().toLowerCase().endsWith(SCHOOL_EMAIL_DOMAIN), {
+            message: `Only school emails (${SCHOOL_EMAIL_DOMAIN}) are allowed.`,
+        }),
+    studentNumber: z
+        .string()
+        .min(1, "Student number is required")
+        .regex(STUDENT_NUMBER_REGEX, "Format must be PDM-YYYY-XXXXXX (e.g. PDM-2022-002471)"),
     verificationCode: z.string().length(6, "Verification code must be 6 digits"),
     course: z.string().min(1, "Please select a course"),
     yearLevel: z.string().min(1, "Please select an year level"),
@@ -87,6 +99,7 @@ export default function Register() {
     const [formData, setFormData] = useState({
         fullName: "",
         email: "",
+        studentNumber: "",
         verificationCode: "",
         course: "",
         yearLevel: "",
@@ -146,6 +159,7 @@ export default function Register() {
                     verificationCode: formData.verificationCode,
                     password: formData.password,
                     fullName: formData.fullName,
+                    studentNumber: formData.studentNumber,
                     course: formData.course,
                     yearLevel: formData.yearLevel,
                     section: formData.section,
@@ -242,7 +256,7 @@ export default function Register() {
 
                         <div>
                             <label htmlFor="register-email" className="ml-1 mb-2 block text-[11px] font-black uppercase tracking-wider text-gray-400">
-                                Email Address
+                                School Email Address
                             </label>
                             <div className="group relative">
                                 <input
@@ -251,7 +265,7 @@ export default function Register() {
                                     type="email"
                                     required
                                     className="block w-full rounded-2xl border border-gray-50 bg-gray-50 px-4 py-3.5 pl-11 text-sm font-bold text-gray-900 placeholder-gray-400 transition-all focus:border-blue-500/50 focus:bg-white focus:outline-none focus:ring-4 focus:ring-blue-500/10"
-                                    placeholder="juan@gmail.com"
+                                    placeholder="lastname.student@pdmeduph.onmicrosoft.com"
                                     value={formData.email}
                                     onChange={handleChange}
                                 />
@@ -260,6 +274,28 @@ export default function Register() {
                                 </span>
                             </div>
                             {errors.email && <p className="ml-1 mt-1 text-[11px] font-bold text-red-500">{errors.email}</p>}
+                        </div>
+
+                        <div>
+                            <label htmlFor="register-student-number" className="ml-1 mb-2 block text-[11px] font-black uppercase tracking-wider text-gray-400">
+                                Student Number
+                            </label>
+                            <div className="group relative">
+                                <input
+                                    id="register-student-number"
+                                    name="studentNumber"
+                                    type="text"
+                                    required
+                                    className="block w-full rounded-2xl border border-gray-50 bg-gray-50 px-4 py-3.5 pl-11 text-sm font-bold text-gray-900 placeholder-gray-400 transition-all focus:border-blue-500/50 focus:bg-white focus:outline-none focus:ring-4 focus:ring-blue-500/10"
+                                    placeholder="PDM-2022-002471"
+                                    value={formData.studentNumber}
+                                    onChange={handleChange}
+                                />
+                                <span className="material-symbols-outlined pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[20px] text-gray-400 transition-colors group-focus-within:text-blue-600">
+                                    badge
+                                </span>
+                            </div>
+                            {errors.studentNumber && <p className="ml-1 mt-1 text-[11px] font-bold text-red-500">{errors.studentNumber}</p>}
                         </div>
 
                         <div>
