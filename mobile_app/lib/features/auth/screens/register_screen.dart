@@ -216,11 +216,11 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
       );
       return;
     }
-    if (!email.endsWith('@pdmeduph.onmicrosoft.com')) {
+    if (!email.endsWith('@pdmeduph.onmicrosoft.com') || email.split('@')[0].contains('+')) {
       DynamicIslandNotification.show(
         context,
         title: 'Registration',
-        subtitle: 'Only school emails (@pdmeduph.onmicrosoft.com) are allowed.',
+        subtitle: 'Use your primary @pdmeduph.onmicrosoft.com email (no + aliases).',
         icon: Icons.warning_amber_rounded,
         type: NotificationType.warning,
       );
@@ -658,8 +658,12 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                                 if (value == null || value.isEmpty) {
                                   return 'Please enter your school email';
                                 }
-                                if (!value.trim().toLowerCase().endsWith('@pdmeduph.onmicrosoft.com')) {
+                                final normalized = value.trim().toLowerCase();
+                                if (!normalized.endsWith('@pdmeduph.onmicrosoft.com')) {
                                   return 'Only PDM school email (@pdmeduph.onmicrosoft.com) is accepted';
+                                }
+                                if (normalized.split('@')[0].contains('+')) {
+                                  return 'Email aliases (+ tags) are not allowed';
                                 }
                                 return null;
                               },

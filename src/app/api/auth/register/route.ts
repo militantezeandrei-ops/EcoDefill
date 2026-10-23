@@ -3,34 +3,63 @@ import prisma from "@/lib/prisma";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
 import { verifyAndConsumeCode, VerificationPurpose } from "@/lib/verification";
+import { checkRateLimit, getClientIp } from "@/lib/ratelimit";
 
-const VALID_COURSES = ["BSIT", "BSCS", "BSHM", "BSTM", "BECED", "BTLED", "BSOAD"];
+const VALID_COURSES = ["BSIT", "BSCS", "BSHM", "BSTM", "BECED", "BTLED", "BSOAD"] as const;
+const VALID_YEAR_LEVELS = ["1", "2", "3", "4"] as const;
+const VALID_SECTIONS = ["A", "B", "C", "D"] as const;
 const SCHOOL_EMAIL_DOMAIN = "@pdmeduph.onmicrosoft.com";
-const STUDENT_NUMBER_REGEX = /^PDM-\d{4}-\d{6}$/;
+const STUDENT_NUMBER_REGEX = /^PDM-20\d{2}-\d{6}$/;
+const MOBILE_CLIENT_HEADER = "ecodefill-mobile-v1";
 
 const registerSchemaServer = z.object({
     email: z
         .string()
-        .email()
+        .email("Invalid email format.")
         .refine((e) => e.trim().toLowerCase().endsWith(SCHOOL_EMAIL_DOMAIN), {
-            message: `Only school emails ending with ${SCHOOL_EMAIL_DOMAIN} are allowed.`,
+            message: `Only official PDM school emails ending with ${SCHOOL_EMAIL_DOMAIN} are allowed.`,
+        })
+        .refine((e) => !e.trim().split("@")[0].includes("+"), {
+            message: "Email aliases (+ tags) are not permitted. Use your primary school email.",
         }),
-    password: z.string().min(8),
-    verificationCode: z.string().length(6),
-    fullName: z.string().optional(),
+    password: z.string().min(8, "Password must be at least 8 characters."),
+    verificationCode: z.string().regex(/^\d{6}$/, "Verification code must be 6 digits."),
+    fullName: z.string().trim().min(2, "Full name is required.").max(100),
     studentNumber: z
         .string()
-        .optional()
-        .refine((sn) => !sn || STUDENT_NUMBER_REGEX.test(sn), {
-            message: "Student number must follow the format PDM-YYYY-XXXXXX (e.g. PDM-2022-002471).",
-        }),
-    course: z.string().optional(),
-    yearLevel: z.string().optional(),
-    section: z.string().optional(),
+        .trim()
+        .regex(STUDENT_NUMBER_REGEX, "Student number must follow the format PDM-20XX-XXXXXX (e.g. PDM-2024-001234)."),
+    course: z.enum(VALID_COURSES, {
+        errorMap: () => ({ message: "Valid course selection is required." }),
+    }),
+    yearLevel: z.enum(VALID_YEAR_LEVELS, {
+        errorMap: () => ({ message: "Valid year level (1-4) is required." }),
+    }),
+    section: z.enum(VALID_SECTIONS, {
+        errorMap: () => ({ message: "Valid section (A-D) is required." }),
+    }),
 });
 
 export async function POST(req: NextRequest) {
     try {
+        // 1. Enforce Mobile App client header
+        const clientHeader = req.headers.get("x-ecodefill-client");
+        if (clientHeader !== MOBILE_CLIENT_HEADER) {
+            return NextResponse.json(
+                { message: "Registration is only permitted through the official EcoDefill Mobile App." },
+                { status: 403 }
+            );
+        }
+
+        // 2. Rate limit registration attempts per IP
+        const ip = getClientIp(req);
+        if (!checkRateLimit(`${ip}:register`, 5, 5 * 60_000)) {
+            return NextResponse.json(
+                { message: "Too many registration attempts. Please try again later." },
+                { status: 429 }
+            );
+        }
+
         const body = await req.json();
         const result = registerSchemaServer.safeParse(body);
 
@@ -41,6 +70,7 @@ export async function POST(req: NextRequest) {
 
         const { email, password, fullName, studentNumber, course, yearLevel, section, verificationCode } = result.data;
         const normalizedEmail = email.trim().toLowerCase();
+        const normalizedStudentNumber = studentNumber.trim().toUpperCase();
 
         // Check for existing account with same email
         const existingUser = await prisma.user.findUnique({ where: { email: normalizedEmail } });
@@ -49,11 +79,9 @@ export async function POST(req: NextRequest) {
         }
 
         // Check for existing account with same student number
-        if (studentNumber) {
-            const existingStudentNum = await prisma.user.findUnique({ where: { studentNumber } });
-            if (existingStudentNum) {
-                return NextResponse.json({ message: "An account with this student number already exists" }, { status: 409 });
-            }
+        const existingStudentNum = await prisma.user.findUnique({ where: { studentNumber: normalizedStudentNumber } });
+        if (existingStudentNum) {
+            return NextResponse.json({ message: "An account with this student number already exists" }, { status: 409 });
         }
 
         const isCodeValid = await verifyAndConsumeCode(
@@ -65,28 +93,23 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ message: "Invalid or expired email verification code." }, { status: 400 });
         }
 
-        if (course && !VALID_COURSES.includes(course)) {
-            return NextResponse.json({ message: "Invalid course selection" }, { status: 400 });
-        }
-
         const passwordHash = await bcrypt.hash(password, 10);
 
         const newUser = await prisma.user.create({
             data: {
                 email: normalizedEmail,
                 passwordHash,
-                fullName: fullName || null,
-                studentNumber: studentNumber || null,
+                fullName,
+                studentNumber: normalizedStudentNumber,
                 role: "STUDENT",
                 balance: 0,
-                course: course || null,
-                yearLevel: yearLevel || null,
-                section: section || null,
-            }
+                course,
+                yearLevel,
+                section,
+            },
         });
 
         return NextResponse.json({ message: "Registration successful", userId: newUser.id }, { status: 201 });
-
     } catch (error) {
         console.error("Registration Error:", error);
         return NextResponse.json({ message: "Internal server error" }, { status: 500 });

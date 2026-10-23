@@ -2,6 +2,10 @@ import bcrypt from "bcryptjs";
 import prisma from "@/lib/prisma";
 
 const CODE_EXPIRY_MINUTES = 10;
+const MAX_VERIFICATION_ATTEMPTS = 5;
+
+// Track failed OTP attempts per code ID to prevent brute-force guessing
+const failedAttempts = new Map<string, number>();
 
 export const VerificationPurpose = {
     Register: "REGISTER",
@@ -56,12 +60,26 @@ export async function verifyAndConsumeCode(
     if (!latestCode) return false;
 
     const isMatch = await bcrypt.compare(plainCode, latestCode.codeHash);
-    if (!isMatch) return false;
+    if (!isMatch) {
+        const attempts = (failedAttempts.get(latestCode.id) || 0) + 1;
+        failedAttempts.set(latestCode.id, attempts);
+
+        // Burn the code after MAX_VERIFICATION_ATTEMPTS failed guesses
+        if (attempts >= MAX_VERIFICATION_ATTEMPTS) {
+            await prisma.verificationCode.update({
+                where: { id: latestCode.id },
+                data: { used: true, usedAt: new Date() },
+            });
+            failedAttempts.delete(latestCode.id);
+        }
+        return false;
+    }
 
     await prisma.verificationCode.update({
         where: { id: latestCode.id },
         data: { used: true, usedAt: new Date() },
     });
+    failedAttempts.delete(latestCode.id);
 
     return true;
 }
