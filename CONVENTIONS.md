@@ -1,41 +1,31 @@
-# EcoDefill Coding Conventions
+# EcoDefill coding conventions
 
-Adherence to these conventions is mandatory for all development to ensure consistency and prevent silent failures.
+## Architecture and authentication
 
-## 🛡️ Architecture & Security
+- Admin pages: src/app/admin/. Student dashboard: src/app/(dashboard)/. Public authentication remains under src/app/login/, register/, and forgot-password/.
+- Use src/lib/auth.ts for shared JWT/password logic and src/lib/api-middleware.ts for API authentication/error helpers. Inspect endpoint-specific token protocols before changing them.
+- src/middleware.ts handles web redirects; APIs enforce applicable authorization themselves.
+- Never copy secrets into documentation, logs, or templates.
 
-- **Admin Logic**: All admin routes must live under `src/app/admin/`.
-- **User Dashboard**: All student-facing routes must live under `src/app/(dashboard)/`.
-- **Auth Implementation**: Use `src/lib/auth.ts` for all JWT and password logic. Do not use external libraries directly for these tasks.
-- **Middleware**: `src/middleware.ts` handles edge-level redirection for admin pages. API-level auth is handled via `authenticateRequest` in `src/lib/api-middleware.ts`.
+## API compatibility
 
-## 📡 API Standards
+- Preserve response fields consumed by web, Flutter, and firmware. Existing responses do not all use a common envelope.
+- For new endpoints prefer { success, data, message?, error? }; do not silently reformat established contracts.
+- Use handleApiError where appropriate; validate external inputs.
+- Check affected callers when changing tokens, polling responses, units, or machine payloads.
 
-- **Response Shape**: All API endpoints should return a standard JSON object:
-  ```json
-  {
-    "success": boolean,
-    "data": object | array | null,
-    "message": string (optional message for UI),
-    "error": string (optional error description)
-  }
-  ```
-- **Error Handling**: Use the `handleApiError` utility in `src/lib/api-middleware.ts` to log errors and return a 500 status code consistently.
+## Database and behavior
 
-## 💾 Database (Prisma)
+- Import the shared Prisma client from @/lib/prisma; do not instantiate another application client.
+- Agents must not run prisma migrate dev. Schema migrations require human review and manual execution under the existing project policy.
+- Do not substitute db push, reset, or other schema-changing commands as a workaround.
+- Respect schema comments. Verify implementation before changing limits, expiry, balances, or session states.
+- Preserve transaction boundaries/accounting unless the requested change addresses them.
 
-- **Single Client**: Always import `prisma` from `@/lib/prisma`. Manual instantiation of `PrismaClient` is forbidden.
-- **Migrations**: Agents are NOT authorized to run `prisma migrate dev`. This must be done manually after human review.
-- **Schema Comments**: Respect the comments in `schema.prisma`. They act as "locks" for business logic.
+## UI and completion
 
-## 🎨 UI & Styling
-
-- **Design Tokens**: Use Tailwind CSS classes. Follow the established colors in `tailwind.config.ts`.
-- **Component Reusability**: Before creating a new component, check `src/components/` to see if a similar one exists.
-- **Mobile First**: The user dashboard must be optimized for mobile devices (web-app view).
-
-## 📝 General Rules
-
-- **No Placeholders**: Do not use "Lorem Ipsum" or placeholder images. Use `generate_image` or actual project assets.
-- **Semantic HTML**: Use proper tags (`<header>`, `<nav>`, `<main>`, `<footer>`, `<h1>`-`<h6>`) for SEO and accessibility.
-- **Strict Typing**: Use TypeScript interfaces for all data structures (API responses, DB models, etc.).
+- Reuse components, hooks, and helpers before adding equivalents.
+- Use existing Tailwind tokens and mobile_app/lib/core/theme/app_theme.dart.
+- Optimize student screens for mobile; use semantic, accessible HTML.
+- Use meaningful TypeScript types and real content/assets.
+- Follow AGENTS.md for verification; update affected documentation without expanding small fixes into full-project audits.
