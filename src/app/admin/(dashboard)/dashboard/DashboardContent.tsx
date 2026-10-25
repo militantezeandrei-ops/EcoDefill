@@ -84,44 +84,35 @@ export default async function DashboardContent({ searchParams }: { searchParams:
     const isMachineOnline = latestLog ? diffSeconds <= HEARTBEAT_TIMEOUT_SECONDS : false;
     const signalRssi = latestLog?.pingMs && latestLog.pingMs < 0 ? `${latestLog.pingMs} dBm` : "Good";
 
-    const waterLevelRaw = latestLog?.message || "20.0L";
-    
-    // Parse numeric liters out of 20L container (e.g. "19.5L (Sufficient)", "4.5L (Low Water)", "0.0L (Empty Tank)")
-    let remainingLiters = 20.0;
-    const litersMatch = waterLevelRaw.match(/([\d.]+)\s*L/i);
-    if (litersMatch) {
-        remainingLiters = Math.max(0, Math.min(20, parseFloat(litersMatch[1])));
-    } else if (waterLevelRaw.includes("Empty")) {
-        remainingLiters = 0.0;
-    } else if (waterLevelRaw.includes("Low")) {
-        remainingLiters = 4.5;
-    } else if (waterLevelRaw.includes("Sufficient") || waterLevelRaw.includes("Full")) {
-        remainingLiters = 20.0;
-    }
+    const waterLevelRaw = latestLog?.message || "Unknown";
+    const normalizedWaterMessage = waterLevelRaw.toLowerCase();
+    const isEmptyWater = normalizedWaterMessage.includes("empty");
+    const isLowWater = !isEmptyWater && normalizedWaterMessage.includes("low");
+    const isSufficientWater = normalizedWaterMessage.includes("sufficient") || normalizedWaterMessage.includes("full");
 
-    const waterPercentage = Math.round((remainingLiters / 20.0) * 100);
-    const isEmptyWater = remainingLiters <= 0.2;
-    const isLowWater = !isEmptyWater && remainingLiters <= 5.0;
-
-    let waterLevel = `${remainingLiters.toFixed(1)} L / 20L`;
-    let waterLevelSub = `${waterPercentage}% Remaining • Full/Normal`;
+    let waterLevel = isEmptyWater ? "Empty" : isLowWater ? "Low" : isSufficientWater ? "Sufficient" : "Unknown";
+    let waterLevelSub = isEmptyWater ? "Refill required" : isLowWater ? "Refill soon" : isSufficientWater ? "Water level normal" : "Waiting for water-level status";
     let waterLevelColor = "text-emerald-600 font-black";
     let waterLevelIconBg = "bg-emerald-50";
     let waterLevelIconColor = "text-emerald-600";
     let waterCardBg = "bg-white";
     let waterCardBorder = "border-gray-100";
 
-    if (isEmptyWater) {
-        waterLevel = `${remainingLiters.toFixed(1)} L (Empty)`;
-        waterLevelSub = "0% • Empty Tank (Refill Needed)";
+    if (!isEmptyWater && !isLowWater && !isSufficientWater) {
+        waterLevelColor = "text-gray-500 font-black";
+        waterLevelIconBg = "bg-gray-50";
+        waterLevelIconColor = "text-gray-500";
+    } else if (isEmptyWater) {
+        waterLevel = "Empty";
+        waterLevelSub = "Empty tank • Refill needed";
         waterLevelColor = "text-rose-600 font-black animate-pulse";
         waterLevelIconBg = "bg-rose-50 border border-rose-100 animate-bounce";
         waterLevelIconColor = "text-rose-600";
         waterCardBg = "bg-rose-50/50";
         waterCardBorder = "border-rose-300 ring-2 ring-rose-200/60";
     } else if (isLowWater) {
-        waterLevel = `${remainingLiters.toFixed(1)} L (Low)`;
-        waterLevelSub = `${waterPercentage}% • Refill Soon (≤ 5.0L)`;
+        waterLevel = "Low";
+        waterLevelSub = "Low tank • Refill soon";
         waterLevelColor = "text-amber-600 font-black";
         waterLevelIconBg = "bg-amber-50 border border-amber-100";
         waterLevelIconColor = "text-amber-600";
@@ -229,7 +220,7 @@ export default async function DashboardContent({ searchParams }: { searchParams:
         {
             title: "Water Tank Level",
             value: waterLevel,
-            sub: isLowWater ? "Low Tank Level" : isEmptyWater ? "Empty Tank" : "Normal Level",
+            sub: isLowWater ? "Low Tank Level" : isEmptyWater ? "Empty Tank" : isSufficientWater ? "Sufficient Level" : "Status unavailable",
             icon: Cylinder,
             bg: waterCardBg,
             border: waterCardBorder,
@@ -336,16 +327,16 @@ export default async function DashboardContent({ searchParams }: { searchParams:
                         </div>
                         <div>
                             <p className="text-[14px] font-black text-rose-950 uppercase tracking-wide flex items-center gap-2">
-                                Critical Alert: Water Tank Empty (0.0L remaining)
+                                Critical Alert: Water Tank Empty
                             </p>
                             <p className="text-[12px] font-semibold text-rose-700 mt-0.5">
-                                Dispensing has been halted for student safety. Immediate 20-Liter container replacement required by maintenance.
+                                Dispensing has been halted for student safety. Refill the water supply before resuming operation.
                             </p>
                         </div>
                     </div>
                     <div className="shrink-0 self-end sm:self-center">
                         <span className="inline-flex items-center px-3.5 py-1.5 rounded-full text-xs font-black bg-rose-200 text-rose-950 border border-rose-300 animate-pulse">
-                            Empty Tank (0%)
+                            Empty Tank
                         </span>
                     </div>
                 </div>
@@ -359,16 +350,16 @@ export default async function DashboardContent({ searchParams }: { searchParams:
                         </div>
                         <div>
                             <p className="text-[14px] font-black text-amber-950 uppercase tracking-wide flex items-center gap-2">
-                                Maintenance Alert: Low Water Level ({remainingLiters.toFixed(1)}L / 20.0L remaining)
+                                Maintenance Alert: Low Water Level
                             </p>
                             <p className="text-[12px] font-semibold text-amber-800 mt-0.5">
-                                Water container is at or below the 5.0 Liters maintenance threshold ({waterPercentage}%). Please prepare a fresh 20-Liter refill container.
+                                The water supply is low. Please refill it soon.
                             </p>
                         </div>
                     </div>
                     <div className="shrink-0 self-end sm:self-center">
                         <span className="inline-flex items-center px-3.5 py-1.5 rounded-full text-xs font-black bg-amber-200 text-amber-950 border border-amber-300">
-                            Low Water ({waterPercentage}%)
+                            Low Water
                         </span>
                     </div>
                 </div>
