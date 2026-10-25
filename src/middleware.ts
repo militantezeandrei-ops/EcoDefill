@@ -18,7 +18,7 @@ export function middleware(request: NextRequest) {
             return NextResponse.redirect(new URL('/admin/login', request.url));
         }
 
-==        try {
+        try {
             // Decode the JWT payload safely in the Edge Runtime
             const payload = token.split('.')[1];
             if (!payload) throw new Error("Invalid token format");
