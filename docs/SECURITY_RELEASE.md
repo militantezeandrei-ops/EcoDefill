@@ -7,8 +7,11 @@ The stray `==` middleware syntax error was already absent from that commit.
 Vercel deployment `dpl_3hMp62hyjecyQ8jrEhi7RK6HSBtW` is READY for that original commit;
 this does **not** prove the new security changes have been deployed.
 
-The owner chose to finish code and migration first and rotate exposed database/Gmail credentials later.
-No exposed credential has been treated as safe, and no production environment or deployment has been changed by this release work.
+The owner initially chose to finish code and migration first, then reported rotating the database password.
+Both updated local database URLs passed fresh connection checks and were synced to the existing Vercel variables without expanding their environment scopes.
+Independent 384-bit JWT secrets were generated for local development and Vercel Production; the Production variable is stored as sensitive.
+These Vercel environment updates apply to the next deployment. No production deployment has been triggered, and existing deployments still have their previous environment.
+The local SMTP password remains unchanged from the exposed value, and the local firmware credential/CA file still contains placeholders. These rollout requirements remain pending.
 
 ## Applied migration
 
