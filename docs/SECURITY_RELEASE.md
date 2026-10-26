@@ -11,7 +11,8 @@ The owner initially chose to finish code and migration first, then reported rota
 Both updated local database URLs passed fresh connection checks and were synced to the existing Vercel variables without expanding their environment scopes.
 Independent 384-bit JWT secrets were generated for local development and Vercel Production; the Production variable is stored as sensitive.
 These Vercel environment updates apply to the next deployment. No production deployment has been triggered, and existing deployments still have their previous environment.
-The local SMTP password remains unchanged from the exposed value, and the local firmware credential/CA file still contains placeholders. These rollout requirements remain pending.
+The owner confirmed replacing the Gmail app password. The new local value differs from the exposed value, passed Gmail SMTP authentication without sending an email, and was synced to the existing Vercel `SMTP_PASS` variable across its existing environment scopes.
+The local firmware credential/CA file still contains placeholders. Machine provisioning/flashing and deployment remain pending.
 
 ## Applied migration
 
