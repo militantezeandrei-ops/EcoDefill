@@ -2,15 +2,15 @@
 
 ## Status
 
-Work is on `codex/security-release`, based on `main` commit `1d5e365`.
+The security release was merged into `main` and pushed as commit `2d98215`, based on `main` commit `1d5e365`.
 The stray `==` middleware syntax error was already absent from that commit.
-Vercel deployment `dpl_3hMp62hyjecyQ8jrEhi7RK6HSBtW` is READY for that original commit;
-this does **not** prove the new security changes have been deployed.
+Vercel production deployment `dpl_DuYwrbpRbbYPkfby3YsXwPLe1cTp` reached READY for `2d98215` and assigned [eco-defill.vercel.app](https://eco-defill.vercel.app).
+Live smoke checks passed: login/register/admin login returned 200; private admin dashboard and scanner redirected to login; balance/admin/machine polling APIs rejected unauthenticated requests with 401; ping and database-backed public machine status returned 200. Machine status was OFFLINE. Actual account login, email delivery, and physical earn/dispense cycles still require user testing.
 
 The owner initially chose to finish code and migration first, then reported rotating the database password.
 Both updated local database URLs passed fresh connection checks and were synced to the existing Vercel variables without expanding their environment scopes.
 Independent 384-bit JWT secrets were generated for local development and Vercel Production; the Production variable is stored as sensitive.
-These Vercel environment updates apply to the next deployment. No production deployment has been triggered, and existing deployments still have their previous environment.
+The new production deployment includes these Vercel environment updates. Historical deployments retain their previous environment; the production alias now serves the new release.
 The owner confirmed replacing the Gmail app password. The new local value differs from the exposed value, passed Gmail SMTP authentication without sending an email, and was synced to the existing Vercel `SMTP_PASS` variable across its existing environment scopes.
 The local firmware credential/CA file still contains placeholders. The owner authorized pushing to `main` and deploying for app testing while the hardware is unavailable at school. Machine provisioning/flashing remains deferred; machine APIs fail closed until a matching secret is configured and updated firmware is installed.
 
