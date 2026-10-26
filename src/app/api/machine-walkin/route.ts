@@ -1,3 +1,4 @@
+import { authenticateMachine } from "@/lib/machine-auth";
 export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
@@ -11,14 +12,14 @@ const ML_PER_POINT = 100;
 const walkInSchema = z.object({
     machineId: z.string().min(1).max(50),
     materialType: z.enum(["BOTTLE", "CUP", "PAPER"]),
-    count: z.number().int().positive().max(5), // max 5 items = max 5 pts
+    count: z.number().int().positive().max(15), // max 5 items = max 5 pts
 });
 
 /**
  * POST /api/machine-walkin
  *
  * Called directly by the ESP32 Dev Kit when a user recycles WITHOUT the mobile app.
- * No authentication required — machineId is used as the hardware identifier.
+ * Requires x-machine-secret and the configured machine identifier.
  *
  * Body: { machineId, materialType, count }
  * Response: { waterDispensed (ml), pointsEarned, logId }
@@ -26,6 +27,7 @@ const walkInSchema = z.object({
 export async function POST(req: NextRequest) {
     try {
         const body = await req.json();
+        if (!authenticateMachine(req, body.machineId)) return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
         const result = walkInSchema.safeParse(body);
 
         if (!result.success) {
@@ -38,7 +40,7 @@ export async function POST(req: NextRequest) {
         const { machineId, materialType, count } = result.data;
 
         // Cap points at MAX_POINTS_PER_WALKIN (5)
-        const rawPoints = count * POINTS_PER_ITEM;
+        const rawPoints = materialType === "PAPER" ? Math.floor(count / 3) : count * POINTS_PER_ITEM;
         const pointsEarned = Math.min(rawPoints, MAX_POINTS_PER_WALKIN);
         const waterDispensed = pointsEarned * ML_PER_POINT; // e.g. 5 pts = 500ml
 

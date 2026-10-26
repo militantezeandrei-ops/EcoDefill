@@ -1,3 +1,4 @@
+import { requireAdmin } from "@/lib/admin-auth";
 import prisma from "@/lib/prisma";
 import { Leaf, Package, Wind } from "lucide-react";
 
@@ -12,6 +13,7 @@ function formatUserDisplayName(user?: { fullName?: string | null; email?: string
 }
 
 export default async function RecyclingPage() {
+    await requireAdmin();
     const logs = await prisma.recyclingLog.findMany({
         orderBy: { createdAt: "desc" },
         include: { user: { select: { email: true, fullName: true, course: true } } },

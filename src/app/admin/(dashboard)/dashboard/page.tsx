@@ -53,11 +53,12 @@ function DashboardSkeleton() {
     );
 }
 
-export default function DashboardPage({ searchParams }: { searchParams: any }) {
+export default async function DashboardPage({ searchParams }: { searchParams: any }) {
+    const resolvedSearchParams = await searchParams;
     return (
         <Suspense fallback={<DashboardSkeleton />}>
             <AutoRefresh intervalMs={5000} />
-            <DashboardContent searchParams={searchParams} />
+            <DashboardContent searchParams={resolvedSearchParams} />
         </Suspense>
     );
 }

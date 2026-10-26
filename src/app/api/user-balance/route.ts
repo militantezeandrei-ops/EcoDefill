@@ -1,3 +1,4 @@
+import { manilaDayStart } from "@/lib/points";
 export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
@@ -17,8 +18,7 @@ export async function GET(req: NextRequest) {
         const maintenance = await getAndEnforceMaintenanceStatus();
 
         // Redeem limit resets at midnight (school hours only)
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
+        const today = manilaDayStart();
 
         // Earn limit uses a rolling 24-hour window
         const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);

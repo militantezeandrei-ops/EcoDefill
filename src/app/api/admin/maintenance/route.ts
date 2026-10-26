@@ -1,26 +1,17 @@
+import { getAdminAuth } from "@/lib/admin-auth";
 export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
-import { verifyToken, verifyPassword } from "@/lib/auth";
+import { verifyPassword } from "@/lib/auth";
 import {
     getAndEnforceMaintenanceStatus,
     saveMaintenanceConfig,
     MaintenanceConfig,
 } from "@/lib/maintenance";
 
-function getAdminAuth(req: NextRequest) {
-    const cookieToken = req.cookies.get("adminAuthToken")?.value;
-    const headerToken = req.headers.get("authorization")?.replace("Bearer ", "");
-    const token = cookieToken || headerToken;
-    const payload = token ? verifyToken(token) : null;
-    if (!payload || payload.role !== "ADMIN") {
-        return null;
-    }
-    return payload;
-}
 
 export async function GET(req: NextRequest) {
-    const auth = getAdminAuth(req);
+    const auth = await getAdminAuth(req);
     if (!auth) {
         return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }
@@ -49,7 +40,7 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-    const auth = getAdminAuth(req);
+    const auth = await getAdminAuth(req);
     if (!auth) {
         return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }

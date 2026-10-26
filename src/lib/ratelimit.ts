@@ -1,10 +1,7 @@
 import type { NextRequest } from "next/server";
 
-// Simple in-memory rate limiter for serverless environments
-// Note: In a multi-instance production (like Vercel functions), this will only limit per instance. 
-// For a fully distributed rate limiter, Redis (e.g. Upstash) should be used.
-
-const rateLimits = new Map<string, { count: number; windowStart: number }>();
+import { createHash } from "node:crypto";
+import prisma from "./prisma";
 
 /**
  * Extract client IP reliably, preferring platform-verified headers over raw X-Forwarded-For
@@ -26,25 +23,20 @@ export const getClientIp = (req: NextRequest): string => {
     return "unknown";
 };
 
-export const checkRateLimit = (key: string, limit: number, windowMs: number): boolean => {
-    const now = Date.now();
-    const record = rateLimits.get(key);
-
-    if (!record) {
-        rateLimits.set(key, { count: 1, windowStart: now });
-        return true;
-    }
-
-    if (now - record.windowStart > windowMs) {
-        // Reset window
-        rateLimits.set(key, { count: 1, windowStart: now });
-        return true;
-    }
-
-    if (record.count >= limit) {
-        return false;
-    }
-
-    record.count += 1;
-    return true;
-};
+export async function checkRateLimit(
+    key: string,
+    limit: number,
+    windowMs: number,
+): Promise<boolean> {
+    const digest = createHash("sha256").update(key).digest("hex");
+    const now = new Date();
+    const cutoff = new Date(now.getTime() - windowMs);
+    const result = await prisma.$queryRaw<{ count: number }[]>`
+        INSERT INTO "AuthRateLimit" ("key", "count", "windowStart") VALUES (${digest}, 1, ${now})
+        ON CONFLICT ("key") DO UPDATE SET
+          "count" = CASE WHEN "AuthRateLimit"."windowStart" <= ${cutoff} THEN 1 ELSE LEAST("AuthRateLimit"."count" + 1, ${limit + 1}) END,
+          "windowStart" = CASE WHEN "AuthRateLimit"."windowStart" <= ${cutoff} THEN ${now} ELSE "AuthRateLimit"."windowStart" END
+        RETURNING "count"
+    `;
+    return result[0].count <= limit;
+}

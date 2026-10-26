@@ -21,8 +21,9 @@ Represents both Students and Admin accounts. Student balances are stored in poin
 | `email` | `VARCHAR(255)` | UNIQUE, NOT NULL | Account email address. |
 | `fullName` | `TEXT` | NULLABLE | Display name. |
 | `passwordHash` | `TEXT` | NOT NULL | Bcrypt hashed password. |
-| `phoneNumber` | `VARCHAR(15)` | NULLABLE | Contact numbers. |
-| `emailVerified` | `BOOLEAN`| DEFAULT false | Status of email verification. |
+| `tokenVersion` | `INTEGER` | NOT NULL, DEFAULT 0 | Session revocation version, incremented after password reset. |
+| `studentNumber` | `VARCHAR(20)` | UNIQUE, NULLABLE | Official student identifier. |
+| `hasSeenGuide` | `BOOLEAN` | DEFAULT false | Whether the user has completed the guide. |
 | `role` | `ENUM(Role)`| DEFAULT STUDENT | Role-based access control (STUDENT/ADMIN). |
 | `balance` | `NUMERIC(10,2)`| DEFAULT 0.00 | Total point balance. |
 | `course` | `VARCHAR(50)` | NULLABLE | Student course (e.g., BSIT). |
@@ -32,7 +33,7 @@ Represents both Students and Admin accounts. Student balances are stored in poin
 | `updatedAt` | `TIMESTAMPTZ`| AUTO-UPDATE | Record modification time. |
 
 ### VerificationCode
-Ephemeral codes used for registration and password resets.
+Codes used for registration and password resets. The application also reserves the `MAINTENANCE_CONFIG` purpose for its persistent maintenance configuration; do not bulk-delete those records as expired OTPs.
 
 | Column | Type | Constraints | Description |
 | :--- | :--- | :--- | :--- |
@@ -44,6 +45,16 @@ Ephemeral codes used for registration and password resets.
 | `used` | `BOOLEAN`| DEFAULT false | Usage status. |
 | `createdAt` | `TIMESTAMPTZ`| DEFAULT NOW() | Token generation time. |
 | `usedAt` | `TIMESTAMPTZ`| NULLABLE | When the token was consumed. |
+| `attempts` | `INTEGER` | NOT NULL, DEFAULT 0 | Persisted wrong guesses; code is burned after five. |
+
+### AuthRateLimit
+Backend-only fixed-window counters shared across serverless instances. RLS has no public access policies.
+
+| Column | Type | Constraints | Description |
+| :--- | :--- | :--- | :--- |
+| `key` | `VARCHAR(64)` | PRIMARY KEY | SHA-256 of the scoped limiter key. |
+| `count` | `INTEGER` | NOT NULL | Attempts within the current window. |
+| `windowStart` | `TIMESTAMPTZ` | NOT NULL, INDEXED | Start of the fixed window. |
 
 ### Transaction
 Historical ledger of all point earnings and redemptions.
@@ -51,7 +62,7 @@ Historical ledger of all point earnings and redemptions.
 | Column | Type | Constraints | Description |
 | :--- | :--- | :--- | :--- |
 | `id` | `UUID` | PRIMARY KEY | Unique transaction ID. |
-| `userId` | `UUID` | FOREIGN KEY (User.id) | Owning user. |
+| `userId` | `UUID` | FOREIGN KEY (User.id), NULLABLE | Owning user; null for anonymous machine events. |
 | `type` | `VARCHAR(20)` | NOT NULL | EARN or REDEEM. |
 | `amount` | `NUMERIC(10,2)`| NOT NULL | Points moved. |
 | `materialType` | `VARCHAR(20)` | NULLABLE | e.g. BOTTLE, CUP, PAPER (for EARN). |

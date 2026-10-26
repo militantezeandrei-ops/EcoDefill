@@ -2,17 +2,17 @@ import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { verifyPassword, signToken } from "@/lib/auth";
 import { z } from "zod";
-import { checkRateLimit } from "@/lib/ratelimit";
+import { checkRateLimit, getClientIp } from "@/lib/ratelimit";
 
 const loginSchema = z.object({
-    email: z.string().email(),
-    password: z.string().min(6),
+    email: z.string().trim().toLowerCase().email(),
+    password: z.string().min(6).max(72),
 });
 
 export async function POST(req: NextRequest) {
     try {
-        const ip = req.headers.get("x-forwarded-for") || "unknown";
-        if (!checkRateLimit(ip, 10, 60000)) { // 10 requests per minute
+        const ip = getClientIp(req);
+        if (!await checkRateLimit(`${ip}:login`, 10, 60000)) { // 10 requests per minute
             return NextResponse.json({ message: "Too many login attempts" }, { status: 429 });
         }
 
@@ -24,6 +24,9 @@ export async function POST(req: NextRequest) {
         }
 
         const { email, password } = result.data;
+        if (!await checkRateLimit(`login-email:${email}`, 10, 15 * 60_000)) {
+            return NextResponse.json({ message: "Too many login attempts" }, { status: 429 });
+        }
 
         const user = await prisma.user.findUnique({ where: { email } });
         if (!user) {
@@ -35,7 +38,7 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ message: "Invalid credentials" }, { status: 401 });
         }
 
-        const token = signToken({ userId: user.id, role: user.role });
+        const token = signToken({ userId: user.id, role: user.role, tokenVersion: user.tokenVersion });
 
         return NextResponse.json({
             token,

@@ -8,6 +8,8 @@ This document matches the current firmware in `hardware/`:
 
 The cameras do not connect directly to the Mega by serial in this version.
 
+The DevKit now requires an ignored `Esp32_Devkit/machine_secrets.h`, provisioned from `machine_secrets.example.h` with the backend machine secret and a valid HTTPS root CA. It sends `x-machine-secret` and verifies server certificates. Coordinate the backend environment update and DevKit flash; older firmware cannot use the secured machine APIs. See [security rollout](../docs/SECURITY_RELEASE.md) for provisioning and verification. The compilation placeholder file is not ready to flash.
+
 ## 1. System Architecture
 
 ```text

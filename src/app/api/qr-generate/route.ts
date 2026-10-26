@@ -2,13 +2,13 @@ import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { authenticateRequest, handleApiError } from "@/lib/api-middleware";
 import crypto from "crypto";
-import { checkRateLimit } from "@/lib/ratelimit";
+import { checkRateLimit, getClientIp } from "@/lib/ratelimit";
 
 // Mobile App calls this to generate a QR code token to display on screen
 export async function POST(req: NextRequest) {
     try {
-        const ip = req.headers.get("x-forwarded-for") || "unknown";
-        if (!checkRateLimit(`qr_gen_${ip}`, 20, 60000)) { // 20 QR gens per minute per IP
+        const ip = getClientIp(req);
+        if (!await checkRateLimit(`qr_gen_${ip}`, 20, 60000)) { // 20 QR gens per minute per IP
             return NextResponse.json({ message: "Rate limit exceeded for QR generation" }, { status: 429 });
         }
 
@@ -68,7 +68,7 @@ export async function POST(req: NextRequest) {
         
         // Generate a short unique token for high-density QR scanning
         // E.g. "ECO-A3F9B2C1"
-        const shortToken = `ECO-${crypto.randomBytes(4).toString("hex").toUpperCase()}`;
+        const shortToken = `ECO-${crypto.randomBytes(8).toString("hex").toUpperCase()}`;
 
         // Set expiry to the end of the current day
         const expiresAt = new Date();

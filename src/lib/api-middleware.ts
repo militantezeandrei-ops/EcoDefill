@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { verifyToken, JwtPayload } from "./auth";
+import type { JwtPayload } from "./auth";
+import { verifySession } from "./session";
 
 export async function authenticateRequest(req: NextRequest): Promise<{ user?: JwtPayload, error?: string, status?: number }> {
     const authHeader = req.headers.get('authorization');
@@ -8,7 +9,7 @@ export async function authenticateRequest(req: NextRequest): Promise<{ user?: Jw
     }
 
     const token = authHeader.split(' ')[1];
-    const user = verifyToken(token);
+    const user = await verifySession(token);
 
     if (!user) {
         return { error: 'Invalid or expired token', status: 401 };

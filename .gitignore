@@ -46,3 +46,6 @@ sketch/
 *.hex
 *.bin
 *.elf
+
+# Device credentials are provisioned locally.
+hardware/Esp32_Devkit/machine_secrets.h

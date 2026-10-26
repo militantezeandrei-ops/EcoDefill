@@ -8,11 +8,13 @@ Use manifests as the version source of truth:
 | Flutter | mobile_app/pubspec.yaml | mobile_app/pubspec.lock |
 | Firmware | Sketch includes/board configuration | Installed cores/libraries |
 
-Web declares Next.js 14, React 18, Prisma 5, TypeScript, Tailwind 3 ranges. Flutter uses Riverpod, Dio, secure storage, Hive, connectivity_plus, QR rendering, Google Fonts. Do not install packages merely because a generic skill mentions them.
+Web declares Next.js 15, React 18, Prisma 5, TypeScript, Tailwind 3 ranges. Flutter uses Riverpod, Dio, secure storage, Hive, connectivity_plus, QR rendering, Google Fonts. Do not install packages merely because a generic skill mentions them.
 
 ## Web
 
 Use compatible Node.js/npm, configure .env.example values, then npm ci and npm run dev. Installation runs prisma generate; npm run build also generates the client before compiling. Neither applies migrations. Read CONVENTIONS.md before schema changes; use a prepared development database.
+
+See [security release](SECURITY_RELEASE.md) for the dependency audit and the reviewed PostCSS overrides. `npm run lint` still uses `next lint`, which is deprecated in Next.js 15 but supported by this release. Do not upgrade to Next.js 16 without migrating that command.
 
 ## Mobile
 

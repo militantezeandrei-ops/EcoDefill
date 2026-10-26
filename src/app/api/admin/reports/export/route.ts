@@ -1,6 +1,6 @@
+import { getAdminAuth } from "@/lib/admin-auth";
 import { NextRequest, NextResponse } from "next/server";
 import { getAdminReportData, getAdminReportLabel, resolveAdminReportType, type AdminReportData, type AdminReportType } from "@/lib/admin-reports";
-import { verifyToken } from "@/lib/auth";
 import { PdfDocument } from "@/lib/pdf";
 
 export const dynamic = "force-dynamic";
@@ -150,8 +150,7 @@ function buildReportPdf(type: AdminReportType, data: AdminReportData) {
 }
 
 export async function GET(req: NextRequest) {
-    const token = req.cookies.get("adminAuthToken")?.value;
-    const auth = token ? verifyToken(token) : null;
+    const auth = await getAdminAuth(req);
 
     if (!auth || auth.role !== "ADMIN") {
         return NextResponse.json({ message: "Unauthorized" }, { status: 401 });

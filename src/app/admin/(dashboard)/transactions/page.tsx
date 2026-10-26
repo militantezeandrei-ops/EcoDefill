@@ -1,3 +1,4 @@
+import { requireAdmin } from "@/lib/admin-auth";
 import prisma from "@/lib/prisma";
 import { Lightbulb, TrendingUp, ArrowDownRight } from "lucide-react";
 import TransactionAccordion from "@/components/admin/TransactionAccordion";
@@ -5,6 +6,7 @@ import TransactionAccordion from "@/components/admin/TransactionAccordion";
 export const dynamic = "force-dynamic";
 
 export default async function TransactionsPage() {
+    await requireAdmin();
     const transactions = await prisma.transaction.findMany({
         orderBy: { createdAt: "desc" },
         include: { user: { select: { fullName: true, email: true } } },

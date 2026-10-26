@@ -20,7 +20,7 @@ const requestCodeSchema = z.object({
 export async function POST(req: NextRequest) {
     try {
         const ip = getClientIp(req);
-        if (!checkRateLimit(`${ip}:request-code`, 5, 60_000)) {
+        if (!await checkRateLimit(`${ip}:request-code`, 5, 60_000)) {
             return NextResponse.json(
                 { message: "Too many requests. Please try again in a minute." },
                 { status: 429 }
@@ -38,7 +38,7 @@ export async function POST(req: NextRequest) {
         const purpose = parsed.data.purpose;
 
         // Per-email rate limit: max 3 OTP requests per 10 minutes
-        if (!checkRateLimit(`email:${email}:request-code`, 3, 10 * 60_000)) {
+        if (!await checkRateLimit(`email:${email}:request-code`, 3, 10 * 60_000)) {
             return NextResponse.json(
                 { message: "Too many verification codes requested for this email. Please wait 10 minutes." },
                 { status: 429 }
@@ -81,24 +81,14 @@ export async function POST(req: NextRequest) {
             const existingUser = await prisma.user.findUnique({ where: { email } });
             if (!existingUser) {
                 return NextResponse.json(
-                    { message: "No account found with this email address." },
-                    { status: 404 }
+                    { message: "If the account exists, a verification code has been sent." },
+                    { status: 200 }
                 );
             }
         }
 
-        // Invalidate any previous unused codes for the same email+purpose to prevent flooding
-        await prisma.verificationCode.updateMany({
-            where: {
-                email,
-                purpose: purpose === "register" ? VerificationPurpose.Register : VerificationPurpose.ResetPassword,
-                used: false,
-            },
-            data: { used: true },
-        });
-
         const code = generateNumericCode(6);
-        await storeVerificationCode(
+        const storedCode = await storeVerificationCode(
             email,
             purpose === "register" ? VerificationPurpose.Register : VerificationPurpose.ResetPassword,
             code
@@ -111,6 +101,7 @@ export async function POST(req: NextRequest) {
         });
 
         if (!emailResult.delivered) {
+            await prisma.verificationCode.update({ where: { id: storedCode.id }, data: { used: true } });
             return NextResponse.json(
                 { message: emailResult.error || "Unable to send verification email right now." },
                 { status: 502 }
@@ -118,7 +109,7 @@ export async function POST(req: NextRequest) {
         }
 
         return NextResponse.json({
-            message: "Verification code sent. Check your email.",
+            message: "If the account exists, a verification code has been sent.",
         });
     } catch (error) {
         console.error("Request verification code error:", error);

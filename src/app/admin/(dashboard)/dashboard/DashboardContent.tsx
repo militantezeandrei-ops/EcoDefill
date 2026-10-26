@@ -1,3 +1,4 @@
+import { requireAdmin } from "@/lib/admin-auth";
 import Link from "next/link";
 import prisma from "@/lib/prisma";
 import { Users, Target, Droplet, Activity, TrendingUp, Recycle, Cylinder, AlertTriangle } from "lucide-react";
@@ -12,6 +13,7 @@ function getStartOfDayInManila(date: Date = new Date()): Date {
 }
 
 export default async function DashboardContent({ searchParams }: { searchParams: any }) {
+    await requireAdmin();
     const filter = (searchParams?.filter as string) || "week";
 
     const now = new Date();

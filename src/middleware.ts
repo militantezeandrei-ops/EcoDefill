@@ -1,44 +1,28 @@
-import { NextResponse } from 'next/server';
-import type { NextRequest } from 'next/server';
-// No imports needed for JWT verification in Edge middleware
+import { NextResponse, type NextRequest } from "next/server";
+import { jwtVerify } from "jose/jwt/verify";
+import { getJwtSecret, JWT_AUDIENCE, JWT_ISSUER } from "./lib/jwt-config";
 
-export function middleware(request: NextRequest) {
+export async function middleware(request: NextRequest) {
     const { pathname } = request.nextUrl;
-
-    // Only protect /admin routes
-    if (pathname.startsWith('/admin')) {
-        // Allow access to the login and forgot-password pages
-        if (pathname === '/admin/login' || pathname === '/admin/forgot-password') {
-            return NextResponse.next();
-        }
-
-        const token = request.cookies.get('adminAuthToken')?.value;
-
-        if (!token) {
-            return NextResponse.redirect(new URL('/admin/login', request.url));
-        }
-
-        try {
-            // Decode the JWT payload safely in the Edge Runtime
-            const payload = token.split('.')[1];
-            if (!payload) throw new Error("Invalid token format");
-
-            const base64 = payload.replace(/-/g, '+').replace(/_/g, '/');
-            const padded = base64.padEnd(base64.length + (4 - base64.length % 4) % 4, '=');
-            const decoded = JSON.parse(atob(padded));
-            if (!decoded || decoded.role !== 'ADMIN') {
-                return NextResponse.redirect(new URL('/admin/login', request.url));
-            }
-        } catch (e) {
-            return NextResponse.redirect(new URL('/admin/login', request.url));
-        }
-
+    if (pathname === "/admin/login" || pathname === "/admin/forgot-password")
         return NextResponse.next();
+    try {
+        const token = request.cookies.get("adminAuthToken")?.value;
+        if (!token) throw new Error("Missing token");
+        const { payload } = await jwtVerify(
+            token,
+            new TextEncoder().encode(getJwtSecret()),
+            {
+                algorithms: ["HS256"],
+                issuer: JWT_ISSUER,
+                audience: JWT_AUDIENCE,
+                requiredClaims: ["exp", "userId", "tokenVersion"],
+            },
+        );
+        if (payload.role !== "ADMIN") throw new Error("Not an admin");
+        return NextResponse.next();
+    } catch {
+        return NextResponse.redirect(new URL("/admin/login", request.url));
     }
-
-    return NextResponse.next();
 }
-
-export const config = {
-    matcher: ['/admin', '/admin/:path*'],
-};
+export const config = { matcher: ["/admin", "/admin/:path*"] };

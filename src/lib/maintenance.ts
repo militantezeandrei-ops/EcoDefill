@@ -3,7 +3,6 @@ import prisma from "@/lib/prisma";
 const CONFIG_EMAIL_KEY = "system@maintenance.ecodefill";
 const CONFIG_PURPOSE_KEY = "MAINTENANCE_CONFIG";
 const FILTER_LIFESPAN_DAYS = 180; // 6 months
-const CACHE_TTL_MS = 15_000; // 15 seconds in-memory cache for high API efficiency
 
 export interface MaintenanceConfig {
     semesterStartDate: string | null;
@@ -31,7 +30,8 @@ export interface MaintenanceStatus extends MaintenanceConfig {
     filterDueDate: string | null;
     filterDaysRemaining: number | null;
     filterHealthPercent: number | null;
-    filterStatus: "UNCONFIGURED" | "HEALTHY" | "DUE_SOON" | "REPLACEMENT_REQUIRED";
+    filterStatus:
+        "UNCONFIGURED" | "HEALTHY" | "DUE_SOON" | "REPLACEMENT_REQUIRED";
     alerts: MaintenanceAlert[];
 }
 
@@ -45,16 +45,7 @@ const DEFAULT_CONFIG: MaintenanceConfig = {
     updatedAt: new Date(0).toISOString(),
 };
 
-let cachedConfig: MaintenanceConfig | null = null;
-let cacheTimestamp = 0;
-let isEnforcingReset = false;
-
 async function loadConfigFromDb(): Promise<MaintenanceConfig> {
-    const now = Date.now();
-    if (cachedConfig && now - cacheTimestamp < CACHE_TTL_MS) {
-        return cachedConfig;
-    }
-
     const record = await prisma.verificationCode.findFirst({
         where: {
             email: CONFIG_EMAIL_KEY,
@@ -64,14 +55,14 @@ async function loadConfigFromDb(): Promise<MaintenanceConfig> {
     });
 
     if (!record) {
-        cachedConfig = { ...DEFAULT_CONFIG };
-        cacheTimestamp = now;
-        return cachedConfig;
+        return { ...DEFAULT_CONFIG };
     }
 
     try {
-        const parsed = JSON.parse(record.codeHash) as Partial<MaintenanceConfig>;
-        cachedConfig = {
+        const parsed = JSON.parse(
+            record.codeHash,
+        ) as Partial<MaintenanceConfig>;
+        return {
             semesterStartDate: parsed.semesterStartDate ?? null,
             semesterEndDate: parsed.semesterEndDate ?? null,
             semesterResetDone: Boolean(parsed.semesterResetDone),
@@ -82,49 +73,48 @@ async function loadConfigFromDb(): Promise<MaintenanceConfig> {
             updatedByEmail: parsed.updatedByEmail,
         };
     } catch {
-        cachedConfig = { ...DEFAULT_CONFIG };
+        throw new Error("Invalid maintenance configuration");
     }
-
-    cacheTimestamp = now;
-    return cachedConfig;
 }
 
-export async function saveMaintenanceConfig(newConfig: MaintenanceConfig): Promise<MaintenanceConfig> {
-    const payload = JSON.stringify(newConfig);
-    const farFuture = new Date("2099-12-31T23:59:59.000Z");
-
-    const existing = await prisma.verificationCode.findFirst({
-        where: {
-            email: CONFIG_EMAIL_KEY,
-            purpose: CONFIG_PURPOSE_KEY,
-        },
-        orderBy: { createdAt: "desc" },
+export async function saveMaintenanceConfig(
+    newConfig: MaintenanceConfig,
+): Promise<MaintenanceConfig> {
+    const saved = await prisma.$transaction(async (tx) => {
+        await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended('ecodefill-maintenance', 0))`;
+        const existing = await tx.verificationCode.findFirst({
+            where: { email: CONFIG_EMAIL_KEY, purpose: CONFIG_PURPOSE_KEY },
+            orderBy: { createdAt: "desc" },
+        });
+        const config = { ...newConfig };
+        if (existing) {
+            const current = JSON.parse(existing.codeHash) as MaintenanceConfig;
+            // A concurrent filter edit must never undo a completed balance reset.
+            if (
+                current.semesterStartDate === config.semesterStartDate &&
+                current.semesterEndDate === config.semesterEndDate &&
+                current.semesterResetDone
+            ) {
+                config.semesterResetDone = true;
+                config.lastPointsResetAt = current.lastPointsResetAt;
+            }
+            await tx.verificationCode.update({
+                where: { id: existing.id },
+                data: { codeHash: JSON.stringify(config) },
+            });
+        } else {
+            await tx.verificationCode.create({
+                data: {
+                    email: CONFIG_EMAIL_KEY,
+                    purpose: CONFIG_PURPOSE_KEY,
+                    codeHash: JSON.stringify(config),
+                    expiresAt: new Date("2099-12-31T23:59:59Z"),
+                },
+            });
+        }
+        return config;
     });
-
-    if (existing) {
-        await prisma.verificationCode.update({
-            where: { id: existing.id },
-            data: {
-                codeHash: payload,
-                expiresAt: farFuture,
-                used: false,
-            },
-        });
-    } else {
-        await prisma.verificationCode.create({
-            data: {
-                email: CONFIG_EMAIL_KEY,
-                purpose: CONFIG_PURPOSE_KEY,
-                codeHash: payload,
-                expiresAt: farFuture,
-                used: false,
-            },
-        });
-    }
-
-    cachedConfig = { ...newConfig };
-    cacheTimestamp = Date.now();
-    return cachedConfig;
+    return saved;
 }
 
 /**
@@ -137,36 +127,50 @@ export async function getAndEnforceMaintenanceStatus(): Promise<MaintenanceStatu
     const now = new Date();
     const nowMs = now.getTime();
 
-    // Tamper-proof automatic semester expiry check using authoritative server clock
+    // Recheck under a shared database lock: each semester reset commits exactly once.
     if (
         config.semesterEndDate &&
         !config.semesterResetDone &&
-        !isEnforcingReset
+        nowMs >= new Date(config.semesterEndDate).getTime()
     ) {
-        const endMs = new Date(config.semesterEndDate).getTime();
-        if (!Number.isNaN(endMs) && nowMs >= endMs) {
-            isEnforcingReset = true;
-            try {
-                const updatedConfig: MaintenanceConfig = {
-                    ...config,
+        config = await prisma.$transaction(
+            async (tx) => {
+                await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended('ecodefill-maintenance', 0))`;
+                const record = await tx.verificationCode.findFirst({
+                    where: {
+                        email: CONFIG_EMAIL_KEY,
+                        purpose: CONFIG_PURPOSE_KEY,
+                    },
+                    orderBy: { createdAt: "desc" },
+                });
+                if (!record) return config;
+                const current = JSON.parse(
+                    record.codeHash,
+                ) as MaintenanceConfig;
+                if (
+                    !current.semesterEndDate ||
+                    current.semesterResetDone ||
+                    nowMs < new Date(current.semesterEndDate).getTime()
+                )
+                    return current;
+                await tx.user.updateMany({
+                    where: { role: "STUDENT" },
+                    data: { balance: 0 },
+                });
+                const updated = {
+                    ...current,
                     semesterResetDone: true,
                     lastPointsResetAt: now.toISOString(),
                     updatedAt: now.toISOString(),
                 };
-
-                // Atomically reset all student balances to 0
-                await prisma.user.updateMany({
-                    where: { role: "STUDENT" },
-                    data: { balance: 0 },
+                await tx.verificationCode.update({
+                    where: { id: record.id },
+                    data: { codeHash: JSON.stringify(updated) },
                 });
-
-                config = await saveMaintenanceConfig(updatedConfig);
-            } catch (err) {
-                console.error("Failed to enforce automatic semester reset:", err);
-            } finally {
-                isEnforcingReset = false;
-            }
-        }
+                return updated;
+            },
+            { timeout: 30_000 },
+        );
     }
 
     // Compute Semester Countdown
@@ -181,14 +185,18 @@ export async function getAndEnforceMaintenanceStatus(): Promise<MaintenanceStatu
                 semesterActive = false;
             } else {
                 const diffMs = endMs - nowMs;
-                daysUntilReset = Math.max(0, Math.ceil(diffMs / (1000 * 60 * 60 * 24)));
+                daysUntilReset = Math.max(
+                    0,
+                    Math.ceil(diffMs / (1000 * 60 * 60 * 24)),
+                );
                 semesterActive = true;
             }
         }
     }
 
     // Compute 6-Month (180-Day) Water Filter Maintenance Status
-    const effectiveFilterStart = config.filterStartDate || config.semesterStartDate;
+    const effectiveFilterStart =
+        config.filterStartDate || config.semesterStartDate;
     let filterDueDate: string | null = null;
     let filterDaysRemaining: number | null = null;
     let filterHealthPercent: number | null = null;
@@ -202,10 +210,16 @@ export async function getAndEnforceMaintenanceStatus(): Promise<MaintenanceStatu
             filterDueDate = new Date(dueMs).toISOString();
 
             const remainingMs = dueMs - nowMs;
-            filterDaysRemaining = Math.max(0, Math.ceil(remainingMs / (1000 * 60 * 60 * 24)));
+            filterDaysRemaining = Math.max(
+                0,
+                Math.ceil(remainingMs / (1000 * 60 * 60 * 24)),
+            );
             filterHealthPercent = Math.max(
                 0,
-                Math.min(100, Math.round((remainingMs / totalLifespanMs) * 100))
+                Math.min(
+                    100,
+                    Math.round((remainingMs / totalLifespanMs) * 100),
+                ),
             );
 
             if (filterDaysRemaining <= 0) {
@@ -226,7 +240,8 @@ export async function getAndEnforceMaintenanceStatus(): Promise<MaintenanceStatu
             id: `filter-expired-${effectiveFilterStart}`,
             severity: "critical",
             title: "Water Filter Replacement Required",
-            message: "The 6-month water filter lifespan has reached 0 days. Replace the filter and reset the timer in Maintenance.",
+            message:
+                "The 6-month water filter lifespan has reached 0 days. Replace the filter and reset the timer in Maintenance.",
             createdAt: filterDueDate,
         });
     } else if (filterStatus === "DUE_SOON" && filterDaysRemaining !== null) {
@@ -245,7 +260,8 @@ export async function getAndEnforceMaintenanceStatus(): Promise<MaintenanceStatu
                 id: `sem-reset-completed-${config.semesterEndDate}`,
                 severity: "info",
                 title: "Semester Points Auto-Reset Executed",
-                message: "Semester ended and all student point balances were automatically reset to 0.",
+                message:
+                    "Semester ended and all student point balances were automatically reset to 0.",
                 createdAt: config.lastPointsResetAt,
             });
         } else if (daysUntilReset !== null && daysUntilReset <= 7) {

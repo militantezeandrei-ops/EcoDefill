@@ -1,9 +1,11 @@
+import { requireAdmin } from "@/lib/admin-auth";
 import prisma from "@/lib/prisma";
 import { Users, Recycle, Receipt, FileText, Download, Trophy } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
 export default async function ReportsPage() {
+    await requireAdmin();
     const [totalUsers, totalTransactions, topUsers, itemsRecycledAgg] = await Promise.all([
         prisma.user.count({ where: { role: "STUDENT" } }),
         prisma.transaction.count(),

@@ -45,6 +45,7 @@
 #include <HTTPClient.h>
 #include <WiFiClientSecure.h>
 #include <ArduinoJson.h>
+#include "machine_secrets.h"
 
 // ── USER CONFIG ───────────────────────────────────────────────────────────────
 const char* WIFI_SSID       = "Free";
@@ -172,7 +173,7 @@ void logBackendReachability(const char* phase) {
   }
 
   WiFiClientSecure tlsClient;
-  tlsClient.setInsecure();
+  tlsClient.setCACert(ECO_BACKEND_ROOT_CA);
   bool tlsOk = tlsClient.connect(SERVER_HOST, 443);
   Serial.printf("[NET] %s TLS %s:443 -> %s\n",
                 phase,
@@ -342,10 +343,11 @@ void apiVerifyQR(const String& token, int pointsToTransfer) {
     return;
   }
 
-  WiFiClientSecure client; client.setInsecure();
+  WiFiClientSecure client; client.setCACert(ECO_BACKEND_ROOT_CA);
   HTTPClient http;
   http.begin(client, String(SERVER_BASE_URL) + "/api/verify-qr");
   http.addHeader("Content-Type", "application/json");
+  http.addHeader("x-machine-secret", ECO_MACHINE_SECRET);
   http.setTimeout(HTTP_TIMEOUT_MS);
 
   StaticJsonDocument<384> req;
@@ -428,10 +430,11 @@ void apiVerifyQR(const String& token, int pointsToTransfer) {
 void apiEarnAnon(const String& itemType, int pts) {
   if (!ensureWiFi()) return;
 
-  WiFiClientSecure client; client.setInsecure();
+  WiFiClientSecure client; client.setCACert(ECO_BACKEND_ROOT_CA);
   HTTPClient http;
   http.begin(client, String(SERVER_BASE_URL) + "/api/add-point");
   http.addHeader("Content-Type", "application/json");
+  http.addHeader("x-machine-secret", ECO_MACHINE_SECRET);
   http.setTimeout(HTTP_TIMEOUT_MS);
 
   StaticJsonDocument<256> req;
@@ -453,10 +456,11 @@ void apiEarnAnon(const String& itemType, int pts) {
 void apiSendHeartbeat() {
   if (!ensureWiFi()) return;
 
-  WiFiClientSecure client; client.setInsecure();
+  WiFiClientSecure client; client.setCACert(ECO_BACKEND_ROOT_CA);
   HTTPClient http;
   http.begin(client, String(SERVER_BASE_URL) + "/api/machine-status");
   http.addHeader("Content-Type", "application/json");
+  http.addHeader("x-machine-secret", ECO_MACHINE_SECRET);
   http.setTimeout(HTTP_TIMEOUT_MS);
 
   StaticJsonDocument<256> req;
@@ -486,10 +490,11 @@ void apiMachineWalkin(const String& materialType, int count) {
   if (count <= 0) return;
   if (!ensureWiFi()) return;
 
-  WiFiClientSecure client; client.setInsecure();
+  WiFiClientSecure client; client.setCACert(ECO_BACKEND_ROOT_CA);
   HTTPClient http;
   http.begin(client, String(SERVER_BASE_URL) + "/api/machine-walkin");
   http.addHeader("Content-Type", "application/json");
+  http.addHeader("x-machine-secret", ECO_MACHINE_SECRET);
   http.setTimeout(HTTP_TIMEOUT_MS);
 
   StaticJsonDocument<256> req;
@@ -800,6 +805,9 @@ void setup() {
     Serial.println("[DEVKIT] WARNING: WiFi not connected after 3 attempts. HTTP server starting anyway.");
     Serial.println("[DEVKIT] QR scan will fail until WiFi reconnects via watchdog.");
   }
+
+  // TLS certificate validation requires the current UTC time.
+  configTime(0, 0, "pool.ntp.org", "time.google.com");
 
   // Register HTTP endpoints
   server.on("/detect", handleDetect);

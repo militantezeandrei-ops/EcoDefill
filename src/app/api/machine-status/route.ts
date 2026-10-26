@@ -1,3 +1,4 @@
+import { authenticateMachine } from "@/lib/machine-auth";
 export const dynamic = "force-dynamic";
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
@@ -81,11 +82,13 @@ export async function GET(req: Request) {
             });
         }
 
+        if (!authenticateMachine(req, machineId)) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
         // 2. Otherwise, check for approved dispense sessions for ESP32
         const session = await prisma.machineSession.findFirst({
             where: {
                 machineId: machineId,
-                status: 'APPROVED'
+                status: 'APPROVED', expiresAt: { gt: new Date() }
             },
             orderBy: {
                 createdAt: 'asc' // Process oldest approved first
@@ -93,14 +96,15 @@ export async function GET(req: Request) {
         });
 
         if (session) {
-            const PUMP_RATE_ML_PER_MS = 0.1;
+            const PUMP_RATE_ML_PER_MS = 1 / 48;
             const dispenseTimeMs = Math.floor(Number(session.amountToDispense) / PUMP_RATE_ML_PER_MS);
 
-            await prisma.machineSession.update({
-                where: { id: session.id },
+            const claim = await prisma.machineSession.updateMany({
+                where: { id: session.id, status: "APPROVED", expiresAt: { gt: new Date() } },
                 data: { status: 'DISPENSED' }
             });
 
+            if (claim.count !== 1) return NextResponse.json({ approved: false, dispenseTimeMs: 0 });
             return NextResponse.json({
                 approved: true,
                 sessionId: session.id,
@@ -123,6 +127,7 @@ export async function POST(req: Request) {
     try {
         const { machineId, status, waterLevel, rssi, pingMs } = await req.json();
 
+        if (!authenticateMachine(req, machineId)) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         if (!machineId) {
             return NextResponse.json({ error: 'Missing machineId' }, { status: 400 });
         }

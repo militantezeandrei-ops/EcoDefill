@@ -1,259 +1,229 @@
-import { NextResponse } from 'next/server';
-import prisma from '@/lib/prisma';
-import jwt from 'jsonwebtoken';
+import { NextRequest, NextResponse } from "next/server";
+import prisma from "@/lib/prisma";
+import jwt from "jsonwebtoken";
+import { z } from "zod";
+import { authenticateMachine } from "@/lib/machine-auth";
+import { getAdminAuth } from "@/lib/admin-auth";
+import { getJwtSecret } from "@/lib/jwt-config";
+import {
+    redeemAmountSchema,
+    itemCountSchema,
+    manilaDayStart,
+    pointsForItems,
+} from "@/lib/points";
+import { getAndEnforceMaintenanceStatus } from "@/lib/maintenance";
 
-export async function POST(req: Request) {
+const schema = z.object({
+    token: z.string().min(1).max(2048),
+    machineId: z.string().min(1).max(50),
+    amount: z.number().int().min(0).max(10).optional(),
+    bottles: itemCountSchema.default(0),
+    cups: itemCountSchema.default(0),
+    papers: itemCountSchema.default(0),
+});
+class Rejected extends Error {}
+
+export async function POST(req: NextRequest) {
     try {
-        const { token, machineId, amount, bottles, cups, papers } = await req.json();
-
-        if (!token || !machineId) {
-            return NextResponse.json({ error: 'Missing token or machineId' }, { status: 400 });
-        }
-
-        // 1. Fetch the token first without claiming it
-        const qrToken = await prisma.qrToken.findUnique({
-            where: { shortToken: token },
-            include: { user: true }
+        const parsed = schema.safeParse(await req.json());
+        if (!parsed.success)
+            return NextResponse.json(
+                { error: "Invalid machine payload." },
+                { status: 400 },
+            );
+        const { token, machineId, amount, bottles, cups, papers } = parsed.data;
+        const machine = authenticateMachine(req, machineId);
+        const admin = machine ? null : await getAdminAuth(req);
+        if (!machine && !admin)
+            return NextResponse.json(
+                { error: "Unauthorized" },
+                { status: 401 },
+            );
+        const qr = await prisma.qrToken.findFirst({
+            where: { OR: [{ shortToken: token }, { token }] },
         });
-
-        if (!qrToken) {
-            return NextResponse.json({ error: 'Invalid or missing QR code.' }, { status: 404 });
-        }
-
-        const isEarnToken = qrToken.type === "EARN";
-        const requestedPoints = Number(amount);
-
-        if (qrToken.used && !isEarnToken) {
-            return NextResponse.json({ error: 'QR code has already been used.' }, { status: 400 });
-        }
-
-        const pointsToProcess = isEarnToken ? Math.floor(requestedPoints) : 0;
-        if (isEarnToken) {
-            if (!Number.isFinite(requestedPoints) || pointsToProcess <= 0) {
-                return NextResponse.json({ error: 'No machine points available to transfer.' }, { status: 400 });
-            }
-
-            if (pointsToProcess > 10) {
-                return NextResponse.json({ error: 'Max 10 points per transaction.' }, { status: 400 });
-            }
-        }
-
-        // 2. Validate basic constraints (expiry) before claiming
-        const now = new Date();
-        const graceTime = new Date(now.getTime() - 10000); // 10s grace
-        if (graceTime > qrToken.expiresAt) {
-            return NextResponse.json({ error: 'QR code has expired.' }, { status: 400 });
-        }
-
-        // 3. For REDEEM types, validate MachineSession before entering the transaction
-        let session: { id: string; jti: string; machineId: string; amountToDispense: unknown; status: string } | null = null;
-        let decoded: any;
-        if (qrToken.type === "REDEEM") {
-            try {
-                // The original long token (JWT) is stored in the token field
-                decoded = jwt.verify(qrToken.token, process.env.JWT_SECRET || 'fallback-secret-key-123') as any;
-            } catch {
-                return NextResponse.json({ error: 'Stored session data is invalid.' }, { status: 500 });
-            }
-
-            session = await prisma.machineSession.findUnique({
-                where: { jti: decoded.jti }
-            });
-
-            if (!session || session.status !== 'INITIATED') {
-                return NextResponse.json({ error: 'Machine session is invalid or already processed.' }, { status: 400 });
-            }
-
-            if (session.machineId !== machineId) {
-                return NextResponse.json({ error: 'Invalid Machine ID.' }, { status: 400 });
-            }
-        }
-
-        // 3. Process Transaction Atomically
-        let txResult: { userName: string; pointsDeducted: number; waterAmount: number } | null = null;
-
-        await prisma.$transaction(async (tx) => {
-            if (qrToken.type === "REDEEM") {
-                // Redeem tokens are single-use.
-                await tx.qrToken.update({
-                    where: { id: qrToken.id },
-                    data: { used: true, usedAt: new Date() }
+        if (!qr)
+            return NextResponse.json(
+                { error: "Invalid QR code." },
+                { status: 404 },
+            );
+        if (!machine && qr.type !== "REDEEM")
+            return NextResponse.json(
+                { error: "Only the machine can confirm recycled items." },
+                { status: 403 },
+            );
+        await getAndEnforceMaintenanceStatus();
+        const result = await prisma.$transaction(
+            async (tx) => {
+                // Serialize all changes to this balance and its daily totals, including separate QRs.
+                await tx.$queryRaw`SELECT "id" FROM "User" WHERE "id" = ${qr.userId}::uuid FOR UPDATE`;
+                const user = await tx.user.findUnique({
+                    where: { id: qr.userId },
                 });
-
-                const user = await tx.user.findUnique({ where: { id: qrToken.userId } });
-
-                if (!user || Number(user.balance) < Number(qrToken.amount)) {
-                    throw new Error('Insufficient balance');
-                }
-
-                // Deduct points
-                await tx.user.update({
-                    where: { id: user.id },
-                    data: { balance: { decrement: qrToken.amount } }
+                const current = await tx.qrToken.findUnique({
+                    where: { id: qr.id },
                 });
-
-                // Log transaction
-                await tx.transaction.create({
-                    data: {
-                        userId: user.id,
-                        amount: qrToken.amount,
-                        type: 'REDEEM'
+                const now = new Date();
+                if (
+                    !user ||
+                    !current ||
+                    current.used ||
+                    current.expiresAt <= now
+                )
+                    throw new Rejected("QR expired or already used.");
+                const userName =
+                    user.fullName || user.email.split("@")[0] || "Student";
+                if (current.type === "REDEEM") {
+                    let payload: jwt.JwtPayload;
+                    try {
+                        const decoded = jwt.verify(
+                            current.token,
+                            getJwtSecret(),
+                            {
+                                algorithms: ["HS256"],
+                                issuer: "ecodefill",
+                                audience: "ecodefill-redeem",
+                            },
+                        );
+                        if (typeof decoded === "string") throw new Error();
+                        payload = decoded;
+                    } catch {
+                        throw new Rejected("Invalid redemption session.");
                     }
-                });
-
-                // Mark machine session as APPROVED — reuse the already-fetched session
-                if (!session) {
-                    throw new Error('Session missing in transaction');
+                    if (
+                        typeof payload.jti !== "string" ||
+                        payload.userId !== user.id ||
+                        payload.tokenVersion !== user.tokenVersion
+                    )
+                        throw new Rejected("Invalid redemption session.");
+                    const session = await tx.machineSession.findUnique({
+                        where: { jti: payload.jti },
+                    });
+                    const points = Number(current.amount);
+                    if (
+                        !redeemAmountSchema.safeParse(points).success ||
+                        !session ||
+                        session.id !== payload.sessionId ||
+                        session.userId !== user.id ||
+                        session.machineId !== machineId ||
+                        session.expiresAt <= now ||
+                        session.status !== "INITIATED" ||
+                        Number(session.pointsToDeduct) !== points ||
+                        Number(session.amountToDispense) !== points * 100
+                    )
+                        throw new Rejected("Invalid redemption session.");
+                    const daily = await tx.transaction.aggregate({
+                        where: {
+                            userId: user.id,
+                            type: "REDEEM",
+                            createdAt: { gte: manilaDayStart(now) },
+                        },
+                        _sum: { amount: true },
+                    });
+                    if (Number(daily._sum.amount || 0) + points > 5)
+                        throw new Rejected("Daily redeem limit exceeded.");
+                    const debit = await tx.user.updateMany({
+                        where: { id: user.id, balance: { gte: points } },
+                        data: { balance: { decrement: points } },
+                    });
+                    if (debit.count !== 1)
+                        throw new Rejected("Insufficient balance.");
+                    const claim = await tx.machineSession.updateMany({
+                        where: { id: session.id, status: "INITIATED" },
+                        data: { status: machine ? "DISPENSED" : "APPROVED" },
+                    });
+                    if (claim.count !== 1)
+                        throw new Rejected("Session already processed.");
+                    await tx.transaction.create({
+                        data: {
+                            userId: user.id,
+                            amount: points,
+                            type: "REDEEM",
+                        },
+                    });
+                    await tx.qrToken.update({
+                        where: { id: qr.id },
+                        data: { used: true, usedAt: now },
+                    });
+                    return {
+                        userName,
+                        pointsDeducted: points,
+                        waterAmount: points * 100,
+                    };
                 }
-                await tx.machineSession.update({
-                    where: { id: session.id },
-                    data: { status: 'APPROVED' }
-                });
-
-                txResult = {
-                    userName: user.fullName || user.email?.split('@')[0] || 'Student',
-                    pointsDeducted: Number(qrToken.amount),
-                    waterAmount: Number(session.amountToDispense),
-                };
-            } else if (qrToken.type === "EARN") {
-                // Earn tokens stay reusable; usedAt marks the latest successful scan.
-                await tx.qrToken.update({
-                    where: { id: qrToken.id },
-                    data: { usedAt: new Date() }
-                });
-
-                const user = await tx.user.findUnique({ where: { id: qrToken.userId } });
-
-                if (!user) {
-                    throw new Error('User not found');
-                }
-
-                // Check daily limits 
-                const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
-
-                const todayEarned = await tx.transaction.aggregate({
+                if (current.type !== "EARN")
+                    throw new Rejected("Invalid QR type.");
+                const points = pointsForItems(bottles, cups, papers);
+                if (points < 1 || points > 10 || amount !== points)
+                    throw new Rejected(
+                        "Points do not match recycled item counts.",
+                    );
+                const daily = await tx.transaction.aggregate({
                     where: {
                         userId: user.id,
-                        type: 'EARN',
+                        type: "EARN",
                         createdAt: {
-                            gte: twentyFourHoursAgo
-                        }
+                            gte: new Date(now.getTime() - 86_400_000),
+                        },
                     },
-                    _sum: {
-                        amount: true
-                    }
+                    _sum: { amount: true },
                 });
-
-                const pointsEarnedTotal = Number(todayEarned._sum.amount || 0);
-                if (pointsEarnedTotal + pointsToProcess > 10) {
-                    throw new Error('Daily earning limit reached');
-                }
-
-                // Add points based on hardware input
+                if (Number(daily._sum.amount || 0) + points > 10)
+                    throw new Rejected("Daily earning limit reached.");
                 await tx.user.update({
                     where: { id: user.id },
-                    data: { balance: { increment: pointsToProcess } }
+                    data: { balance: { increment: points } },
                 });
-
-                // Determine dominant material type for the Transaction record
-                let dominantMaterial: string | null = null;
-                let totalItemsCount = 0;
-
-                const bCount = Number(bottles || 0);
-                const cCount = Number(cups || 0);
-                const pCount = Number(papers || 0); // sheets of paper
-                const paperPoints = Math.floor(pCount / 3);
-
-                if (bCount > 0 || cCount > 0 || paperPoints > 0) {
-                    totalItemsCount = bCount + cCount + pCount;
-                    if (bCount >= cCount && bCount >= paperPoints) {
-                        dominantMaterial = "BOTTLE";
-                    } else if (cCount >= bCount && cCount >= paperPoints) {
-                        dominantMaterial = "CUP";
-                    } else {
-                        dominantMaterial = "PAPER";
-                    }
-                }
-
-                // Log transaction
                 await tx.transaction.create({
                     data: {
                         userId: user.id,
-                        amount: pointsToProcess,
-                        type: 'EARN',
-                        materialType: dominantMaterial,
-                        count: totalItemsCount > 0 ? totalItemsCount : pointsToProcess,
-                    }
+                        amount: points,
+                        type: "EARN",
+                        materialType:
+                            bottles >= cups && bottles >= Math.floor(papers / 3)
+                                ? "BOTTLE"
+                                : cups >= Math.floor(papers / 3) ? "CUP" : "PAPER",
+                        count: bottles + cups + papers,
+                    },
                 });
-
-                // Create detailed RecyclingLog entries for each material
-                if (bCount > 0) {
-                    await tx.recyclingLog.create({
-                        data: {
-                            machineId,
-                            userId: user.id,
-                            materialType: "BOTTLE",
-                            count: bCount,
-                            pointsEarned: bCount,
-                            isWalkIn: false,
-                            status: "SUCCESS"
-                        }
-                    });
+                for (const [materialType, count, earned] of [
+                    ["BOTTLE", bottles, bottles],
+                    ["CUP", cups, cups],
+                    ["PAPER", papers, Math.floor(papers / 3)],
+                ] as const) {
+                    if (count > 0)
+                        await tx.recyclingLog.create({
+                            data: {
+                                machineId,
+                                userId: user.id,
+                                materialType,
+                                count,
+                                pointsEarned: earned,
+                                isWalkIn: false,
+                                status: "SUCCESS",
+                            },
+                        });
                 }
-
-                if (cCount > 0) {
-                    await tx.recyclingLog.create({
-                        data: {
-                            machineId,
-                            userId: user.id,
-                            materialType: "CUP",
-                            count: cCount,
-                            pointsEarned: cCount,
-                            isWalkIn: false,
-                            status: "SUCCESS"
-                        }
-                    });
-                }
-
-                if (pCount > 0) {
-                    await tx.recyclingLog.create({
-                        data: {
-                            machineId,
-                            userId: user.id,
-                            materialType: "PAPER",
-                            count: pCount,
-                            pointsEarned: paperPoints,
-                            isWalkIn: false,
-                            status: "SUCCESS"
-                        }
-                    });
-                }
-
-                txResult = {
-                    userName: user.fullName || user.email?.split('@')[0] || 'Student',
-                    pointsDeducted: -pointsToProcess, // Negative indicates earning
-                    waterAmount: 0,
-                };
-            }
-        });
-
+                await tx.qrToken.update({
+                    where: { id: qr.id },
+                    data: { used: true, usedAt: now },
+                });
+                return { userName, pointsDeducted: -points, waterAmount: 0 };
+            },
+            { timeout: 10_000 },
+        );
         return NextResponse.json({
             success: true,
-            message: qrToken.type === "REDEEM"
-                ? 'QR Verified. Machine dispensing...'
-                : 'QR Verified. Points transferred.',
-            userName: txResult!.userName,
-            pointsDeducted: txResult!.pointsDeducted,
-            waterAmount: txResult!.waterAmount,
+            message: "QR verified.",
+            ...result,
         });
-    } catch (error: any) {
-        if (error.message === 'Insufficient balance') {
-            return NextResponse.json({ error: 'Insufficient balance.' }, { status: 400 });
-        }
-        if (error.message === 'Daily earning limit reached') {
-            return NextResponse.json({ error: 'Daily earning limit of 10 points reached.' }, { status: 403 });
-        }
-        console.error("Verify QR Error:", error);
-        return NextResponse.json({ error: 'Verification failed.' }, { status: 500 });
+    } catch (error) {
+        if (error instanceof Rejected)
+            return NextResponse.json({ error: error.message }, { status: 400 });
+        console.error("QR verification failed");
+        return NextResponse.json(
+            { error: "Verification failed." },
+            { status: 500 },
+        );
     }
 }

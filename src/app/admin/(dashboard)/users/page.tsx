@@ -1,3 +1,4 @@
+import { requireAdmin } from "@/lib/admin-auth";
 import prisma from "@/lib/prisma";
 import { Search } from "lucide-react";
 import UsersAccordion from "@/components/admin/UsersAccordion";
@@ -6,6 +7,7 @@ import AutoRefresh from "@/components/admin/AutoRefresh";
 export const dynamic = "force-dynamic";
 
 export default async function UsersPage() {
+    await requireAdmin();
     const users = await prisma.user.findMany({
         where: { role: "STUDENT" },
         orderBy: [{ course: "asc" }, { section: "asc" }, { email: "asc" }],

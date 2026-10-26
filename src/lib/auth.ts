@@ -1,11 +1,12 @@
-import jwt from 'jsonwebtoken';
-import bcrypt from 'bcryptjs';
+import jwt from "jsonwebtoken";
+import bcrypt from "bcryptjs";
 
-const JWT_SECRET = process.env.JWT_SECRET || 'fallback-secret-key-123';
+import { getJwtSecret, JWT_AUDIENCE, JWT_ISSUER } from "./jwt-config";
 
 export interface JwtPayload {
     userId: string;
-    role: 'STUDENT' | 'ADMIN';
+    role: "STUDENT" | "ADMIN";
+    tokenVersion: number;
     iat?: number;
     exp?: number;
 }
@@ -15,17 +16,46 @@ export const hashPassword = async (password: string): Promise<string> => {
     return bcrypt.hash(password, salt);
 };
 
-export const verifyPassword = async (password: string, hash: string): Promise<boolean> => {
+export const verifyPassword = async (
+    password: string,
+    hash: string,
+): Promise<boolean> => {
     return bcrypt.compare(password, hash);
 };
 
-export const signToken = (payload: { userId: string; role: string }): string => {
-    return jwt.sign(payload, JWT_SECRET, { expiresIn: '7d' });
+export const signToken = (payload: {
+    userId: string;
+    role: string;
+    tokenVersion: number;
+}): string => {
+    return jwt.sign(payload, getJwtSecret(), {
+        algorithm: "HS256",
+        expiresIn: "7d",
+        issuer: JWT_ISSUER,
+        audience: JWT_AUDIENCE,
+    });
 };
 
 export const verifyToken = (token: string): JwtPayload | null => {
     try {
-        return jwt.verify(token, JWT_SECRET) as JwtPayload;
+        const payload = jwt.verify(token, getJwtSecret(), {
+            algorithms: ["HS256"],
+            issuer: JWT_ISSUER,
+            audience: JWT_AUDIENCE,
+        });
+        if (
+            typeof payload === "string" ||
+            typeof payload.userId !== "string" ||
+            !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+                payload.userId,
+            ) ||
+            !["ADMIN", "STUDENT"].includes(payload.role) ||
+            !Number.isInteger(payload.tokenVersion) ||
+            payload.tokenVersion < 0 ||
+            typeof payload.exp !== "number"
+        )
+            return null;
+        return payload as JwtPayload;
     } catch {
         return null;
     }

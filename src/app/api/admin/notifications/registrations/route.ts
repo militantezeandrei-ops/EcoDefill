@@ -1,13 +1,12 @@
+import { getAdminAuth } from "@/lib/admin-auth";
 import { NextRequest, NextResponse } from "next/server";
-import { verifyToken } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { getAndEnforceMaintenanceStatus } from "@/lib/maintenance";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(req: NextRequest) {
-    const token = req.cookies.get("adminAuthToken")?.value;
-    const auth = token ? verifyToken(token) : null;
+    const auth = await getAdminAuth(req);
 
     if (!auth || auth.role !== "ADMIN") {
         return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
