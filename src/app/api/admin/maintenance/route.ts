@@ -1,5 +1,6 @@
 import { getAdminAuth } from "@/lib/admin-auth";
 export const dynamic = "force-dynamic";
+import { revalidateTag } from "next/cache";
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { verifyPassword } from "@/lib/auth";
@@ -174,6 +175,8 @@ export async function POST(req: NextRequest) {
         } else {
             return NextResponse.json({ message: "Invalid maintenance action." }, { status: 400 });
         }
+
+        revalidateTag("admin-maintenance");
 
         const [updatedMaintenance, pointsAgg, studentsWithPoints] = await Promise.all([
             getAndEnforceMaintenanceStatus(),
