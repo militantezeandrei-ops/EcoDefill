@@ -14,15 +14,22 @@ function formatUserDisplayName(user?: { fullName?: string | null; email?: string
 
 export default async function RecyclingPage() {
     await requireAdmin();
-    const logs = await prisma.recyclingLog.findMany({
-        orderBy: { createdAt: "desc" },
-        include: { user: { select: { email: true, fullName: true, course: true } } },
-    });
+    const [logs, totalsAgg, walkInCount] = await Promise.all([
+        prisma.recyclingLog.findMany({
+            orderBy: { createdAt: "desc" },
+            take: 200,
+            include: { user: { select: { email: true, fullName: true, course: true } } },
+        }),
+        prisma.recyclingLog.aggregate({
+            _sum: { count: true, pointsEarned: true },
+        }),
+        prisma.recyclingLog.count({
+            where: { isWalkIn: true },
+        }),
+    ]);
 
-    const walkInCount = logs.filter(l => l.isWalkIn).length;
-
-    const totalItems = logs.reduce((s, l) => s + l.count, 0);
-    const totalPts = logs.reduce((s, l) => s + Number(l.pointsEarned), 0);
+    const totalItems = totalsAgg._sum.count || 0;
+    const totalPts = Number(totalsAgg._sum.pointsEarned || 0);
     const co2Saved = (totalItems * 0.03).toFixed(1);
 
     const summaryCards = [

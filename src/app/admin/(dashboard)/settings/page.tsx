@@ -54,10 +54,9 @@ export default function SettingsPage() {
     };
 
     const handleLogout = async () => {
-        document.cookie =
-            "adminAuthToken=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
         await logout();
         router.push("/admin/login");
+        router.refresh();
     };
 
     return (

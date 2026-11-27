@@ -4,6 +4,7 @@ import bcrypt from "bcryptjs";
 import { z } from "zod";
 import { verifyAndConsumeCode, VerificationPurpose } from "@/lib/verification";
 import { checkRateLimit, getClientIp } from "@/lib/ratelimit";
+import { strongPasswordSchema } from "@/lib/password";
 
 const VALID_COURSES = [
     "BSIT",
@@ -31,13 +32,7 @@ const registerSchemaServer = z.object({
             message:
                 "Email aliases (+ tags) are not permitted. Use your primary school email.",
         }),
-    password: z
-        .string()
-        .min(8, "Password must be at least 8 characters.")
-        .refine(
-            (p) => Buffer.byteLength(p, "utf8") <= 72,
-            "Password must be at most 72 bytes.",
-        ),
+    password: strongPasswordSchema,
     verificationCode: z
         .string()
         .regex(/^\d{6}$/, "Verification code must be 6 digits."),

@@ -63,7 +63,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
 
     const logout = async () => {
-        const response = await fetch('/api/auth/logout', { method: 'POST' });
+        const headers: HeadersInit = {};
+        if (token) {
+            headers["Authorization"] = `Bearer ${token}`;
+        }
+        const response = await fetch('/api/auth/logout', { method: 'POST', headers });
         if (!response.ok) throw new Error('Unable to sign out. Please try again.');
         await clearStoredAuth();
         setToken(null);

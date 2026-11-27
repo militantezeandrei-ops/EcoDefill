@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ecodefill_mobile/features/auth/providers/auth_provider.dart';
 import 'package:ecodefill_mobile/core/theme/app_theme.dart';
 import 'package:ecodefill_mobile/core/widgets/dynamic_island_notification.dart';
+import 'package:ecodefill_mobile/core/utils/password_validator.dart';
 
 class RegisterScreen extends ConsumerStatefulWidget {
   const RegisterScreen({super.key});
@@ -614,6 +615,12 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                         obscureText: _obscurePassword,
                         decoration: InputDecoration(
                           labelText: 'Password',
+                          helperText: passwordPolicyHint,
+                          helperMaxLines: 2,
+                          helperStyle: const TextStyle(
+                            color: AppTheme.textMuted,
+                            fontSize: 11,
+                          ),
                           prefixIcon: const Icon(Icons.lock_outlined),
                           suffixIcon: IconButton(
                             icon: Icon(
@@ -631,15 +638,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                           filled: true,
                           fillColor: Colors.white,
                         ),
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Please enter your password';
-                          }
-                          if (value.length < 8) {
-                            return 'Password must be at least 8 characters';
-                          }
-                          return null;
-                        },
+                        validator: validateStrongPassword,
                       ),
                       const SizedBox(height: 16),
 

@@ -25,6 +25,7 @@ import { GET as reports } from "../src/app/api/admin/reports/export/route";
 import { GET as maintenance } from "../src/app/api/admin/maintenance/route";
 import { POST as logout } from "../src/app/api/auth/logout/route";
 import { getAndEnforceMaintenanceStatus, saveMaintenanceConfig } from "../src/lib/maintenance";
+import { hasSequentialDigits, validateStrongPassword } from "../src/lib/password";
 
 process.env.JWT_SECRET = "test-only-secret-".repeat(4);
 process.env.MACHINE_SECRET = "test-only-machine-".repeat(4);
@@ -202,7 +203,7 @@ test("redemption and material counts cannot invent negative, fractional, or exce
 });
 
 test("logout clears the HttpOnly admin cookie on the server", async () => {
-    const response = await logout();
+    const response = await logout(request("/api/auth/logout", {}));
     assert.match(response.headers.get("set-cookie")!, /adminAuthToken=;/);
     assert.match(response.headers.get("set-cookie")!, /Max-Age=0/i);
     assert.match(response.headers.get("set-cookie")!, /HttpOnly/i);
@@ -246,4 +247,34 @@ test('a stale filter edit cannot undo completed semester expiry', async () => {
     const saved = await saveMaintenanceConfig({ ...expiredConfig, filterStartDate: new Date().toISOString() });
     assert.equal(saved.semesterResetDone, true);
     assert.equal(saved.lastPointsResetAt, current.lastPointsResetAt);
+});
+
+test("strong password policy enforces uppercase, number, symbol, and rejects sequential digits", () => {
+    assert.equal(hasSequentialDigits("Eco@2026"), false);
+    assert.equal(hasSequentialDigits("Pass123!"), true);
+    assert.equal(hasSequentialDigits("Pass321!"), true);
+    assert.equal(hasSequentialDigits("Admin#987"), true);
+    assert.equal(hasSequentialDigits("Test!012"), true);
+    assert.equal(hasSequentialDigits("Test!210"), true);
+
+    assert.equal(validateStrongPassword("Eco@2026"), null);
+    assert.equal(validateStrongPassword("MyPass#482"), null);
+    assert.notEqual(validateStrongPassword("short1!"), null);
+    assert.notEqual(validateStrongPassword("lowercase1!"), null);
+    assert.notEqual(validateStrongPassword("NoSymbol12"), null);
+    assert.notEqual(validateStrongPassword("NoNumber!!"), null);
+    assert.notEqual(validateStrongPassword("Strong123!"), null);
+    assert.notEqual(validateStrongPassword("Strong321!"), null);
+});
+
+test("logout revokes active session tokenVersion when a valid token is supplied", async () => {
+    let revokedWhere: any = null;
+    stub(prisma.user, "updateMany", async (args: any) => {
+        revokedWhere = args.where;
+        return { count: 1 };
+    });
+    const cookie = "adminAuthToken=" + signToken(payload);
+    const response = await logout(request("/api/auth/logout", {}, { cookie }));
+    assert.equal(response.status, 200);
+    assert.deepEqual(revokedWhere, { id: userId, tokenVersion: 2 });
 });

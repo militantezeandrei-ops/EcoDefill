@@ -2,10 +2,17 @@ import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { verifyPassword } from "@/lib/auth";
 import { authenticateRequest, handleApiError } from "@/lib/api-middleware";
+import { checkRateLimit } from "@/lib/ratelimit";
 import { z } from "zod";
 
 const deleteAccountSchema = z.object({
-    password: z.string(),
+    password: z
+        .string()
+        .min(1, "Password is required")
+        .refine(
+            (p) => Buffer.byteLength(p, "utf8") <= 72,
+            "Invalid password.",
+        ),
 });
 
 export async function POST(req: NextRequest) {
@@ -16,6 +23,12 @@ export async function POST(req: NextRequest) {
         }
 
         const userId = auth.user!.userId;
+        if (!(await checkRateLimit(`delete-account:${userId}`, 5, 15 * 60_000))) {
+            return NextResponse.json(
+                { message: "Too many attempts. Please try again later." },
+                { status: 429 },
+            );
+        }
 
         const body = await req.json();
         const parsed = deleteAccountSchema.safeParse(body);
@@ -25,10 +38,10 @@ export async function POST(req: NextRequest) {
 
         const { password } = parsed.data;
 
-        // Fetch user password hash
+        // Fetch user password hash and email
         const user = await prisma.user.findUnique({
             where: { id: userId },
-            select: { passwordHash: true }
+            select: { email: true, passwordHash: true },
         });
 
         if (!user) {
@@ -43,6 +56,7 @@ export async function POST(req: NextRequest) {
 
         // Delete all user related records in a transaction to satisfy foreign key constraints
         await prisma.$transaction([
+            prisma.verificationCode.deleteMany({ where: { email: user.email } }),
             prisma.transaction.deleteMany({ where: { userId } }),
             prisma.qrToken.deleteMany({ where: { userId } }),
             prisma.machineSession.deleteMany({ where: { userId } }),

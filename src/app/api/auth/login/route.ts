@@ -4,6 +4,10 @@ import { verifyPassword, signToken } from "@/lib/auth";
 import { z } from "zod";
 import { checkRateLimit, getClientIp } from "@/lib/ratelimit";
 
+// Precomputed dummy bcrypt hash to equalize response time on unknown emails
+const DUMMY_PASSWORD_HASH =
+    "$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy";
+
 const loginSchema = z.object({
     email: z.string().trim().toLowerCase().email(),
     password: z.string().min(6).max(72),
@@ -20,7 +24,7 @@ export async function POST(req: NextRequest) {
         const result = loginSchema.safeParse(body);
 
         if (!result.success) {
-            return NextResponse.json({ message: "Invalid input", errors: result.error.format() }, { status: 400 });
+            return NextResponse.json({ message: "Invalid input" }, { status: 400 });
         }
 
         const { email, password } = result.data;
@@ -30,6 +34,7 @@ export async function POST(req: NextRequest) {
 
         const user = await prisma.user.findUnique({ where: { email } });
         if (!user) {
+            await verifyPassword(password, DUMMY_PASSWORD_HASH);
             return NextResponse.json({ message: "Invalid credentials" }, { status: 401 });
         }
 

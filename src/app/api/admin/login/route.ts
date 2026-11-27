@@ -4,6 +4,10 @@ import { verifyPassword, signToken } from "@/lib/auth";
 import { z } from "zod";
 import { checkRateLimit, getClientIp } from "@/lib/ratelimit";
 
+// Precomputed dummy bcrypt hash to equalize response time on unknown/non-admin emails
+const DUMMY_PASSWORD_HASH =
+    "$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy";
+
 const loginSchema = z.object({
     email: z.string().trim().toLowerCase().email(),
     password: z.string().min(6).max(72),
@@ -24,7 +28,7 @@ export async function POST(req: NextRequest) {
 
         if (!result.success) {
             return NextResponse.json(
-                { message: "Invalid input", errors: result.error.format() },
+                { message: "Invalid input" },
                 { status: 400 },
             );
         }
@@ -39,8 +43,9 @@ export async function POST(req: NextRequest) {
 
         const user = await prisma.user.findUnique({ where: { email } });
         if (!user || user.role !== "ADMIN") {
+            await verifyPassword(password, DUMMY_PASSWORD_HASH);
             return NextResponse.json(
-                { message: "Invalid credentials or unauthorized" },
+                { message: "Invalid credentials" },
                 { status: 401 },
             );
         }
@@ -59,9 +64,9 @@ export async function POST(req: NextRequest) {
             tokenVersion: user.tokenVersion,
         });
 
+        // Do not return the admin JWT in the response body; rely exclusively on the HttpOnly cookie.
         const response = NextResponse.json({
             message: "Success",
-            token,
             user: {
                 id: user.id,
                 email: user.email,
@@ -70,7 +75,6 @@ export async function POST(req: NextRequest) {
             },
         });
 
-        // Set HttpOnly cookie for admin session
         response.cookies.set("adminAuthToken", token, {
             httpOnly: true,
             secure: process.env.NODE_ENV === "production",

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ecodefill_mobile/features/auth/providers/auth_provider.dart';
 import 'package:ecodefill_mobile/core/theme/app_theme.dart';
 import 'package:ecodefill_mobile/core/widgets/dynamic_island_notification.dart';
+import 'package:ecodefill_mobile/core/utils/password_validator.dart';
 
 class ResetPasswordScreen extends ConsumerStatefulWidget {
   final String email;
@@ -210,6 +211,12 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
                         obscureText: _obscurePassword,
                         decoration: InputDecoration(
                           labelText: 'New Password',
+                          helperText: passwordPolicyHint,
+                          helperMaxLines: 2,
+                          helperStyle: const TextStyle(
+                            color: AppTheme.textMuted,
+                            fontSize: 11,
+                          ),
                           prefixIcon: const Icon(Icons.lock_outlined),
                           suffixIcon: IconButton(
                             icon: Icon(
@@ -227,15 +234,7 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
                           filled: true,
                           fillColor: Colors.white,
                         ),
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Please enter your new password';
-                          }
-                          if (value.length < 8) {
-                            return 'Password must be at least 8 characters';
-                          }
-                          return null;
-                        },
+                        validator: validateStrongPassword,
                       ),
                       const SizedBox(height: 24),
 

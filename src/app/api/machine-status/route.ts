@@ -1,11 +1,21 @@
 import { authenticateMachine } from "@/lib/machine-auth";
 export const dynamic = "force-dynamic";
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
+import { checkRateLimit, getClientIp } from "@/lib/ratelimit";
+import { z } from "zod";
 
 const HEARTBEAT_TIMEOUT_SECONDS = 30;
 
-export async function GET(req: Request) {
+const machineStatusPostSchema = z.object({
+    machineId: z.string().min(1).max(50),
+    status: z.string().min(1).max(20).optional(),
+    waterLevel: z.string().max(100).optional(),
+    rssi: z.number().int().min(-200).max(100).optional(),
+    pingMs: z.number().int().min(-200).max(60000).optional(),
+});
+
+export async function GET(req: NextRequest) {
     try {
         const { searchParams } = new URL(req.url);
         const machineId = searchParams.get('machineId') || "MACHINE_01";
@@ -13,6 +23,10 @@ export async function GET(req: Request) {
 
         // 1. If this is a status/liveness check from frontend (Mobile or Admin)
         if (isStatusCheck) {
+            const ip = getClientIp(req);
+            if (!(await checkRateLimit(`machine-status-check:${ip}`, 60, 60_000))) {
+                return NextResponse.json({ error: "Too many status requests" }, { status: 429 });
+            }
             const latestLog = await prisma.machineLog.findFirst({
                 where: {
                     OR: [
@@ -125,13 +139,15 @@ export async function GET(req: Request) {
 
 export async function POST(req: Request) {
     try {
-        const { machineId, status, waterLevel, rssi, pingMs } = await req.json();
+        const body = await req.json();
 
-        if (!authenticateMachine(req, machineId)) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-        if (!machineId) {
-            return NextResponse.json({ error: 'Missing machineId' }, { status: 400 });
+        if (!authenticateMachine(req, body?.machineId)) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        const parsed = machineStatusPostSchema.safeParse(body);
+        if (!parsed.success) {
+            return NextResponse.json({ error: 'Invalid machine status payload' }, { status: 400 });
         }
 
+        const { machineId, status, waterLevel, rssi, pingMs } = parsed.data;
         const currentStatus = status || 'ONLINE';
         const currentMessage = waterLevel || '20.0L';
         const signalRssi = typeof rssi === 'number' ? rssi : (typeof pingMs === 'number' ? pingMs : 0);

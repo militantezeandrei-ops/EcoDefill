@@ -3,11 +3,28 @@ export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { verifyPassword } from "@/lib/auth";
+import { checkRateLimit } from "@/lib/ratelimit";
+import { z } from "zod";
 import {
     getAndEnforceMaintenanceStatus,
     saveMaintenanceConfig,
     MaintenanceConfig,
 } from "@/lib/maintenance";
+
+const maintenancePostSchema = z.object({
+    action: z.enum(["set_semester", "replace_filter"]),
+    adminPassword: z
+        .string()
+        .min(1, "Admin password is required to authorize maintenance changes.")
+        .refine(
+            (p) => Buffer.byteLength(p, "utf8") <= 72,
+            "Invalid admin password.",
+        ),
+    semesterStartDate: z.string().max(40).optional(),
+    semesterEndDate: z.string().max(40).optional(),
+    syncFilterTimer: z.boolean().optional(),
+    filterStartDate: z.string().max(40).optional(),
+});
 
 
 export async function GET(req: NextRequest) {
@@ -45,16 +62,31 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }
 
+    if (!(await checkRateLimit(`admin-maintenance:${auth.userId}`, 10, 15 * 60_000))) {
+        return NextResponse.json(
+            { message: "Too many maintenance authorization attempts. Please try again later." },
+            { status: 429 },
+        );
+    }
+
     try {
         const body = await req.json();
-        const { action, adminPassword, semesterStartDate, semesterEndDate, syncFilterTimer, filterStartDate } = body;
-
-        if (!adminPassword || typeof adminPassword !== "string") {
-            return NextResponse.json(
-                { message: "Admin password is required to authorize maintenance changes." },
-                { status: 400 }
-            );
+        const parsed = maintenancePostSchema.safeParse(body);
+        if (!parsed.success) {
+            const firstError =
+                parsed.error.issues[0]?.message ||
+                "Invalid maintenance request payload.";
+            return NextResponse.json({ message: firstError }, { status: 400 });
         }
+
+        const {
+            action,
+            adminPassword,
+            semesterStartDate,
+            semesterEndDate,
+            syncFilterTimer,
+            filterStartDate,
+        } = parsed.data;
 
         // Verify Admin credentials against the database
         const adminUser = await prisma.user.findUnique({

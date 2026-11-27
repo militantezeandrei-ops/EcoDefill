@@ -7,13 +7,25 @@ export const dynamic = "force-dynamic";
 
 export default async function TransactionsPage() {
     await requireAdmin();
-    const transactions = await prisma.transaction.findMany({
-        orderBy: { createdAt: "desc" },
-        include: { user: { select: { fullName: true, email: true } } },
-    });
+    const [transactions, totalTransactionsCount, earnedAgg, redeemedAgg] = await Promise.all([
+        prisma.transaction.findMany({
+            orderBy: { createdAt: "desc" },
+            take: 300,
+            include: { user: { select: { fullName: true, email: true } } },
+        }),
+        prisma.transaction.count(),
+        prisma.transaction.aggregate({
+            where: { type: "EARN" },
+            _sum: { amount: true },
+        }),
+        prisma.transaction.aggregate({
+            where: { type: "REDEEM" },
+            _sum: { amount: true },
+        }),
+    ]);
 
-    const totalEarned = transactions.filter(t => t.type === "EARN").reduce((s, t) => s + Number(t.amount), 0);
-    const totalRedeemed = transactions.filter(t => t.type === "REDEEM").reduce((s, t) => s + Number(t.amount), 0);
+    const totalEarned = Number(earnedAgg._sum.amount || 0);
+    const totalRedeemed = Number(redeemedAgg._sum.amount || 0);
 
     // Group by date
     const groupMap = new Map<string, {
@@ -80,7 +92,7 @@ export default async function TransactionsPage() {
                 </div>
                 <div className="flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-2 shadow-sm">
                     <span className="text-[12px] font-bold text-gray-500 uppercase tracking-wider">Total</span>
-                    <span className="text-[15px] font-black text-gray-900">{transactions.length.toLocaleString()}</span>
+                    <span className="text-[15px] font-black text-gray-900">{totalTransactionsCount.toLocaleString()}</span>
                 </div>
             </div>
 

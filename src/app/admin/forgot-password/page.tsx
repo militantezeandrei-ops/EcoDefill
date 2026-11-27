@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { apiClient } from "@/lib/api";
 import { showToast } from "@/lib/toast";
 import { OtpInput } from "@/components/OtpInput";
+import { PASSWORD_POLICY_HINT, validateStrongPassword } from "@/lib/password";
 
 export default function AdminForgotPasswordPage() {
     const [email, setEmail] = useState("");
@@ -60,8 +61,9 @@ export default function AdminForgotPasswordPage() {
             setMessage("Enter the 6-digit verification code.");
             return;
         }
-        if (newPassword.length < 8) {
-            setMessage("New password must be at least 8 characters.");
+        const passwordError = validateStrongPassword(newPassword);
+        if (passwordError) {
+            setMessage(passwordError);
             return;
         }
         if (newPassword !== confirmPassword) {
@@ -151,6 +153,9 @@ export default function AdminForgotPasswordPage() {
                             placeholder="••••••••"
                             required
                         />
+                        <p className="mt-1.5 ml-1 text-[11px] font-medium text-gray-400">
+                            {PASSWORD_POLICY_HINT}
+                        </p>
                     </div>
 
                     <div>

@@ -49,3 +49,7 @@ sketch/
 
 # Device credentials are provisioned locally.
 hardware/Esp32_Devkit/machine_secrets.h
+
+# Local SQLite dev databases
+prisma/*.db
+prisma/*.db-journal

@@ -6,6 +6,7 @@ import { authenticateRequest, handleApiError } from "@/lib/api-middleware";
 import { getAndEnforceMaintenanceStatus } from "@/lib/maintenance";
 import { getJwtSecret } from "@/lib/jwt-config";
 import { redeemAmountSchema, manilaDayStart } from "@/lib/points";
+import { checkRateLimit } from "@/lib/ratelimit";
 
 export async function POST(req: NextRequest) {
     try {
@@ -15,6 +16,12 @@ export async function POST(req: NextRequest) {
                 { error: auth.error },
                 { status: auth.status },
             );
+        if (!(await checkRateLimit(`redeem-init:${auth.user!.userId}`, 20, 60_000))) {
+            return NextResponse.json(
+                { error: "Too many redemption requests. Please wait a moment." },
+                { status: 429 },
+            );
+        }
         const parsed = redeemAmountSchema.safeParse((await req.json()).amount);
         if (!parsed.success)
             return NextResponse.json(

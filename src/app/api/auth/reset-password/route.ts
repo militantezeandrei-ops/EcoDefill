@@ -4,17 +4,12 @@ import bcrypt from "bcryptjs";
 import prisma from "@/lib/prisma";
 import { verifyAndConsumeCode, VerificationPurpose } from "@/lib/verification";
 import { checkRateLimit, getClientIp } from "@/lib/ratelimit";
+import { strongPasswordSchema } from "@/lib/password";
 
 const resetPasswordSchema = z.object({
     email: z.string().email(),
     code: z.string().regex(/^\d{6}$/),
-    newPassword: z
-        .string()
-        .min(8)
-        .refine(
-            (p) => Buffer.byteLength(p, "utf8") <= 72,
-            "Password must be at most 72 bytes.",
-        ),
+    newPassword: strongPasswordSchema,
 });
 
 export async function POST(req: NextRequest) {
@@ -30,8 +25,10 @@ export async function POST(req: NextRequest) {
         const body = await req.json();
         const parsed = resetPasswordSchema.safeParse(body);
         if (!parsed.success) {
+            const firstError =
+                parsed.error.issues[0]?.message || "Invalid request data.";
             return NextResponse.json(
-                { message: "Invalid request data." },
+                { message: firstError },
                 { status: 400 },
             );
         }

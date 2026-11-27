@@ -12,6 +12,7 @@ import {
     pointsForItems,
 } from "@/lib/points";
 import { getAndEnforceMaintenanceStatus } from "@/lib/maintenance";
+import { checkRateLimit, getClientIp } from "@/lib/ratelimit";
 
 const schema = z.object({
     token: z.string().min(1).max(2048),
@@ -39,6 +40,15 @@ export async function POST(req: NextRequest) {
                 { error: "Unauthorized" },
                 { status: 401 },
             );
+        if (!machine) {
+            const ip = getClientIp(req);
+            if (!(await checkRateLimit(`verify-qr:${ip}`, 60, 60_000))) {
+                return NextResponse.json(
+                    { error: "Too many verification attempts. Please wait a moment." },
+                    { status: 429 },
+                );
+            }
+        }
         const qr = await prisma.qrToken.findFirst({
             where: { OR: [{ shortToken: token }, { token }] },
         });

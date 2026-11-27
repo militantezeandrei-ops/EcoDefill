@@ -1,29 +1,13 @@
 "use client";
 
-import { ReactNode, useEffect } from "react";
+import { ReactNode } from "react";
 import { AdminBottomNav } from "@/components/layout/AdminBottomNav";
-import { useAuth } from "@/hooks/useAuth";
-import { useRouter, usePathname } from "next/navigation";
+import { usePathname } from "next/navigation";
 
 export default function AdminLayout({ children }: { children: ReactNode }) {
-    const { isAuthenticated, isLoading, user } = useAuth();
-    const router = useRouter();
     const pathname = usePathname();
-
-    const isPublicRoute = pathname === "/admin/login" || pathname === "/admin/forgot-password";
-
-    useEffect(() => {
-        if (!isLoading && !isPublicRoute) {
-            if (!isAuthenticated) {
-                router.push("/admin/login");
-            } else if (user?.role !== "ADMIN") {
-                router.push("/dashboard");
-            }
-        }
-    }, [isAuthenticated, isLoading, user, router, isPublicRoute]);
-
-    if (isLoading) return null;
-    if (!isPublicRoute && (!isAuthenticated || user?.role !== "ADMIN")) return null;
+    const isPublicRoute =
+        pathname === "/admin/login" || pathname === "/admin/forgot-password";
 
     if (isPublicRoute) return <>{children}</>;
 
@@ -35,7 +19,9 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
                 </div>
 
                 {/* Only show bottom nav on dashboard routes if we are on mobile */}
-                {!isPublicRoute && <div className="block md:hidden"><AdminBottomNav /></div>}
+                <div className="block md:hidden">
+                    <AdminBottomNav />
+                </div>
             </div>
         </div>
     );

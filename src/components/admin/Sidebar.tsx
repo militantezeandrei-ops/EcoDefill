@@ -2,7 +2,9 @@
 
 import Link from "next/link";
 import Image from "next/image";
+import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
+import { clearStoredAuth } from "@/lib/auth-storage";
 import {
     LayoutDashboard,
     Users,
@@ -42,12 +44,23 @@ const navGroups = [
 export default function Sidebar() {
     const pathname = usePathname();
     const router = useRouter();
+    const [pendingHref, setPendingHref] = useState<string | null>(null);
 
-    const handleLogout = () => {
-        document.cookie =
-            "adminAuthToken=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
-        router.push("/admin/login");
+    useEffect(() => {
+        setPendingHref(null);
+    }, [pathname]);
+
+    const handleLogout = async () => {
+        try {
+            await fetch("/api/auth/logout", { method: "POST" });
+        } finally {
+            await clearStoredAuth();
+            router.push("/admin/login");
+            router.refresh();
+        }
     };
+
+    const activePath = pendingHref ?? pathname;
 
     return (
         <aside className="hidden md:flex h-screen w-64 shrink-0 flex-col bg-white border-r border-gray-200 text-gray-900 shadow-sm z-40">
@@ -79,13 +92,18 @@ export default function Sidebar() {
                         </p>
                         <div className="space-y-1">
                             {group.items.map((item) => {
-                                const isActive = pathname === item.href;
+                                const isActive = activePath === item.href;
                                 const Icon = item.icon;
                                 return (
                                     <Link
                                         key={item.href}
                                         href={item.href}
                                         prefetch={true}
+                                        onClick={() => {
+                                            if (item.href !== pathname) {
+                                                setPendingHref(item.href);
+                                            }
+                                        }}
                                         onMouseEnter={() => router.prefetch(item.href)}
                                         onFocus={() => router.prefetch(item.href)}
                                         className={`group relative flex items-center gap-3 rounded-2xl px-4 py-3 text-[14px] font-bold transition-all duration-200 ${
