@@ -1,3 +1,4 @@
+import { unstable_cache } from "next/cache";
 import prisma from "@/lib/prisma";
 
 export interface CourseRankingEntry {
@@ -8,65 +9,66 @@ export interface CourseRankingEntry {
 
 export const BASE_COURSES = ["BSIT", "BSCS", "BSHM", "BSTM", "BECED", "BTLED", "BSOAD"] as const;
 
-export async function getCourseRanking(): Promise<CourseRankingEntry[]> {
-    // Fetch all student EARN transactions in a single query to prevent N+1 database queries
-    const transactions = await prisma.transaction.findMany({
-        where: {
-            type: "EARN",
-            status: "SUCCESS",
-            user: {
-                role: "STUDENT",
-            },
-        },
-        select: {
-            amount: true,
-            count: true,
-            materialType: true,
-            user: {
-                select: {
-                    course: true,
-                },
-            },
-        },
-    });
+interface CourseAggregateRow {
+    course: string;
+    points: number;
+    items: number;
+}
 
-    // Initialize course totals
+async function queryCourseRanking(): Promise<CourseRankingEntry[]> {
+    const rows = await prisma.$queryRaw<CourseAggregateRow[]>`
+        SELECT
+            UPPER(u."course") AS "course",
+            COALESCE(SUM(t."amount"), 0)::double precision AS "points",
+            COALESCE(SUM(
+                CASE
+                    WHEN t."count" IS NOT NULL AND t."count" > 0 THEN t."count"::double precision
+                    WHEN t."materialType" = 'BOTTLE' THEN t."amount"::double precision
+                    WHEN t."materialType" = 'CUP' THEN (t."amount" * 2)::double precision
+                    WHEN t."materialType" = 'PAPER' THEN (t."amount" * 3)::double precision
+                    ELSE t."amount"::double precision
+                END
+            ), 0)::double precision AS "items"
+        FROM "Transaction" t
+        INNER JOIN "User" u ON u."id" = t."userId"
+        WHERE t."type" = 'EARN'
+          AND t."status" = 'SUCCESS'
+          AND u."role" = 'STUDENT'
+          AND u."course" IS NOT NULL
+        GROUP BY UPPER(u."course")
+    `;
+
     const courseTotals: Record<string, { points: number; items: number }> = {};
     for (const c of BASE_COURSES) {
         courseTotals[c.toUpperCase()] = { points: 0, items: 0 };
     }
 
-    // Aggregate in memory
-    for (const tx of transactions) {
-        const rawCourse = tx.user?.course;
-        if (!rawCourse) continue;
-        const courseKey = rawCourse.toUpperCase();
-        
-        if (courseTotals[courseKey] !== undefined) {
-            const points = Number(tx.amount || 0);
-            const count = tx.count || 0;
-            let items = count;
-
-            if (!items) {
-                if (tx.materialType === "BOTTLE") items = points;
-                else if (tx.materialType === "CUP") items = points * 2;
-                else if (tx.materialType === "PAPER") items = points * 3;
-                else items = points;
-            }
-
-            courseTotals[courseKey].points += points;
-            courseTotals[courseKey].items += items;
+    for (const row of rows) {
+        const key = row.course?.toUpperCase();
+        if (key && courseTotals[key] !== undefined) {
+            courseTotals[key] = {
+                points: Number(row.points || 0),
+                items: Number(row.items || 0),
+            };
         }
     }
 
-    const ranking = BASE_COURSES.map((course) => {
+    return BASE_COURSES.map((course) => {
         const totals = courseTotals[course.toUpperCase()];
         return {
             course,
             points: totals.points,
             items: totals.items,
         };
-    });
+    }).sort((a, b) => b.points - a.points);
+}
 
-    return ranking.sort((a, b) => b.points - a.points);
+const getCachedCourseRanking = unstable_cache(
+    queryCourseRanking,
+    ["course-ranking-v1"],
+    { revalidate: 15, tags: ["course-ranking"] },
+);
+
+export async function getCourseRanking(): Promise<CourseRankingEntry[]> {
+    return getCachedCourseRanking();
 }

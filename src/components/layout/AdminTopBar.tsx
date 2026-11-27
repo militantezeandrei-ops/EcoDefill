@@ -67,17 +67,18 @@ export function AdminTopBar() {
         };
 
         window.addEventListener("storage", handleStorageChange);
-        const interval = setInterval(handleStorageChange, 1000);
 
         return () => {
             window.removeEventListener("storage", handleStorageChange);
-            clearInterval(interval);
         };
     }, []);
 
     // Fetch registrations + piggybacked maintenance alerts in a single efficient call
     useEffect(() => {
         const fetchNotifications = async () => {
+            if (typeof document !== "undefined" && document.visibilityState !== "visible") {
+                return;
+            }
             try {
                 const res = await fetch("/api/admin/notifications/registrations");
                 if (res.ok) {
@@ -91,7 +92,7 @@ export function AdminTopBar() {
         };
 
         fetchNotifications();
-        const interval = setInterval(fetchNotifications, 15000);
+        const interval = setInterval(fetchNotifications, 30000);
         return () => clearInterval(interval);
     }, []);
 

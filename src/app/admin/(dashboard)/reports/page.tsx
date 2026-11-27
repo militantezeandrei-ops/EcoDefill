@@ -1,48 +1,76 @@
+import { unstable_cache } from "next/cache";
 import { requireAdmin } from "@/lib/admin-auth";
 import prisma from "@/lib/prisma";
 import { Users, Recycle, Receipt, FileText, Download, Trophy } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
+interface TopStudentRow {
+    email: string;
+    fullName: string | null;
+    course: string | null;
+    section: string | null;
+    totalPoints: number;
+    totalItems: number;
+}
+
+const getAdminReportsSummary = unstable_cache(
+    async () => {
+        const [totalUsers, totalTransactions, topStudents, itemsRecycledAgg] = await Promise.all([
+            prisma.user.count({ where: { role: "STUDENT" } }),
+            prisma.transaction.count(),
+            prisma.$queryRaw<TopStudentRow[]>`
+                SELECT
+                    u."email",
+                    u."fullName",
+                    u."course",
+                    u."section",
+                    COALESCE(SUM(t."amount"), 0)::double precision AS "totalPoints",
+                    COALESCE(SUM(
+                        CASE
+                            WHEN t."count" IS NOT NULL AND t."count" > 0 THEN t."count"::double precision
+                            WHEN t."materialType" = 'BOTTLE' THEN t."amount"::double precision
+                            WHEN t."materialType" = 'CUP' THEN (t."amount" * 2)::double precision
+                            WHEN t."materialType" = 'PAPER' THEN (t."amount" * 3)::double precision
+                            ELSE t."amount"::double precision
+                        END
+                    ), 0)::double precision AS "totalItems"
+                FROM "User" u
+                LEFT JOIN "Transaction" t
+                  ON t."userId" = u."id" AND t."type" = 'EARN'
+                WHERE u."role" = 'STUDENT'
+                GROUP BY u."id", u."email", u."fullName", u."course", u."section"
+                ORDER BY "totalPoints" DESC
+                LIMIT 10
+            `,
+            prisma.recyclingLog.aggregate({
+                _sum: { count: true },
+                where: { status: "SUCCESS" },
+            }),
+        ]);
+
+        return {
+            totalUsers,
+            totalTransactions,
+            totalItemsRecycled: itemsRecycledAgg._sum.count || 0,
+            activeStudents: topStudents.map((u) => ({
+                email: u.email,
+                fullName: u.fullName?.trim() || u.email.split("@")[0],
+                course: u.course,
+                section: u.section,
+                totalPoints: Number(u.totalPoints || 0),
+                totalItems: Number(u.totalItems || 0),
+            })),
+        };
+    },
+    ["admin-reports-summary-v1"],
+    { revalidate: 15 },
+);
+
 export default async function ReportsPage() {
     await requireAdmin();
-    const [totalUsers, totalTransactions, topUsers, itemsRecycledAgg] = await Promise.all([
-        prisma.user.count({ where: { role: "STUDENT" } }),
-        prisma.transaction.count(),
-        prisma.user.findMany({
-            where: { role: "STUDENT" },
-            include: {
-                transactions: {
-                    where: { type: "EARN" },
-                    select: { amount: true, count: true, materialType: true },
-                },
-            },
-        }),
-        prisma.recyclingLog.aggregate({
-            _sum: { count: true },
-            where: { status: "SUCCESS" }
-        })
-    ]);
-
-    const totalItemsRecycled = itemsRecycledAgg._sum.count || 0;
-
-    const activeStudents = topUsers
-        .map((u) => ({
-            email: u.email,
-            fullName: u.fullName?.trim() || u.email.split("@")[0],
-            course: u.course,
-            section: u.section,
-            totalPoints: u.transactions.reduce((s, t) => s + Number(t.amount), 0),
-            totalItems: u.transactions.reduce((s, t) => {
-                const amount = Number(t.amount);
-                if (t.materialType === "BOTTLE") return s + (t.count || amount * 1);
-                if (t.materialType === "CUP") return s + (t.count || amount * 2);
-                if (t.materialType === "PAPER") return s + (t.count || amount * 3);
-                return s + (t.count || amount);
-            }, 0),
-        }))
-        .sort((a, b) => b.totalPoints - a.totalPoints)
-        .slice(0, 10);
+    const { totalUsers, totalTransactions, totalItemsRecycled, activeStudents } =
+        await getAdminReportsSummary();
 
     const maxStudentPoints = activeStudents[0]?.totalPoints || 1;
 

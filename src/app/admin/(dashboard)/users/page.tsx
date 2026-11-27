@@ -1,3 +1,4 @@
+import { unstable_cache } from "next/cache";
 import { requireAdmin } from "@/lib/admin-auth";
 import prisma from "@/lib/prisma";
 import { Search } from "lucide-react";
@@ -6,26 +7,74 @@ import AutoRefresh from "@/components/admin/AutoRefresh";
 
 export const dynamic = "force-dynamic";
 
+interface UserEarnAggregate {
+    userId: string;
+    totalEarned: number;
+    totalItems: number;
+}
+
+const getAdminUsersData = unstable_cache(
+    async () => {
+        const [users, earnAggRows] = await Promise.all([
+            prisma.user.findMany({
+                where: { role: "STUDENT" },
+                orderBy: [{ course: "asc" }, { section: "asc" }, { email: "asc" }],
+                select: {
+                    id: true,
+                    email: true,
+                    fullName: true,
+                    balance: true,
+                    course: true,
+                    yearLevel: true,
+                    section: true,
+                    createdAt: true,
+                },
+            }),
+            prisma.$queryRaw<UserEarnAggregate[]>`
+                SELECT
+                    t."userId"::text AS "userId",
+                    COALESCE(SUM(t."amount"), 0)::double precision AS "totalEarned",
+                    COALESCE(SUM(
+                        CASE
+                            WHEN t."count" IS NOT NULL AND t."count" > 0 THEN t."count"::double precision
+                            WHEN t."materialType" = 'BOTTLE' THEN t."amount"::double precision
+                            WHEN t."materialType" = 'CUP' THEN (t."amount" * 2)::double precision
+                            WHEN t."materialType" = 'PAPER' THEN (t."amount" * 3)::double precision
+                            ELSE t."amount"::double precision
+                        END
+                    ), 0)::double precision AS "totalItems"
+                FROM "Transaction" t
+                INNER JOIN "User" u ON u."id" = t."userId"
+                WHERE t."type" = 'EARN' AND u."role" = 'STUDENT'
+                GROUP BY t."userId"
+            `,
+        ]);
+
+        return {
+            users: users.map((u) => ({
+                ...u,
+                balance: Number(u.balance),
+                createdAt: u.createdAt.toISOString(),
+            })),
+            earnAggRows,
+        };
+    },
+    ["admin-users-list-v1"],
+    { revalidate: 15 },
+);
+
 export default async function UsersPage() {
     await requireAdmin();
-    const users = await prisma.user.findMany({
-        where: { role: "STUDENT" },
-        orderBy: [{ course: "asc" }, { section: "asc" }, { email: "asc" }],
-        select: {
-            id: true,
-            email: true,
-            fullName: true,
-            balance: true,
-            course: true,
-            yearLevel: true,
-            section: true,
-            createdAt: true,
-            transactions: {
-                where: { type: "EARN" },
-                select: { amount: true, materialType: true, count: true },
+    const { users, earnAggRows } = await getAdminUsersData();
+    const earnMap = new Map(
+        earnAggRows.map((row) => [
+            row.userId,
+            {
+                totalEarned: Number(row.totalEarned || 0),
+                totalItems: Number(row.totalItems || 0),
             },
-        }
-    });
+        ]),
+    );
 
     // Defining the official course list to ENSURE they appear even if empty
     const OFFICIAL_COURSES = ["BSIT", "BSCS", "BSHM", "BSTM", "BECED", "BTLED", "BSOAD"];
@@ -98,24 +147,10 @@ export default async function UsersPage() {
         }
         const sectionNode = yearNode.sectionsMap.get(sectionName);
 
-        // Calculate points & items strictly mapped from transactions
-        let userTotalEarned = 0;
-        let userTotalItems = 0;
-
-        u.transactions.forEach((tx: any) => {
-            const amount = Number(tx.amount);
-            userTotalEarned += amount;
-            
-            if (tx.materialType === "BOTTLE") {
-                userTotalItems += (tx.count || amount * 1);
-            } else if (tx.materialType === "CUP") {
-                userTotalItems += (tx.count || amount * 2);
-            } else if (tx.materialType === "PAPER") {
-                userTotalItems += (tx.count || amount * 3);
-            } else {
-                userTotalItems += (tx.count || amount);
-            }
-        });
+        // Pull pre-aggregated points & items from SQL GROUP BY map
+        const userAgg = earnMap.get(u.id);
+        const userTotalEarned = userAgg?.totalEarned ?? 0;
+        const userTotalItems = userAgg?.totalItems ?? 0;
 
         const status = userTotalEarned > 0 ? "ACTIVE" : "INACTIVE";
 
@@ -130,7 +165,7 @@ export default async function UsersPage() {
             totalEarned: userTotalEarned,
             totalItems: userTotalItems,
             status,
-            joinedAt: u.createdAt.toISOString()
+            joinedAt: u.createdAt
         });
 
         // Add to course aggregations
@@ -163,7 +198,7 @@ export default async function UsersPage() {
 
     return (
         <div className="space-y-6">
-            <AutoRefresh intervalMs={5000} />
+            <AutoRefresh intervalMs={30000} />
             <div className="flex items-center justify-between">
                 <div>
                     <h2 className="text-3xl font-bold text-gray-900">User List</h2>

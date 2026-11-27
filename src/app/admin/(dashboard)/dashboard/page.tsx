@@ -57,7 +57,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: an
     const resolvedSearchParams = await searchParams;
     return (
         <Suspense fallback={<DashboardSkeleton />}>
-            <AutoRefresh intervalMs={5000} />
+            <AutoRefresh intervalMs={30000} />
             <DashboardContent searchParams={resolvedSearchParams} />
         </Suspense>
     );

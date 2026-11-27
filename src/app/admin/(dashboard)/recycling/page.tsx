@@ -1,8 +1,41 @@
+import { unstable_cache } from "next/cache";
 import { requireAdmin } from "@/lib/admin-auth";
 import prisma from "@/lib/prisma";
 import { Leaf, Package, Wind } from "lucide-react";
 
 export const dynamic = "force-dynamic";
+
+const getAdminRecyclingData = unstable_cache(
+    async () => {
+        const [logs, totalsAgg, walkInCount] = await Promise.all([
+            prisma.recyclingLog.findMany({
+                orderBy: { createdAt: "desc" },
+                take: 200,
+                include: { user: { select: { email: true, fullName: true, course: true } } },
+            }),
+            prisma.recyclingLog.aggregate({
+                _sum: { count: true, pointsEarned: true },
+            }),
+            prisma.recyclingLog.count({
+                where: { isWalkIn: true },
+            }),
+        ]);
+
+        return {
+            logs: logs.map((l) => ({
+                ...l,
+                pointsEarned: Number(l.pointsEarned),
+                waterDispensed: l.waterDispensed !== null ? Number(l.waterDispensed) : null,
+                createdAt: l.createdAt.toISOString(),
+            })),
+            totalItems: totalsAgg._sum.count || 0,
+            totalPts: Number(totalsAgg._sum.pointsEarned || 0),
+            walkInCount,
+        };
+    },
+    ["admin-recycling-list-v1"],
+    { revalidate: 10 },
+);
 
 function formatUserDisplayName(user?: { fullName?: string | null; email?: string | null } | null): string {
     if (!user) return "Unknown";
@@ -14,22 +47,8 @@ function formatUserDisplayName(user?: { fullName?: string | null; email?: string
 
 export default async function RecyclingPage() {
     await requireAdmin();
-    const [logs, totalsAgg, walkInCount] = await Promise.all([
-        prisma.recyclingLog.findMany({
-            orderBy: { createdAt: "desc" },
-            take: 200,
-            include: { user: { select: { email: true, fullName: true, course: true } } },
-        }),
-        prisma.recyclingLog.aggregate({
-            _sum: { count: true, pointsEarned: true },
-        }),
-        prisma.recyclingLog.count({
-            where: { isWalkIn: true },
-        }),
-    ]);
-
-    const totalItems = totalsAgg._sum.count || 0;
-    const totalPts = Number(totalsAgg._sum.pointsEarned || 0);
+    const { logs: rawLogs, totalItems, totalPts, walkInCount } = await getAdminRecyclingData();
+    const logs = rawLogs.map((l) => ({ ...l, createdAt: new Date(l.createdAt) }));
     const co2Saved = (totalItems * 0.03).toFixed(1);
 
     const summaryCards = [

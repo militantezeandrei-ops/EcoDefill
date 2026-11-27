@@ -1,3 +1,4 @@
+import { unstable_cache } from "next/cache";
 import { requireAdmin } from "@/lib/admin-auth";
 import prisma from "@/lib/prisma";
 import { Lightbulb, TrendingUp, ArrowDownRight } from "lucide-react";
@@ -5,27 +6,52 @@ import TransactionAccordion from "@/components/admin/TransactionAccordion";
 
 export const dynamic = "force-dynamic";
 
+const getAdminTransactionsData = unstable_cache(
+    async () => {
+        const [transactions, totalTransactionsCount, earnedAgg, redeemedAgg] = await Promise.all([
+            prisma.transaction.findMany({
+                orderBy: { createdAt: "desc" },
+                take: 300,
+                include: { user: { select: { fullName: true, email: true } } },
+            }),
+            prisma.transaction.count(),
+            prisma.transaction.aggregate({
+                where: { type: "EARN" },
+                _sum: { amount: true },
+            }),
+            prisma.transaction.aggregate({
+                where: { type: "REDEEM" },
+                _sum: { amount: true },
+            }),
+        ]);
+
+        return {
+            transactions: transactions.map((tx) => ({
+                ...tx,
+                amount: Number(tx.amount),
+                createdAt: tx.createdAt.toISOString(),
+            })),
+            totalTransactionsCount,
+            totalEarned: Number(earnedAgg._sum.amount || 0),
+            totalRedeemed: Number(redeemedAgg._sum.amount || 0),
+        };
+    },
+    ["admin-transactions-list-v1"],
+    { revalidate: 10 },
+);
+
 export default async function TransactionsPage() {
     await requireAdmin();
-    const [transactions, totalTransactionsCount, earnedAgg, redeemedAgg] = await Promise.all([
-        prisma.transaction.findMany({
-            orderBy: { createdAt: "desc" },
-            take: 300,
-            include: { user: { select: { fullName: true, email: true } } },
-        }),
-        prisma.transaction.count(),
-        prisma.transaction.aggregate({
-            where: { type: "EARN" },
-            _sum: { amount: true },
-        }),
-        prisma.transaction.aggregate({
-            where: { type: "REDEEM" },
-            _sum: { amount: true },
-        }),
-    ]);
-
-    const totalEarned = Number(earnedAgg._sum.amount || 0);
-    const totalRedeemed = Number(redeemedAgg._sum.amount || 0);
+    const {
+        transactions: rawTransactions,
+        totalTransactionsCount,
+        totalEarned,
+        totalRedeemed,
+    } = await getAdminTransactionsData();
+    const transactions = rawTransactions.map((tx) => ({
+        ...tx,
+        createdAt: new Date(tx.createdAt),
+    }));
 
     // Group by date
     const groupMap = new Map<string, {
